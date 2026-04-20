@@ -16,10 +16,7 @@ from telegram.ext import (
     CommandHandler, ContextTypes,
 )
 
-from dex_fetcher import (
-    fetch_trending_tokens, fetch_new_coins, fetch_ohlcv_data, format_mc
-)
-from chart_generator import generate_chart_image
+from dex_fetcher import fetch_trending_tokens, fetch_new_coins, format_mc
 from image_generator import build_update_card, build_call_card, build_forex_card
 from payment_handler import build_payment_conversation, start
 
@@ -55,55 +52,65 @@ VIP_LINK = "https://t.me/+b7UesS3ulxxlZDdk"
 
 # ─── Keyboard buttons ──────────────────────────────────────────────────────────
 
+def _pay_url() -> str:
+    return f"https://t.me/{BOT_USERNAME}?start=vip" if BOT_USERNAME else VIP_LINK
+
 def _join_button() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([[
-        InlineKeyboardButton("🔐 Join Alpha VIP — Get Full Intel", url=VIP_LINK)
+        InlineKeyboardButton("🔐 Get VIP Access — $49/mo or $75 lifetime", url=_pay_url())
     ]])
 
 def _join_button_double() -> InlineKeyboardMarkup:
-    """Two-row button for maximum visibility on update posts."""
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔐 JOIN ALPHA VIP — FULL ACCESS", url=VIP_LINK)],
-        [InlineKeyboardButton("💳 Buy Access via Crypto", url=f"https://t.me/{BOT_USERNAME}?start=vip")],
+        [InlineKeyboardButton("🔐 GET VIP ACCESS", url=_pay_url())],
+        [InlineKeyboardButton("$49 / month  |  $75 / lifetime", url=_pay_url())],
     ])
 
 
 # ─── Caption templates — whale/professional tone ───────────────────────────────
 
 CALL_TEMPLATES = [
-    "🎯 *{name}* — early-stage entry\n\nMC: `{mc}` | Liq: `{liq}` | Vol: `{vol}`\n\nOn-chain activity flagged before broader CT. Sized in.\n\n`{ca}`\n{dex_url}",
+    "🟢 *${symbol}*\n\nMC: `{mc}` — caught before CT woke up\nLiq `{liq}` confirmed. Vol moving: `{vol}`\n\nCA 👇\n`{ca}`\n{dex_url}",
 
-    "📡 Scanner alert — *${symbol}*\n\nMarket cap `{mc}` — this is pre-crowd.\nLiquidity confirmed at `{liq}`, volume climbing: `{vol}`\n\nVIP group got this 15 min ago.\n\n`{ca}`",
+    "just added *${symbol}* to the bag\n\n`{mc}` MC right now. liq is clean at `{liq}`\nvolume already ticking: `{vol}`\n\nthis is exactly how the good ones start\n\n`{ca}`",
 
-    "Alpha incoming 🧠\n\n*{name}* — `{mc}` MC entry\n\nStructure looks clean. Liq healthy at `{liq}`.\nVolume spike: `{vol}` — institutional-size move incoming.\n\n`{ca}`\n{dex_url}",
+    "🎯 *{name}*\n\nentry at `{mc}` MC — pre-narrative\nLiq `{liq}` | Vol `{vol}`\n\nCA:\n`{ca}`\n{dex_url}",
 
-    "🔬 On-chain read: *${symbol}*\n\nMC `{mc}` | Liq `{liq}` | 24H Vol `{vol}`\n\nSmall-cap asymmetric trade. Risk-managed entry.\nFull thesis in VIP group.\n\n`{ca}`",
+    "new call dropping 🔔\n\n*${symbol}* — `{mc}` MC\n\nteam moving quietly. liq `{liq}`, vol starting to pick up: `{vol}`\n\nwe are early. very.\n\n`{ca}`",
 
-    "Whale wallet flagged *{name}* 🐋\n\nEntry MC: `{mc}` — before any narrative push.\nLiquidity `{liq}` confirms the setup.\n\n`{ca}`\n{dex_url}",
+    "🟢 caught *{name}* at `{mc}` MC\n\nLiq `{liq}` | Vol 1H `{vol}`\n\nthis is the type of entry that changes wallets. you know what to do.\n\n`{ca}`\n{dex_url}",
 
-    "📊 New position opened — *${symbol}*\n\nMC: `{mc}` | Liq: `{liq}` | Vol: `{vol}`\n\nHigh-conviction setup. Risk/reward is favourable at this entry.\n\n`{ca}`",
+    "alpha leak 🔑\n\n*${symbol}* on my radar — `{mc}` MC\n\nliq holding strong at `{liq}`, vol building\n\nCA:\n`{ca}`",
 
-    "🎯 *{name}* — flagged by our DEX scanner\n\nMC `{mc}` — very early.\nLiq `{liq}` | Vol `{vol}`\n\nThe kind of entry most people see after the move.\n\n`{ca}`\n{dex_url}",
+    "📡 scanner flagged *${symbol}*\n\n`{mc}` MC. clean structure. liq `{liq}`\n\nnot posted anywhere else yet. move fast.\n\n`{ca}`\n{dex_url}",
 
-    "Intel drop 📨\n\n*${symbol}* — `{mc}` MC\n\nWallet clusters accumulating quietly.\nLiq `{liq}`, Vol `{vol}` — watch for expansion.\n\n`{ca}`",
+    "i only share the ones i'm actually in\n\n*{name}* — `{mc}` MC entry\nLiq `{liq}` | Vol `{vol}`\n\nCA below:\n`{ca}`",
+
+    "🐋 wallet activity flagged *${symbol}*\n\nentry `{mc}` — before any push\nliq confirmed: `{liq}`\n\n`{ca}`\n{dex_url}",
+
+    "this one hasn't been posted anywhere 👀\n\n*${symbol}* — `{mc}` MC\nLiq `{liq}` / Vol `{vol}`\n\n`{ca}`",
 ]
 
 UPDATE_TEMPLATES = [
-    "📈 *{name}* — *{gain_str}* from our entry\n\nIn at `{entry_mc}` → Now `{current_mc}`\nTime held: `{time_str}` | Liq: `{liq}`\n\nExactly the asymmetric move we positioned for.\n\n`{ca}`",
+    "🟢 *${symbol}* — *{gain_str}*\n\ncalled at `{entry_mc}` → now `{current_mc}`\n{time_str} in the trade\n\nthis is why we move early\n\n`{ca}`",
 
-    "✅ *${symbol}* PRINTED — *{gain_str}*\n\nEntry: `{entry_mc}` → Current: `{current_mc}`\n`{time_str}` in the trade\n\nVIP group saw the entry. Public seeing the result.\n\n`{ca}`\n{dex_url}",
+    "we printed 💰\n\n*{name}* — *{gain_str}* from entry\n\nin at `{entry_mc}`, sitting at `{current_mc}` now\n{time_str} hold. clean.\n\n`{ca}`\n{dex_url}",
 
-    "🏆 *{name}* — *{gain_str}* return\n\nCalled at `{entry_mc}` | Now `{current_mc}`\nTime: `{time_str}` | Liq: `{liq}`\n\nThis is what disciplined entries look like.\n\n`{ca}`",
+    "scoreboard update 📋\n\n*${symbol}* — *{gain_str}*\nentry `{entry_mc}` → `{current_mc}`\ntime: {time_str}\n\n`{ca}`",
 
-    "📊 Position update — *${symbol}*\n\n*{gain_str}* since entry at `{entry_mc}`\nCurrent MC: `{current_mc}` — {time_str} held\n\nOn-chain still showing strength. VIP tracking live.\n\n`{ca}`\n{dex_url}",
+    "🏆 *{name}* doing what we thought\n\n*{gain_str}* since our call\ncalled at `{entry_mc}` | now `{current_mc}`\n\n`{ca}`\n{dex_url}",
 
-    "🐋 *{name}* — another clean call\n\n*{gain_str}* | Entry `{entry_mc}` → `{current_mc}`\n`{time_str}` hold time | Liq: `{liq}`\n\nNot luck. Pattern recognition.\n\n`{ca}`",
+    "the members who followed this call are very happy rn\n\n*${symbol}* — *{gain_str}*\ncalled at `{entry_mc}` → `{current_mc}` now\n{time_str}\n\n`{ca}`",
 
-    "Scoreboard 📋\n\n*${symbol}* — *{gain_str}*\nEntry `{entry_mc}` → Now `{current_mc}`\nTime: `{time_str}`\n\nFull alpha pipeline is only in the VIP group.\n\n`{ca}`\n{dex_url}",
+    "💎 *${symbol}* — *{gain_str}*\n\nentry `{entry_mc}` → `{current_mc}`\ntime in: {time_str} | liq: `{liq}`\n\npatience + early entry. always.\n\n`{ca}`\n{dex_url}",
 
-    "💰 *{name}* running hard\n\n*{gain_str}* from entry at `{entry_mc}`\nNow `{current_mc}` — {time_str} since call\nLiq: `{liq}`\n\n`{ca}`",
+    "another W for the circle 🎯\n\n*{name}* — *{gain_str}*\nfrom `{entry_mc}` to `{current_mc}`\n{time_str}\n\n`{ca}`",
 
-    "🎯 Called at `{entry_mc}` — *${symbol}* now *{gain_str}*\n\nCurrent MC: `{current_mc}` | Time: `{time_str}`\n\nThe edge is in the entry timing.\n\n`{ca}`\n{dex_url}",
+    "called it at `{entry_mc}` and here we are 🔥\n\n*${symbol}* — *{gain_str}*\nnow at `{current_mc}`\n\nVIP group was in before CT even heard the name\n\n`{ca}`\n{dex_url}",
+
+    "imagine not being in this circle rn 😭\n\n*{name}* — *{gain_str}*\ncalled at `{entry_mc}` → `{current_mc}` now\n{time_str} hold\n\n`{ca}`",
+
+    "🐋 *${symbol}* running exactly like we said\n\n*{gain_str}* | in at `{entry_mc}` → `{current_mc}`\nliq still holding: `{liq}`\n\n`{ca}`\n{dex_url}",
 ]
 
 # ─── Forex / macro signal data ─────────────────────────────────────────────────
@@ -355,24 +362,11 @@ async def send_initial_call(bot: Bot, token: dict, bot_username: str = ""):
     except Exception as e:
         log.warning(f"Call card error: {e}")
 
-    chart = None
-    try:
-        bars = fetch_ohlcv_data(token.get("pair_address", ""))
-        chart = generate_chart_image(token, bars)
-    except Exception as e:
-        log.warning(f"Chart error: {e}")
-
     sent = False
     if card:
         sent = await _send_photo(bot, card, caption, reply_markup=markup)
-    elif chart:
-        sent = await _send_photo(bot, chart, caption, reply_markup=markup)
     else:
         sent = await _send_text(bot, caption, reply_markup=markup)
-
-    if sent and card and chart:
-        await asyncio.sleep(random.uniform(3, 7))
-        await _send_photo(bot, chart, f"📊 *{symbol}* — chart")
 
     if sent:
         last_sent_time = time.time()
@@ -419,22 +413,11 @@ async def send_gain_update(bot: Bot, token: dict,
     except Exception as e:
         log.warning(f"Update card error: {e}")
 
-    chart = None
-    try:
-        bars = fetch_ohlcv_data(token.get("pair_address", ""))
-        chart = generate_chart_image(token, bars)
-    except Exception as e:
-        log.warning(f"Chart error: {e}")
-
     sent = False
     if card:
         sent = await _send_photo(bot, card, caption, reply_markup=markup)
     else:
         sent = await _send_text(bot, caption, reply_markup=markup)
-
-    if sent and chart:
-        await asyncio.sleep(random.uniform(2, 5))
-        await _send_photo(bot, chart, f"📊 *{symbol}* — {gain_s} from entry")
 
     if sent:
         last_sent_time = time.time()
@@ -483,9 +466,9 @@ async def send_vip_promo(context: ContextTypes.DEFAULT_TYPE):
     bot: Bot = context.bot
     text = random.choice(VIP_PROMOS)
     markup = InlineKeyboardMarkup([[
-        InlineKeyboardButton("🔐 Get VIP Access Now", url=VIP_LINK)
+        InlineKeyboardButton("🔐 Get VIP Access — $49/mo", url=_pay_url())
     ], [
-        InlineKeyboardButton("💳 Pay via Crypto", url=f"https://t.me/{BOT_USERNAME}?start=vip")
+        InlineKeyboardButton("$75 lifetime access →", url=_pay_url())
     ]])
     await _send_text(bot, text, reply_markup=markup)
     log.info("📢 VIP promo post sent")
