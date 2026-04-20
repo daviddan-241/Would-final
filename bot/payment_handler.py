@@ -180,5 +180,6 @@ def build_payment_conversation() -> ConversationHandler:
         fallbacks=[CommandHandler("cancel", cancel)],
         per_user=True,
         per_chat=True,
+        per_message=False,
         allow_reentry=True,
     )
