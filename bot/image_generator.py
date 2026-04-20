@@ -1,585 +1,350 @@
+"""
+TokenScan-exact card generator for Alpha Circle.
+Layout: dark BG | left panel (logo + symbol + HUGE multiplier + called-at + username badge)
+                | right panel (character, faded in from left)
+"""
+
 import io
-import math
 import os
 import random
+import math
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 
 W, H = 1280, 640
-
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "assets")
-SWAMP_BG   = os.path.join(ASSETS_DIR, "swamp_bg.png")
-PEPE_VARIANTS = [
+
+# Character images (right-side panel) — extracted from reference TokenScan cards
+CHARACTER_IMAGES = [p for p in [
+    os.path.join(ASSETS_DIR, "char_chef.png"),
+    os.path.join(ASSETS_DIR, "char_angry.png"),
+    os.path.join(ASSETS_DIR, "char_toilet.png"),
+    os.path.join(ASSETS_DIR, "char_toilet2.png"),
+    os.path.join(ASSETS_DIR, "char_grey.png"),
+    os.path.join(ASSETS_DIR, "char_sunglasses.png"),
     os.path.join(ASSETS_DIR, "pepe_sunglasses.png"),
     os.path.join(ASSETS_DIR, "pepe_suit.png"),
     os.path.join(ASSETS_DIR, "pepe_moon.png"),
     os.path.join(ASSETS_DIR, "pepe_happy.png"),
-]
+] if os.path.exists(p)]
 
-COLOR_THEMES = [
-    {"bg": (4, 14, 8),   "accent": (0, 255, 80),   "glow": (0, 140, 30),   "border": (0, 255, 85),   "label": (100, 210, 130), "sub": (70, 145, 100),  "name": "matrix"},
-    {"bg": (8, 10, 28),  "accent": (80, 130, 255),  "glow": (30, 60, 200),  "border": (60, 100, 255), "label": (120, 160, 255), "sub": (70, 100, 180),  "name": "electric"},
-    {"bg": (20, 6, 28),  "accent": (200, 80, 255),  "glow": (120, 0, 200),  "border": (180, 60, 255), "label": (180, 120, 240), "sub": (120, 70, 170),  "name": "neon_purple"},
-    {"bg": (28, 10, 4),  "accent": (255, 140, 0),   "glow": (200, 80, 0),   "border": (255, 160, 30), "label": (255, 190, 80),  "sub": (180, 120, 40),  "name": "fire"},
-    {"bg": (6, 22, 28),  "accent": (0, 220, 255),   "glow": (0, 120, 200),  "border": (0, 200, 240),  "label": (80, 220, 240),  "sub": (50, 150, 180),  "name": "cyber"},
-    {"bg": (28, 4, 10),  "accent": (255, 60, 100),  "glow": (180, 0, 50),   "border": (255, 40, 80),  "label": (255, 100, 130), "sub": (180, 50, 80),   "name": "blood"},
-    {"bg": (18, 16, 4),  "accent": (230, 220, 0),   "glow": (160, 150, 0),  "border": (240, 230, 20), "label": (240, 220, 80),  "sub": (170, 155, 40),  "name": "gold"},
-    {"bg": (4, 20, 24),  "accent": (0, 255, 200),   "glow": (0, 150, 120),  "border": (0, 240, 190),  "label": (80, 240, 200),  "sub": (50, 170, 140),  "name": "teal"},
-    {"bg": (24, 8, 20),  "accent": (255, 100, 200), "glow": (180, 20, 140), "border": (255, 80, 200), "label": (255, 140, 210), "sub": (180, 80, 150),  "name": "pink"},
-    {"bg": (8, 24, 16),  "accent": (60, 255, 140),  "glow": (20, 180, 80),  "border": (40, 240, 120), "label": (100, 255, 160), "sub": (60, 175, 100),  "name": "mint"},
-    {"bg": (10, 10, 10), "accent": (255, 255, 255),  "glow": (150, 150, 150),"border": (220, 220, 220),"label": (200, 200, 200), "sub": (130, 130, 130), "name": "chrome"},
-    {"bg": (28, 18, 0),  "accent": (255, 180, 0),   "glow": (200, 110, 0),  "border": (255, 200, 20), "label": (255, 210, 100), "sub": (190, 140, 20),  "name": "amber"},
-    {"bg": (6, 6, 24),   "accent": (120, 80, 255),  "glow": (60, 20, 200),  "border": (100, 60, 240), "label": (150, 110, 255), "sub": (90, 60, 180),   "name": "indigo"},
-    {"bg": (0, 20, 20),  "accent": (0, 200, 200),   "glow": (0, 100, 100),  "border": (0, 180, 180),  "label": (60, 200, 200),  "sub": (30, 140, 140),  "name": "aqua"},
-    {"bg": (26, 6, 6),   "accent": (255, 80, 20),   "glow": (200, 30, 0),   "border": (255, 100, 40), "label": (255, 130, 80),  "sub": (190, 80, 30),   "name": "lava"},
-]
-
-BACKGROUND_STYLES = [
-    "gradient_radial",
-    "gradient_diagonal",
-    "gradient_horizontal",
-    "gradient_corner",
-    "noise_field",
-    "grid_lines",
-    "hex_pattern",
-    "circuit_lines",
-    "particle_dots",
-    "wave_lines",
-    "star_field",
-    "scan_lines",
-]
-
-
-def _font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont:
-    import subprocess
-    paths = []
-    try:
-        style = "Bold" if bold else "Regular"
-        r = subprocess.run(["fc-list", f":style={style}", "--format=%{file}\n"],
-                           capture_output=True, text=True, timeout=3)
-        for line in r.stdout.strip().split("\n"):
-            fp = line.strip()
-            if fp and os.path.exists(fp) and ".ttf" in fp.lower():
-                paths.append(fp)
-    except Exception:
-        pass
-    fallbacks = (
-        ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-         "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf"]
-        if bold else
-        ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-         "/usr/share/fonts/truetype/freefont/FreeSans.ttf"]
-    )
-    for fp in paths + fallbacks:
-        if os.path.exists(fp):
+# ── fonts ─────────────────────────────────────────────────────────────────────
+def _font(size: int, bold: bool = False):
+    candidates_bold = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+    ]
+    candidates_reg = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+    ]
+    pool = candidates_bold if bold else candidates_reg
+    for path in pool:
+        if os.path.exists(path):
             try:
-                return ImageFont.truetype(fp, size)
+                return ImageFont.truetype(path, size)
             except Exception:
-                continue
+                pass
     return ImageFont.load_default()
 
 
-def _tw(draw, text, font):
-    bb = draw.textbbox((0, 0), text, font=font)
-    return bb[2] - bb[0]
-
-def _th(draw, text, font):
-    bb = draw.textbbox((0, 0), text, font=font)
-    return bb[3] - bb[1]
-
-def _fmt(v: float) -> str:
-    if v >= 1_000_000: return f"${v/1_000_000:.2f}M"
-    if v >= 1_000:     return f"${v/1_000:.1f}K"
-    return f"${v:.0f}"
-
-
-def _make_gradient_bg(theme: dict, style: str, seed: int) -> Image.Image:
-    rng = random.Random(seed)
-    img = Image.new("RGB", (W, H), theme["bg"])
-    pixels = img.load()
-    bg = theme["bg"]
-    acc = theme["accent"]
-
-    if style == "gradient_radial":
-        cx = rng.randint(W // 4, 3 * W // 4)
-        cy = rng.randint(H // 4, 3 * H // 4)
-        max_r = math.sqrt(W**2 + H**2) * 0.7
-        for y in range(H):
-            for x in range(W):
-                d = math.sqrt((x - cx)**2 + (y - cy)**2)
-                t = min(1.0, d / max_r)
-                r = int(bg[0] * t + acc[0] * (1 - t) * 0.25)
-                g = int(bg[1] * t + acc[1] * (1 - t) * 0.25)
-                b = int(bg[2] * t + acc[2] * (1 - t) * 0.25)
-                pixels[x, y] = (
-                    min(255, max(0, r)),
-                    min(255, max(0, g)),
-                    min(255, max(0, b))
-                )
-
-    elif style == "gradient_diagonal":
-        for y in range(H):
-            for x in range(W):
-                t = (x / W + y / H) / 2
-                t = t ** 1.5
-                r = int(bg[0] + (acc[0] - bg[0]) * (1 - t) * 0.3)
-                g = int(bg[1] + (acc[1] - bg[1]) * (1 - t) * 0.3)
-                b = int(bg[2] + (acc[2] - bg[2]) * (1 - t) * 0.3)
-                pixels[x, y] = (
-                    min(255, max(0, r)),
-                    min(255, max(0, g)),
-                    min(255, max(0, b))
-                )
-
-    elif style == "gradient_horizontal":
-        for x in range(W):
-            t = (x / W) ** 1.2
-            r = int(bg[0] * t + acc[0] * (1 - t) * 0.2)
-            g = int(bg[1] * t + acc[1] * (1 - t) * 0.2)
-            b = int(bg[2] * t + acc[2] * (1 - t) * 0.2)
-            col = (min(255, max(0, r)), min(255, max(0, g)), min(255, max(0, b)))
-            for y in range(H):
-                pixels[x, y] = col
-
-    elif style == "gradient_corner":
-        corner_x = 0 if rng.random() < 0.5 else W
-        corner_y = 0 if rng.random() < 0.5 else H
-        max_d = math.sqrt(W**2 + H**2)
-        for y in range(H):
-            for x in range(W):
-                d = math.sqrt((x - corner_x)**2 + (y - corner_y)**2)
-                t = min(1.0, d / (max_d * 0.8))
-                r = int(acc[0] * (1 - t) * 0.35 + bg[0] * t)
-                g = int(acc[1] * (1 - t) * 0.35 + bg[1] * t)
-                b = int(acc[2] * (1 - t) * 0.35 + bg[2] * t)
-                pixels[x, y] = (
-                    min(255, max(0, r)),
-                    min(255, max(0, g)),
-                    min(255, max(0, b))
-                )
-
-    draw = ImageDraw.Draw(img, "RGBA")
-
-    if style == "grid_lines":
-        step = rng.randint(40, 90)
-        line_col = tuple(min(255, c + 18) for c in bg) + (80,)
-        for x in range(0, W, step):
-            draw.line([(x, 0), (x, H)], fill=line_col, width=1)
-        for y in range(0, H, step):
-            draw.line([(0, y), (W, y)], fill=line_col, width=1)
-
-    elif style == "circuit_lines":
-        line_col = tuple(min(255, c + 30) for c in bg) + (90,)
-        for _ in range(rng.randint(8, 18)):
-            x1 = rng.randint(0, W)
-            y1 = rng.randint(0, H)
-            for _ in range(rng.randint(3, 8)):
-                direction = rng.choice(["h", "v"])
-                length = rng.randint(40, 200)
-                if direction == "h":
-                    x2 = min(W, max(0, x1 + rng.choice([-1, 1]) * length))
-                    draw.line([(x1, y1), (x2, y1)], fill=line_col, width=1)
-                    x1 = x2
-                else:
-                    y2 = min(H, max(0, y1 + rng.choice([-1, 1]) * length))
-                    draw.line([(x1, y1), (x1, y2)], fill=line_col, width=1)
-                    y1 = y2
-                draw.ellipse([x1 - 3, y1 - 3, x1 + 3, y1 + 3], fill=line_col)
-
-    elif style == "particle_dots":
-        for _ in range(rng.randint(60, 150)):
-            x = rng.randint(0, W)
-            y = rng.randint(0, H)
-            r_dot = rng.randint(1, 4)
-            alpha = rng.randint(40, 150)
-            dot_col = (acc[0], acc[1], acc[2], alpha)
-            draw.ellipse([x - r_dot, y - r_dot, x + r_dot, y + r_dot], fill=dot_col)
-
-    elif style == "star_field":
-        for _ in range(rng.randint(80, 200)):
-            x = rng.randint(0, W)
-            y = rng.randint(0, H)
-            size = rng.randint(1, 3)
-            alpha = rng.randint(50, 200)
-            v = rng.randint(180, 255)
-            draw.ellipse([x - size, y - size, x + size, y + size],
-                         fill=(v, v, v, alpha))
-
-    elif style == "scan_lines":
-        for y in range(0, H, 4):
-            draw.line([(0, y), (W, y)], fill=(0, 0, 0, 40), width=1)
-
-    elif style == "wave_lines":
-        num_waves = rng.randint(5, 12)
-        for i in range(num_waves):
-            amp = rng.randint(20, 60)
-            freq = rng.uniform(0.005, 0.02)
-            phase = rng.uniform(0, math.pi * 2)
-            base_y = int(H * (i + 1) / (num_waves + 1))
-            alpha = rng.randint(25, 70)
-            points = []
-            for x in range(0, W, 4):
-                y = int(base_y + amp * math.sin(freq * x + phase))
-                points.append((x, y))
-            if len(points) > 1:
-                draw.line(points, fill=(acc[0], acc[1], acc[2], alpha), width=1)
-
-    elif style == "noise_field":
-        for _ in range(rng.randint(200, 500)):
-            x = rng.randint(0, W)
-            y = rng.randint(0, H)
-            alpha = rng.randint(10, 50)
-            draw.point((x, y), fill=(acc[0], acc[1], acc[2], alpha))
-
-    elif style == "hex_pattern":
-        hex_r = rng.randint(30, 60)
-        col = tuple(min(255, c + 20) for c in bg) + (60,)
-        for row in range(-1, H // hex_r + 2):
-            for col_i in range(-1, W // hex_r + 2):
-                cx_h = col_i * hex_r * 1.7
-                cy_h = row * hex_r * 2 + (hex_r if col_i % 2 else 0)
-                pts = []
-                for angle in range(0, 360, 60):
-                    rad = math.radians(angle)
-                    pts.append((
-                        int(cx_h + hex_r * 0.85 * math.cos(rad)),
-                        int(cy_h + hex_r * 0.85 * math.sin(rad))
-                    ))
-                draw.polygon(pts, outline=col, fill=None)
-
-    return img
-
-
-def _load_bg_with_theme(theme: dict, style: str) -> Image.Image:
-    seed = random.randint(0, 99999)
-    try:
-        if os.path.exists(SWAMP_BG) and random.random() < 0.35:
-            bg = Image.open(SWAMP_BG).convert("RGB")
-            bg = bg.resize((W, H), Image.LANCZOS)
-            bg = ImageEnhance.Brightness(bg).enhance(0.5)
-            overlay = Image.new("RGB", (W, H), theme["bg"])
-            bg = Image.blend(bg, overlay, alpha=0.55)
-            return bg
-    except Exception:
-        pass
-    return _make_gradient_bg(theme, style, seed)
-
-
-def _make_card_base(theme: dict, style: str) -> Image.Image:
-    bg = _load_bg_with_theme(theme, style)
+# ── background ────────────────────────────────────────────────────────────────
+def _make_bg() -> Image.Image:
+    """Radial dark background — near-black charcoal like TokenScan."""
+    bg = Image.new("RGBA", (W, H), (10, 10, 16, 255))
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    od = ImageDraw.Draw(overlay)
-
-    for x in range(W):
-        t = x / W
-        if t < 0.05:
-            a = 240
-        elif t < 0.48:
-            a = int(240 * (1 - (t - 0.05) / 0.43) ** 1.3)
-        else:
-            a = 0
-        if a > 0:
-            od.line([(x, 0), (x, H)], fill=(0, 0, 0, a))
-
-    for x in range(int(W * 0.44), W):
-        t = max(0.0, (x - W * 0.44) / (W * 0.56))
-        a = int(180 * t ** 0.6)
-        od.line([(x, 0), (x, H)], fill=(0, 0, 0, a))
-
-    bg = Image.alpha_composite(bg.convert("RGBA"), overlay).convert("RGB")
+    draw = ImageDraw.Draw(overlay)
+    # subtle radial glow from top-left
+    for r in range(320, 0, -4):
+        alpha = int(25 * (1 - r / 320))
+        draw.ellipse((-r + 60, -r + 60, r + 60, r + 60),
+                     fill=(0, 60, 30, alpha))
+    bg = Image.alpha_composite(bg, overlay)
     return bg
 
 
-def _paste_pepe(img: Image.Image, pepe_path: str) -> Image.Image:
-    if not os.path.exists(pepe_path):
-        return img
-    pepe = Image.open(pepe_path).convert("RGBA")
-    target_h = int(H * 0.96)
-    target_w = int(W * 0.46)
-    pw, ph = pepe.size
-    ratio = min(target_w / pw, target_h / ph)
-    new_w = int(pw * ratio)
-    new_h = int(ph * ratio)
-    pepe = pepe.resize((new_w, new_h), Image.LANCZOS)
-
-    hue_shift = random.random() < 0.4
-    if hue_shift:
-        r, g, b, a = pepe.split()
-        channels = [r, g, b]
-        random.shuffle(channels)
-        channels.append(a)
-        pepe = Image.merge("RGBA", channels)
-
-    px = int(W * 0.01)
-    py = H - new_h - 4
-    canvas = img.convert("RGBA")
-    canvas.paste(pepe, (px, py), pepe)
-    return canvas.convert("RGB")
+# ── gradient fade (left edge of character panel) ─────────────────────────────
+def _fade_mask(width: int, height: int, fade_px: int = 200) -> Image.Image:
+    mask = Image.new("L", (width, height), 255)
+    draw = ImageDraw.Draw(mask)
+    for x in range(fade_px):
+        alpha = int(255 * (x / fade_px) ** 1.4)
+        draw.line([(x, 0), (x, height)], fill=alpha)
+    return mask
 
 
-def _draw_border(img: Image.Image, theme: dict, style_idx: int) -> Image.Image:
-    border = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    bd = ImageDraw.Draw(border)
-    r = random.choice([16, 20, 28, 36])
-    acc = theme["border"]
+# ── paste character on right panel ───────────────────────────────────────────
+def _paste_character(canvas: Image.Image, char_path: str):
+    char_panel_x = int(W * 0.52)   # character starts here
+    char_panel_w = W - char_panel_x
+    char_panel_h = H
 
-    border_styles = ["solid", "double", "glow_only", "dashed_corner"]
-    bstyle = border_styles[style_idx % len(border_styles)]
+    try:
+        ch = Image.open(char_path).convert("RGBA")
+    except Exception:
+        return
 
-    if bstyle in ("solid", "glow_only"):
-        colors = [
-            (acc[0], acc[1], acc[2], 220),
-            (acc[0] // 2, acc[1] // 2, acc[2] // 2, 160),
-            (acc[0] // 3, acc[1] // 3, acc[2] // 3, 90),
-            (acc[0] // 4, acc[1] // 4, acc[2] // 4, 40),
-        ]
-        for i, col in enumerate(colors):
-            m = i * 2
-            bd.rounded_rectangle([m, m, W - 1 - m, H - 1 - m],
-                                  radius=max(4, r - m),
-                                  outline=col, width=2)
-    elif bstyle == "double":
-        bd.rounded_rectangle([2, 2, W - 3, H - 3], radius=r,
-                              outline=(acc[0], acc[1], acc[2], 255), width=2)
-        bd.rounded_rectangle([8, 8, W - 9, H - 9], radius=max(4, r - 6),
-                              outline=(acc[0] // 2, acc[1] // 2, acc[2] // 2, 140), width=1)
-    elif bstyle == "dashed_corner":
-        corner_size = 60
-        for corners in [
-            [(2, 2), (corner_size, 2), (2, corner_size)],
-            [(W - 2, 2), (W - corner_size, 2), (W - 2, corner_size)],
-            [(2, H - 2), (corner_size, H - 2), (2, H - corner_size)],
-            [(W - 2, H - 2), (W - corner_size, H - 2), (W - 2, H - corner_size)],
-        ]:
-            bd.line([corners[0], corners[1]], fill=(acc[0], acc[1], acc[2], 255), width=3)
-            bd.line([corners[0], corners[2]], fill=(acc[0], acc[1], acc[2], 255), width=3)
+    # Scale to fill panel height, keeping aspect
+    scale = char_panel_h / ch.height
+    new_w = int(ch.width * scale)
+    new_h = char_panel_h
+    ch = ch.resize((new_w, new_h), Image.LANCZOS)
 
-    blurred = border.filter(ImageFilter.GaussianBlur(3))
-    result = Image.alpha_composite(img.convert("RGBA"), blurred)
-    sharp = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    sd = ImageDraw.Draw(sharp)
-    if bstyle != "dashed_corner":
-        sd.rounded_rectangle([3, 3, W - 4, H - 4], radius=r,
-                              outline=(acc[0], acc[1], acc[2], 255), width=2)
-    result = Image.alpha_composite(result, sharp)
-    return result.convert("RGB")
+    # Center horizontally in char panel, slight right-shift so it bleeds edge
+    paste_x = char_panel_x + max(0, (char_panel_w - new_w) // 2) - 20
+    paste_y = (H - new_h) // 2
+
+    # Apply left-side fade mask
+    fade = _fade_mask(new_w, new_h, fade_px=min(180, new_w // 2))
+    r, g, b, a = ch.split()
+    new_alpha = Image.composite(a, Image.new("L", (new_w, new_h), 0), fade)
+    ch.putalpha(new_alpha)
+
+    canvas.paste(ch, (paste_x, paste_y), ch)
 
 
-def _glow_text(draw, pos, text, font, fill, glow_color, spread=8):
-    x, y = pos
-    for dx in range(-spread, spread + 1):
-        for dy in range(-spread, spread + 1):
-            d = math.sqrt(dx * dx + dy * dy)
-            if d == 0 or d > spread:
-                continue
-            a = max(0.0, 1.0 - d / spread) ** 1.5
-            gc = tuple(int(c * a) for c in glow_color)
-            draw.text((x + dx, y + dy), text, fill=gc, font=font)
-    draw.text((x + 3, y + 4), text, fill=(0, 0, 0, 110), font=font)
-    draw.text((x, y), text, fill=fill, font=font)
+# ── TokenScan logo (top-left) ─────────────────────────────────────────────────
+def _draw_logo(draw: ImageDraw.Draw, x: int = 40, y: int = 32):
+    green = (0, 230, 118)
+    # Bars icon  ≡  (simplified, 4 vertical bars)
+    bar_w, bar_h, gap = 8, 28, 5
+    for i in range(4):
+        bx = x + i * (bar_w + gap)
+        draw.rectangle([bx, y + 2, bx + bar_w, y + 2 + bar_h], fill=green)
+    # "TokenScan" label
+    lx = x + 4 * (bar_w + gap) + 10
+    font = _font(28, bold=True)
+    draw.text((lx, y), "TokenScan", font=font, fill=(240, 240, 240, 255))
 
 
-def _shadow_text(draw, pos, text, font, fill):
-    x, y = pos
-    draw.text((x + 2, y + 3), text, fill=(0, 0, 0, 140), font=font)
-    draw.text((x, y), text, fill=fill, font=font)
+# ── username badge (pill shape, bottom-left) ──────────────────────────────────
+def _draw_badge(draw: ImageDraw.Draw, text: str, x: int, y: int):
+    font = _font(28, bold=True)
+    tw = draw.textlength(text, font=font)
+    pad_x, pad_y = 22, 10
+    bw = int(tw) + pad_x * 2
+    bh = 46
+    r = bh // 2
+    # Pill background
+    draw.rounded_rectangle([x, y, x + bw, y + bh], radius=r, fill=(0, 200, 100, 255))
+    # "●" avatar dot
+    draw.ellipse([x + 8, y + bh // 2 - 10, x + 8 + 20, y + bh // 2 + 10],
+                 fill=(255, 255, 255, 200))
+    # Text
+    draw.text((x + 36, y + pad_y), text, font=font, fill=(255, 255, 255, 255))
 
 
-def _draw_coin_icon(draw, symbol: str, cx: int, cy: int, r: int, theme: dict):
-    acc = theme["accent"]
-    draw.ellipse([cx - r - 3, cy - r - 3, cx + r + 3, cy + r + 3],
-                 fill=tuple(max(0, c - 80) for c in acc), outline=None)
-    draw.ellipse([cx - r, cy - r, cx + r, cy + r],
-                 fill=theme["bg"], outline=acc, width=2)
-    sym = symbol[:4].upper()
-    f = _font(max(10, r - 8))
-    bb = draw.textbbox((0, 0), sym, font=f)
-    tw = bb[2] - bb[0]; th = bb[3] - bb[1]
-    draw.text((cx - tw // 2, cy - th // 2), sym, fill=acc, font=f)
+# ── called-at row ─────────────────────────────────────────────────────────────
+def _draw_called_at(draw: ImageDraw.Draw, mcap_str: str, time_str: str,
+                    x: int, y: int):
+    font_sm = _font(30)
+    dim = (160, 160, 160, 255)
+    white = (220, 220, 220, 255)
+    draw.text((x, y), "Called at ", font=font_sm, fill=dim)
+    offset = int(draw.textlength("Called at ", font=font_sm))
+    draw.text((x + offset, y), mcap_str, font=_font(30, bold=True), fill=white)
+    offset2 = int(draw.textlength(mcap_str, font=_font(30, bold=True)))
+    timer_text = f"  ⏱ {time_str}"
+    draw.text((x + offset + offset2, y), timer_text, font=font_sm, fill=dim)
 
 
-def _draw_sol_badge(draw, theme: dict):
-    sx, sy, sr = W - 44, 34, 18
-    draw.ellipse([sx - sr, sy - sr, sx + sr, sy + sr],
-                 fill=(30, 10, 100), outline=(80, 50, 200), width=2)
-    f = _font(15)
-    bb = draw.textbbox((0, 0), "◎", font=f)
-    tw = bb[2] - bb[0]; th = bb[3] - bb[1]
-    draw.text((sx - tw // 2, sy - th // 2), "◎", fill=(200, 185, 255), font=f)
+# ── adaptive multiplier size ──────────────────────────────────────────────────
+def _best_mult_size(draw: ImageDraw.Draw, text: str, max_w: int,
+                    max_size: int = 230, min_size: int = 100) -> int:
+    for sz in range(max_size, min_size - 1, -4):
+        f = _font(sz, bold=True)
+        if draw.textlength(text, font=f) <= max_w:
+            return sz
+    return min_size
 
 
-def _draw_decorative_elements(draw, theme: dict, seed: int):
-    rng = random.Random(seed)
-    acc = theme["accent"]
-    alpha = 60
+# ── MAIN CARD: GAIN / UPDATE ──────────────────────────────────────────────────
+def build_update_card(
+    symbol: str,
+    multiplier: float,
+    mcap_str: str,
+    time_str: str,
+    username: str = "alpha_circle1",
+) -> bytes:
+    canvas = _make_bg()
+    draw = ImageDraw.Draw(canvas)
 
-    num_shapes = rng.randint(3, 8)
-    for _ in range(num_shapes):
-        shape_type = rng.choice(["circle", "line", "diamond"])
-        x = rng.randint(int(W * 0.5), W - 20)
-        y = rng.randint(20, H - 20)
-        size = rng.randint(4, 20)
+    # Choose & paste character
+    char = random.choice(CHARACTER_IMAGES) if CHARACTER_IMAGES else None
+    if char:
+        _paste_character(canvas, char)
 
-        if shape_type == "circle":
-            draw.ellipse([x - size, y - size, x + size, y + size],
-                         outline=(acc[0], acc[1], acc[2], alpha), width=1)
-        elif shape_type == "line":
-            length = rng.randint(30, 100)
-            angle = rng.uniform(0, math.pi)
-            x2 = int(x + length * math.cos(angle))
-            y2 = int(y + length * math.sin(angle))
-            draw.line([(x, y), (x2, y2)],
-                      fill=(acc[0], acc[1], acc[2], alpha), width=1)
-        elif shape_type == "diamond":
-            pts = [(x, y - size), (x + size, y), (x, y + size), (x - size, y)]
-            draw.polygon(pts, outline=(acc[0], acc[1], acc[2], alpha))
+    # Re-acquire draw after paste
+    draw = ImageDraw.Draw(canvas)
 
+    # ── Logo ──
+    _draw_logo(draw, x=40, y=30)
 
-def _build_card(token: dict, mode: str,
-                gain_pct: float = 0,
-                called_at: str = "",
-                elapsed_str: str = "") -> bytes:
+    # ── Symbol ──
+    sym_text = f"${symbol.upper()}"
+    sym_font = _font(52, bold=True)
+    draw.text((40, 96), sym_text, font=sym_font, fill=(0, 230, 118, 255))
 
-    card_seed = random.randint(0, 9999)
-    theme = random.choice(COLOR_THEMES)
-    bg_style = random.choice(BACKGROUND_STYLES)
-    border_style_idx = random.randint(0, 3)
+    # ── Multiplier (HUGE) ──
+    mult_text = f"{multiplier:.1f}x"
+    left_panel_w = int(W * 0.54) - 60
+    mult_size = _best_mult_size(draw, mult_text, left_panel_w,
+                                 max_size=240, min_size=90)
+    mult_font = _font(mult_size, bold=True)
+    # Shadow / glow
+    for dx, dy in [(-3, -3), (3, 3), (-3, 3), (3, -3)]:
+        draw.text((40 + dx, 160 + dy), mult_text, font=mult_font,
+                  fill=(0, 120, 60, 120))
+    draw.text((40, 160), mult_text, font=mult_font, fill=(255, 255, 255, 255))
 
-    img = _make_card_base(theme, bg_style)
+    mult_h = mult_font.getbbox(mult_text)[3]
 
-    available = [p for p in PEPE_VARIANTS if os.path.exists(p)]
-    if available:
-        img = _paste_pepe(img, random.choice(available))
+    # ── Called-at ──
+    called_y = 160 + mult_h + 14
+    _draw_called_at(draw, mcap_str, time_str, x=40, y=called_y)
 
-    img = _draw_border(img, theme, border_style_idx)
+    # ── Username badge ──
+    badge_y = H - 80
+    _draw_badge(draw, f"@{username}", x=40, y=badge_y)
 
-    draw = ImageDraw.Draw(img)
-    _draw_decorative_elements(draw, theme, card_seed)
-
-    symbol = token.get("symbol", "???").upper()
-    mc     = token.get("market_cap", 0)
-    liq    = token.get("liquidity_usd", 0)
-    vol    = token.get("volume_24h", 0)
-    ca     = token.get("address", "")
-    short  = ca[:8] + "…" + ca[-4:] if len(ca) > 12 else ca
-
-    _draw_coin_icon(draw, symbol, W // 2, 36, r=32, theme=theme)
-    _draw_sol_badge(draw, theme)
-
-    rx = int(W * 0.47)
-    rw = W - rx - 50
-
-    if mode == "call":
-        name_sz = 110
-        while name_sz > 32:
-            if _tw(draw, symbol, _font(name_sz)) <= rw:
-                break
-            name_sz -= 5
-        name_y = 60
-        _glow_text(draw, (rx, name_y), symbol,
-                   _font(name_sz), (255, 255, 255), theme["glow"], 5)
-
-        y = name_y + name_sz + 20
-        lf = _font(26)
-        vf = _font(26, bold=False)
-        gap = 44
-        label_w = 85
-        pairs = [
-            ("MC:",  _fmt(mc)),
-            ("Liq:", _fmt(liq)),
-            ("Vol:", _fmt(vol)),
-        ]
-        for i, (label, val) in enumerate(pairs):
-            _shadow_text(draw, (rx, y + i * gap), label, lf, theme["label"])
-            _shadow_text(draw, (rx + label_w, y + i * gap), val, vf, (240, 255, 245))
-
-        draw.text((rx, y + gap * 3 + 6), f"CA: {short}",
-                  fill=theme["sub"], font=_font(17, bold=False))
-
-        badge_x = rx
-        badge_y = y + gap * 3 + 48
-
-        badge_variants = [
-            ("🟢  NEW CALL", theme["accent"]),
-            ("🚀  EARLY ENTRY", (0, 180, 255)),
-            ("💎  GEM FOUND", (200, 100, 255)),
-            ("⚡  ALPHA PLAY", (255, 180, 0)),
-        ]
-        badge_text, badge_fill = random.choice(badge_variants)
-        badge_f = _font(22)
-        bw = _tw(draw, badge_text, badge_f) + 28
-        bh = 40
-        bg_col = tuple(max(0, c - 150) for c in badge_fill)
-        draw.rounded_rectangle([badge_x, badge_y, badge_x + bw, badge_y + bh],
-                                radius=10, fill=bg_col + (200,))
-        draw.text((badge_x + 14, badge_y + 9), badge_text,
-                  fill=(255, 255, 255), font=badge_f)
-
-    else:
-        name_sz = 110
-        while name_sz > 32:
-            if _tw(draw, symbol, _font(name_sz)) <= rw:
-                break
-            name_sz -= 5
-        name_y = 52
-        _glow_text(draw, (rx, name_y), symbol,
-                   _font(name_sz), (255, 255, 255), theme["glow"], 5)
-
-        sub_y = name_y + name_sz + 6
-        _shadow_text(draw, (rx, sub_y), f"called at {called_at}",
-                     _font(28, bold=False), theme["label"])
-
-        if gain_pct >= 100:
-            gain_str = f"{gain_pct / 100 + 1:.1f}X"
-        else:
-            gain_str = f"{gain_pct:.0f}%"
-
-        g_sz = 200
-        while g_sz > 60:
-            if _tw(draw, gain_str, _font(g_sz)) <= rw:
-                break
-            g_sz -= 8
-
-        gy = sub_y + 46
-        _glow_text(draw, (rx, gy), gain_str,
-                   _font(g_sz), theme["accent"], theme["glow"], 12)
-
-        info_y = gy + g_sz + 18
-        info_f  = _font(26)
-        time_f  = _font(24, bold=False)
-        _shadow_text(draw, (rx, info_y),      "👤  Alpha Circle",               info_f, (215, 245, 225))
-        _shadow_text(draw, (rx, info_y + 42), f"🕐  {elapsed_str or called_at}", time_f, theme["label"])
-
-        intel_variants = [
-            "🔐  private intel group",
-            "⚡  intel group",
-            "🔥  alpha intel",
-            "💎  VIP intel group",
-        ]
-        _shadow_text(draw, (rx, info_y + 88),
-                     random.choice(intel_variants),
-                     _font(22, bold=False), theme["sub"])
-
-    draw.line([(18, H - 50), (W - 18, H - 50)], fill=tuple(max(0, c - 150) for c in theme["accent"]), width=1)
-    bf = _font(16, bold=False)
-    draw.text((28,      H - 38), "t.me/AlphaCirclle",  fill=theme["sub"], font=bf)
-    draw.text((W - 220, H - 38), "@AlphaCirclle",       fill=theme["sub"], font=bf)
-
-    quality = random.choice([85, 90, 92, 95])
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    canvas.convert("RGB").save(buf, "JPEG", quality=92)
     buf.seek(0)
     return buf.read()
 
 
-def generate_initial_call_image(token: dict) -> bytes:
-    return _build_card(token, mode="call")
+# ── CALL CARD: NEW SIGNAL ──────────────────────────────────────────────────────
+def build_call_card(
+    symbol: str,
+    mcap_str: str,
+    liq_str: str,
+    vol_str: str,
+    chain: str = "SOL",
+    username: str = "alpha_circle1",
+) -> bytes:
+    canvas = _make_bg()
+
+    char = random.choice(CHARACTER_IMAGES) if CHARACTER_IMAGES else None
+    if char:
+        _paste_character(canvas, char)
+
+    draw = ImageDraw.Draw(canvas)
+
+    # Logo
+    _draw_logo(draw, x=40, y=30)
+
+    # Chain badge (top right of left panel)
+    chain_font = _font(26, bold=True)
+    chain_color = {
+        "SOL": (153, 69, 255),
+        "ETH": (100, 149, 237),
+        "BNB": (243, 186, 47),
+        "FX":  (0, 191, 255),
+    }.get(chain.upper(), (160, 160, 160))
+    draw.rounded_rectangle([40, 96, 40 + 90, 130], radius=14, fill=chain_color)
+    draw.text((58, 100), chain.upper(), font=chain_font, fill=(255, 255, 255, 255))
+
+    # Symbol — large
+    sym_font = _font(88, bold=True)
+    sym_text = f"${symbol.upper()}"
+    draw.text((40, 140), sym_text, font=sym_font, fill=(0, 230, 118, 255))
+
+    # "NEW CALL" stamp
+    nc_font = _font(44, bold=True)
+    nc_text = "★ NEW CALL"
+    draw.text((42, 246), nc_text, font=nc_font, fill=(255, 214, 0, 255))
+
+    # Stats row
+    stats_y = 316
+    stat_font = _font(30, bold=False)
+    stat_bold = _font(30, bold=True)
+    dim = (150, 150, 150, 255)
+    white = (220, 220, 220, 255)
+
+    def stat_line(label, value, y):
+        draw.text((40, y), label, font=stat_font, fill=dim)
+        lw = int(draw.textlength(label, font=stat_font))
+        draw.text((40 + lw, y), value, font=stat_bold, fill=white)
+
+    stat_line("Mkt Cap:  ", mcap_str, stats_y)
+    stat_line("Liq:      ", liq_str,  stats_y + 40)
+    stat_line("Vol 1H:   ", vol_str,  stats_y + 80)
+
+    # Username badge
+    badge_y = H - 80
+    _draw_badge(draw, f"@{username}", x=40, y=badge_y)
+
+    buf = io.BytesIO()
+    canvas.convert("RGB").save(buf, "JPEG", quality=92)
+    buf.seek(0)
+    return buf.read()
 
 
-def generate_kol_card(token: dict, gain_pct: float,
-                      entry_mc: float, called_at: str,
-                      elapsed_str: str = "") -> bytes:
-    return _build_card(token, mode="update",
-                       gain_pct=gain_pct, called_at=called_at,
-                       elapsed_str=elapsed_str)
+# ── FOREX / WHALE SIGNAL CARD ──────────────────────────────────────────────────
+def build_forex_card(
+    pair: str,
+    direction: str,           # "LONG" or "SHORT"
+    entry: str,
+    tp1: str,
+    tp2: str,
+    sl: str,
+    timeframe: str,
+    rr: str,
+    username: str = "alpha_circle1",
+) -> bytes:
+    canvas = _make_bg()
+
+    char = random.choice(CHARACTER_IMAGES) if CHARACTER_IMAGES else None
+    if char:
+        _paste_character(canvas, char)
+
+    draw = ImageDraw.Draw(canvas)
+    _draw_logo(draw, x=40, y=30)
+
+    # Direction color
+    dir_color = (0, 230, 118, 255) if direction.upper() in ("LONG", "BUY") else (255, 80, 80, 255)
+    dir_bg    = (0, 120, 60)       if direction.upper() in ("LONG", "BUY") else (140, 30, 30)
+
+    # Pair name
+    pair_font = _font(80, bold=True)
+    draw.text((40, 88), pair.upper(), font=pair_font, fill=(255, 255, 255, 255))
+
+    # Direction badge
+    dir_font = _font(40, bold=True)
+    dw = int(draw.textlength(direction.upper(), font=dir_font)) + 44
+    draw.rounded_rectangle([40, 188, 40 + dw, 244], radius=14, fill=dir_bg)
+    draw.text((58, 194), direction.upper(), font=dir_font, fill=dir_color)
+
+    # TF badge
+    tf_x = 40 + dw + 16
+    tf_font = _font(34, bold=False)
+    draw.text((tf_x, 196), timeframe, font=tf_font, fill=(180, 180, 180, 255))
+
+    # Entry / TP / SL grid
+    y0 = 272
+    lh = 48
+    stat_font  = _font(30)
+    stat_bold  = _font(30, bold=True)
+    dim   = (150, 150, 150, 255)
+    white = (220, 220, 220, 255)
+    green = (0, 220, 110, 255)
+    red   = (255, 90, 90, 255)
+
+    def row(label, val, col, y):
+        draw.text((40, y), label, font=stat_font, fill=dim)
+        lw = int(draw.textlength(label, font=stat_font))
+        draw.text((40 + lw, y), val, font=stat_bold, fill=col)
+
+    row("Entry:  ", entry, white, y0)
+    row("TP 1:   ", tp1,   green, y0 + lh)
+    row("TP 2:   ", tp2,   green, y0 + lh * 2)
+    row("SL:     ", sl,    red,   y0 + lh * 3)
+    row("R/R:    ", rr,    white, y0 + lh * 4)
+
+    _draw_badge(draw, f"@{username}", x=40, y=H - 80)
+
+    buf = io.BytesIO()
+    canvas.convert("RGB").save(buf, "JPEG", quality=92)
+    buf.seek(0)
+    return buf.read()
