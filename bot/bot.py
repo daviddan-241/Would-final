@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 import random
@@ -397,7 +396,7 @@ async def post_init(application: Application):
     )
 
 
-async def run_bot():
+def main():
     log.info("🚀 Alpha Circle Bot starting...")
     _start_health_server()
     _start_self_ping()
@@ -413,8 +412,8 @@ async def run_bot():
     app.add_handler(build_payment_conversation())
 
     log.info("📡 Starting polling...")
-    await app.run_polling(drop_pending_updates=True)
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
-    asyncio.run(run_bot())
+    main()
