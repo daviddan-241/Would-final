@@ -6,30 +6,39 @@ pnpm workspace monorepo using TypeScript + Python Telegram bot for Alpha Circle 
 
 ## Alpha Circle Telegram Bot (`bot/`)
 
-A fully automated Telegram bot that scans DEX Screener for Solana coins and posts KOL-style alerts.
+Premium crypto + forex trading signal bot targeting whales, alpha traders, and professional forex traders.
+Posts to channel -1003461143473 as @dextrendiing_bot. GitHub: github.com/daviddan-241/Would-final
 
 ### Features
-- Scans DEX Screener every ~5 minutes for coins with $120K–$50M+ market cap
-- Sends initial call with DEX Screener-style candlestick chart + green "NEW CALL" card
-- Tracks coins and sends gain updates at 20%, 50%, 1X, 2X, 3X, 5X, 10X milestones
-- Each update includes a Pepe/swamp-style achievement card (dark green, neon text)
-- Human-style KOL message templates (rotates randomly)
-- /start shows buttons: Add to Group, Support, Alpha Channel
-- No join/leave alerts in the group
+- Scans DEX Screener every 3 min (Solana $10K–$800K MC range)
+- Sends initial call cards (TokenScan exact style) + chart
+- Tracks and posts gain updates at 20/50/100/200/300/500/1000% milestones
+- EVERY gain update includes double VIP payment button (100%)
+- 50% of new calls include VIP button
+- Forex/macro signal job: posts EUR/USD, GBP/USD, BTC, ETH, XAU, SOL signals every ~4-5h
+- VIP promo post every ~7h
+- DM payment flow: SOL/ETH/BNB on-chain verification → group link
+- Health server + Render self-ping for 24/7 deployment
+
+### Card Design (TokenScan-exact)
+- Dark near-black background with subtle radial glow
+- LEFT panel: TokenScan logo (top-left) | $SYMBOL in neon green | HUGE white multiplier | "Called at $X | Xh Xm" | username badge (green pill)
+- RIGHT panel: character image fading in from left (6 custom TokenScan characters + 4 pepe variants)
+- 3 card types: `build_update_card`, `build_call_card`, `build_forex_card`
 
 ### Bot Files
-- `bot/bot.py` — Main bot logic, Application with handlers, scan loop as job_queue
-- `bot/dex_fetcher.py` — DEX Screener API integration
-- `bot/chart_generator.py` — Candlestick chart image generator (dark DEX style)
-- `bot/image_generator.py` — Card generator with 15 color themes × 12 BG styles = massive variety
+- `bot/bot.py` — Main bot: DEX scan job + forex signal job + VIP promo job + payment handlers
+- `bot/dex_fetcher.py` — DEX Screener API
+- `bot/chart_generator.py` — Candlestick chart (dark DEX style)
+- `bot/image_generator.py` — TokenScan-exact card generator
+- `bot/assets/char_*.png` — 6 character images extracted from TokenScan reference cards
 - `bot/blockchain_verify.py` — On-chain tx verification for SOL, ETH, BNB
-- `bot/payment_handler.py` — ConversationHandler: payment flow → group link delivery
-- `bot/requirements.txt` — Python dependencies
+- `bot/payment_handler.py` — ConversationHandler: chain→wallet→tx hash→group link
 - `bot/render.yaml` — Render deployment config
 
 ### Payment Flow
-Some channel posts include a "🔥 Join Alpha VIP Group" button (25% of calls, 55% of updates).
-Clicking opens a DM with the bot:
+All gain-update posts include a double VIP button (100%). 50% of new call posts include one.
+VIP promo posts go out every ~7h standalone. Clicking any button opens a DM with the bot:
 1. Shows SOL/ETH/BNB payment addresses
 2. User picks chain
 3. Bot asks for wallet address (paying from)
