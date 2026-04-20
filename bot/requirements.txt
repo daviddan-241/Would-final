@@ -1,0 +1,8 @@
+python-telegram-bot[job-queue]==21.9
+requests==2.32.3
+Pillow==11.0.0
+matplotlib==3.9.4
+mplfinance==0.12.10b0
+numpy==1.26.4
+python-dotenv==1.0.1
+aiohttp==3.10.11
