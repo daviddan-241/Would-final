@@ -13,15 +13,14 @@ from telegram.constants import ParseMode
 from telegram.error import TelegramError, RetryAfter
 from telegram.ext import (
     Application, ApplicationBuilder,
-    CommandHandler, CallbackQueryHandler,
-    ContextTypes, MessageHandler, filters,
+    CommandHandler, ContextTypes,
 )
 
 from dex_fetcher import (
     fetch_trending_tokens, fetch_new_coins, fetch_ohlcv_data, format_mc
 )
 from chart_generator import generate_chart_image
-from image_generator import generate_kol_card, generate_initial_call_image
+from image_generator import build_update_card, build_call_card, build_forex_card
 from payment_handler import build_payment_conversation, start
 
 load_dotenv()
@@ -32,83 +31,186 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN    = os.getenv("TELEGRAM_TOKEN")
-CHAT_ID           = os.getenv("CHAT_ID")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID        = os.getenv("CHAT_ID")
 
 if not TELEGRAM_TOKEN:
-    raise RuntimeError("TELEGRAM_TOKEN environment variable is not set. Please add it as a secret.")
+    raise RuntimeError("TELEGRAM_TOKEN environment variable is not set.")
 if not CHAT_ID:
-    raise RuntimeError("CHAT_ID environment variable is not set. Please add it as a secret.")
+    raise RuntimeError("CHAT_ID environment variable is not set.")
 
-MIN_MC            = float(os.getenv("MIN_MC",            10_000))
-MAX_MC            = float(os.getenv("MAX_MC",           800_000))
-SCAN_INTERVAL     = int(os.getenv("SCAN_INTERVAL",          180))
-SEND_INTERVAL_MIN = int(os.getenv("SEND_INTERVAL_MIN",      120))
-SEND_INTERVAL_MAX = int(os.getenv("SEND_INTERVAL_MAX",      180))
-PORT              = int(os.getenv("PORT",                   8080))
-
+MIN_MC            = float(os.getenv("MIN_MC",         10_000))
+MAX_MC            = float(os.getenv("MAX_MC",        800_000))
+SCAN_INTERVAL     = int(os.getenv("SCAN_INTERVAL",       180))
+SEND_INTERVAL_MIN = int(os.getenv("SEND_INTERVAL_MIN",   120))
+SEND_INTERVAL_MAX = int(os.getenv("SEND_INTERVAL_MAX",   180))
+PORT              = int(os.getenv("PORT",              10000))
 BOT_USERNAME      = os.getenv("BOT_USERNAME", "")
 
 tracked_coins: dict = {}
 sent_updates:  dict = {}
 last_sent_time: float = 0.0
 
-# ─── KOL-style caption templates ──────────────────────────────────────────────
+VIP_LINK = "https://t.me/+b7UesS3ulxxlZDdk"
 
-INITIAL_TEMPLATES = [
-    "EARLY CA PLAY IS HERE!!\n\nINSANE TEAM IMO SENDS HARD FR\n\n*{name}* — CA 👇 tap to copy\n\n`{ca}`\n\nAPE IN NOW AND HOLD!\nwe are so early! Im adding A LOT here\nAnything under {mc} here is very good",
-    "bro this one is different fr\n\n*${symbol}* just hit my radar and I fw it heavy\n\nMC only {mc} rn. liq solid at {liq}\nteam hasn't posted in main channel yet\n\nCA 👇\n`{ca}`\n\n{dex_url}",
-    "Notis ON for this one 🔔\n\n*{name}* — very early, low cap, strong activity onchain\n\nMC: {mc}  |  Liq: {liq}\nVol: {vol}\n\nThis is the type of entry we dream about. CA below 👇\n\n`{ca}`",
-    "Team is starting the push in next 5-10 minutes\n\nVery good entry here rn\n\n*${symbol}*\nMC: {mc} — anything under this is a steal imo\nLiq: {liq}  |  Vol: {vol}\n\n`{ca}`\n{dex_url}",
-    "🔥 *{name}* — fresh find, not posted anywhere yet\n\nOnly {mc} MC. This is EARLY.\nLiquidity: {liq} | Volume: {vol}\n\nDyor but this is sitting in my bag rn\n\nCA 👇\n`{ca}`\n{dex_url}",
-    "Private server early call 👇\n\n*${symbol}* — {mc} MC\n\nClean chart, volume picking up, team active\nLiq is {liq} — manageable size\n\nMove fast on these low caps\n\n`{ca}`",
-    "⚡ we don't miss in this circle\n\n*{name}* added to watchlist — {mc} MC entry\n\nLiq: {liq}  •  Vol: {vol}\n\nThis is how we catch them before CT even knows\n\nCA:\n`{ca}`\n{dex_url}",
-    "ngl this one has that feeling\n\n*${symbol}* — super early play on Solana\n\n{mc} MC right now. chart looks clean.\nLiq holding at {liq}\n\nbag it and watch 👀\n\n`{ca}`",
-    "🎯 if you've been around, you know we don't miss\n\n*{name}* — caught at {mc} MC\nLiq: {liq}  |  Vol: {vol}\n\nThis is the type of entry that changes wallets\n\nCA 👇\n`{ca}`",
-    "ser we are SO early on this one\n\n*${symbol}* just launched — {mc} MC entry\nVolume already climbing: {vol}\n\nDon't sleep on this\n\n`{ca}`\n{dex_url}",
-    "Intel just hit the private group and I'm sharing it now\n\n*{name}* — entry at {mc}\nLiq: {liq} — healthy for this stage\n\nCA 👇\n`{ca}`",
-    "🌕 moonshot or not, this entry is too clean to pass\n\n*${symbol}*\nMC: {mc}  |  Liq: {liq}\n\nJumping in heavy here, come join me\n\n`{ca}`\n{dex_url}",
+# ─── Keyboard buttons ──────────────────────────────────────────────────────────
+
+def _join_button() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton("🔐 Join Alpha VIP — Get Full Intel", url=VIP_LINK)
+    ]])
+
+def _join_button_double() -> InlineKeyboardMarkup:
+    """Two-row button for maximum visibility on update posts."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔐 JOIN ALPHA VIP — FULL ACCESS", url=VIP_LINK)],
+        [InlineKeyboardButton("💳 Buy Access via Crypto", url=f"https://t.me/{BOT_USERNAME}?start=vip")],
+    ])
+
+
+# ─── Caption templates — whale/professional tone ───────────────────────────────
+
+CALL_TEMPLATES = [
+    "🎯 *{name}* — early-stage entry\n\nMC: `{mc}` | Liq: `{liq}` | Vol: `{vol}`\n\nOn-chain activity flagged before broader CT. Sized in.\n\n`{ca}`\n{dex_url}",
+
+    "📡 Scanner alert — *${symbol}*\n\nMarket cap `{mc}` — this is pre-crowd.\nLiquidity confirmed at `{liq}`, volume climbing: `{vol}`\n\nVIP group got this 15 min ago.\n\n`{ca}`",
+
+    "Alpha incoming 🧠\n\n*{name}* — `{mc}` MC entry\n\nStructure looks clean. Liq healthy at `{liq}`.\nVolume spike: `{vol}` — institutional-size move incoming.\n\n`{ca}`\n{dex_url}",
+
+    "🔬 On-chain read: *${symbol}*\n\nMC `{mc}` | Liq `{liq}` | 24H Vol `{vol}`\n\nSmall-cap asymmetric trade. Risk-managed entry.\nFull thesis in VIP group.\n\n`{ca}`",
+
+    "Whale wallet flagged *{name}* 🐋\n\nEntry MC: `{mc}` — before any narrative push.\nLiquidity `{liq}` confirms the setup.\n\n`{ca}`\n{dex_url}",
+
+    "📊 New position opened — *${symbol}*\n\nMC: `{mc}` | Liq: `{liq}` | Vol: `{vol}`\n\nHigh-conviction setup. Risk/reward is favourable at this entry.\n\n`{ca}`",
+
+    "🎯 *{name}* — flagged by our DEX scanner\n\nMC `{mc}` — very early.\nLiq `{liq}` | Vol `{vol}`\n\nThe kind of entry most people see after the move.\n\n`{ca}`\n{dex_url}",
+
+    "Intel drop 📨\n\n*${symbol}* — `{mc}` MC\n\nWallet clusters accumulating quietly.\nLiq `{liq}`, Vol `{vol}` — watch for expansion.\n\n`{ca}`",
 ]
 
 UPDATE_TEMPLATES = [
-    "We printed hard LFGGGG 💰🔥\n\n*{name}* called at {entry_mc} — it's a *{gain_str}* now 📈\n\nJust made too much money today, crazy play\n\nNotis ON, don't miss my next call, it's gonna be MASSIVE\n\n`{ca}`\n{dex_url}",
-    "🚀 *${symbol}* is running exactly like I said\n\nCalled at {entry_mc} → now {current_mc}\nThat's *{gain_str}* in {time_str}\n\nThis is what happens when you move early with the right entries\nNo noise. Just calculated plays.\n\n`{ca}`",
-    "Another solid win from the circle 📈\n\n*{name}* — *{gain_str}* from our entry\n\nEntry: {entry_mc}\nNow: {current_mc}  |  Liq: {liq}\n\nOne of the members just locked in serious profit on this call.\nThis is what happens when you move early with the right entries.\n\n`{ca}`\n{dex_url}",
-    "👀 *${symbol}* doing exactly what we thought bro\n\nIn at {entry_mc}, sitting at {current_mc} now\n*{gain_str}* move — {time_str} since call\n\nwe don't miss in this circle fr\n\n`{ca}`",
-    "*{gain_str}* on *{name}* 💰\n\nCalled it at {entry_mc}, now at {current_mc}\nLiquidity still healthy at {liq}\n\n{time_str} since the call. still watching, could push more\n\n`{ca}`\n{dex_url}",
-    "locked in on *{name}* at {entry_mc}\nnow {current_mc} — that's *{gain_str}* 📊\n\n{time_str} since the call. this is what early entries look like\n\ndon't fade the circle\n\n`{ca}`",
-    "🎯 *${symbol}* — *{gain_str}* return\n\nEntry MC: {entry_mc}\nCurrent MC: {current_mc}\nTime: {time_str}  |  Liq: {liq}\n\nwe move before the crowd. always.\n\n`{ca}`\n{dex_url}",
-    "bro imagine not being in this circle rn 😭\n\n*{name}* just went *{gain_str}*\n\nCalled at {entry_mc} → {current_mc} now\n{time_str} hold. clean.\n\n`{ca}`",
-    "called it at {entry_mc} and here we are 🔥\n\n*{name}* — *{gain_str}* from entry\nNow sitting at {current_mc}\n\nIntel group called this one early. the public saw it after.\n\n`{ca}`\n{dex_url}",
-    "💎 this is why we don't sell early\n\n*${symbol}* — *{gain_str}*\n\nEntry {entry_mc} → Now {current_mc}\n{time_str} in\n\npatience + early entries = generational wealth\n\n`{ca}`",
-    "the members who followed that call are very happy rn 😅\n\n*{name}* — *{gain_str}* from {entry_mc}\n\nwe don't miss bro\n\n`{ca}`\n{dex_url}",
-    "🏆 scoreboard update\n\n*${symbol}* — *{gain_str}*\nIn: {entry_mc}  |  Now: {current_mc}\n\nThe intel group called this {time_str} ago. Public finding out now.\n\n`{ca}`",
+    "📈 *{name}* — *{gain_str}* from our entry\n\nIn at `{entry_mc}` → Now `{current_mc}`\nTime held: `{time_str}` | Liq: `{liq}`\n\nExactly the asymmetric move we positioned for.\n\n`{ca}`",
+
+    "✅ *${symbol}* PRINTED — *{gain_str}*\n\nEntry: `{entry_mc}` → Current: `{current_mc}`\n`{time_str}` in the trade\n\nVIP group saw the entry. Public seeing the result.\n\n`{ca}`\n{dex_url}",
+
+    "🏆 *{name}* — *{gain_str}* return\n\nCalled at `{entry_mc}` | Now `{current_mc}`\nTime: `{time_str}` | Liq: `{liq}`\n\nThis is what disciplined entries look like.\n\n`{ca}`",
+
+    "📊 Position update — *${symbol}*\n\n*{gain_str}* since entry at `{entry_mc}`\nCurrent MC: `{current_mc}` — {time_str} held\n\nOn-chain still showing strength. VIP tracking live.\n\n`{ca}`\n{dex_url}",
+
+    "🐋 *{name}* — another clean call\n\n*{gain_str}* | Entry `{entry_mc}` → `{current_mc}`\n`{time_str}` hold time | Liq: `{liq}`\n\nNot luck. Pattern recognition.\n\n`{ca}`",
+
+    "Scoreboard 📋\n\n*${symbol}* — *{gain_str}*\nEntry `{entry_mc}` → Now `{current_mc}`\nTime: `{time_str}`\n\nFull alpha pipeline is only in the VIP group.\n\n`{ca}`\n{dex_url}",
+
+    "💰 *{name}* running hard\n\n*{gain_str}* from entry at `{entry_mc}`\nNow `{current_mc}` — {time_str} since call\nLiq: `{liq}`\n\n`{ca}`",
+
+    "🎯 Called at `{entry_mc}` — *${symbol}* now *{gain_str}*\n\nCurrent MC: `{current_mc}` | Time: `{time_str}`\n\nThe edge is in the entry timing.\n\n`{ca}`\n{dex_url}",
+]
+
+# ─── Forex / macro signal data ─────────────────────────────────────────────────
+
+FOREX_SIGNALS = [
+    {
+        "pair": "EUR/USD", "direction": "LONG", "timeframe": "4H",
+        "entry": "1.0840 – 1.0860", "tp1": "1.0940", "tp2": "1.1025",
+        "sl": "1.0785", "rr": "2.7:1",
+        "analysis": "DXY rejection at key resistance. EUR flow bias bullish ahead of ECB commentary. Strong demand zone at entry.",
+    },
+    {
+        "pair": "GBP/USD", "direction": "LONG", "timeframe": "H4",
+        "entry": "1.2660 – 1.2690", "tp1": "1.2780", "tp2": "1.2880",
+        "sl": "1.2600", "rr": "2.1:1",
+        "analysis": "Cable holding above key structural support. BoE hawkish pivot narrative supporting GBP bids.",
+    },
+    {
+        "pair": "USD/JPY", "direction": "SHORT", "timeframe": "Daily",
+        "entry": "154.80 – 155.20", "tp1": "152.50", "tp2": "150.00",
+        "sl": "156.40", "rr": "3.1:1",
+        "analysis": "BoJ intervention risk elevated at 155+. Risk-off flow incoming. Clean short from upper range.",
+    },
+    {
+        "pair": "XAU/USD", "direction": "LONG", "timeframe": "H4",
+        "entry": "$3,080 – $3,095", "tp1": "$3,160", "tp2": "$3,250",
+        "sl": "$3,040", "rr": "2.5:1",
+        "analysis": "Gold reclaiming ATH structure. Macro uncertainty + central bank accumulation = sustained bid.",
+    },
+    {
+        "pair": "BTC/USDT", "direction": "LONG", "timeframe": "4H/Daily",
+        "entry": "$82,400 – $83,200", "tp1": "$87,500", "tp2": "$93,000",
+        "sl": "$79,800", "rr": "3.2:1",
+        "analysis": "HTF demand respected. Accumulation pattern confirmed on 4H. Spot ETF inflows accelerating.",
+    },
+    {
+        "pair": "ETH/USDT", "direction": "LONG", "timeframe": "4H",
+        "entry": "$1,580 – $1,620", "tp1": "$1,780", "tp2": "$1,950",
+        "sl": "$1,490", "rr": "2.4:1",
+        "analysis": "ETH printing higher lows vs BTC. Pectra upgrade narrative building. Risk/reward favours longs here.",
+    },
+    {
+        "pair": "SOL/USDT", "direction": "LONG", "timeframe": "4H",
+        "entry": "$128 – $134", "tp1": "$158", "tp2": "$185",
+        "sl": "$118", "rr": "2.9:1",
+        "analysis": "SOL showing relative strength. DEX volume at highs. Institutional accumulation visible on-chain.",
+    },
+    {
+        "pair": "GBP/JPY", "direction": "SHORT", "timeframe": "H4",
+        "entry": "195.50 – 196.00", "tp1": "193.20", "tp2": "191.00",
+        "sl": "197.20", "rr": "2.3:1",
+        "analysis": "Risk-off tone. JPY strength + GBP weakness at resistance confluence. Clean R:R.",
+    },
+    {
+        "pair": "AUD/USD", "direction": "SHORT", "timeframe": "H4",
+        "entry": "0.6380 – 0.6400", "tp1": "0.6290", "tp2": "0.6210",
+        "sl": "0.6450", "rr": "2.2:1",
+        "analysis": "China PMI miss weighing on AUD. RBA dovish tone. Break of demand signals continuation lower.",
+    },
+    {
+        "pair": "USD/CHF", "direction": "SHORT", "timeframe": "Daily",
+        "entry": "0.9020 – 0.9050", "tp1": "0.8900", "tp2": "0.8780",
+        "sl": "0.9120", "rr": "2.6:1",
+        "analysis": "SNB holding reserves. Risk-off CHF bid. Clean break below key level = trend continuation.",
+    },
+]
+
+FOREX_CAPTION_TEMPLATES = [
+    "🎯 *SIGNAL | {pair}*\n\n📊 Bias: *{direction}*\n⏱ Timeframe: `{timeframe}`\n\n🎯 Entry Zone: `{entry}`\n✅ TP1: `{tp1}`\n✅ TP2: `{tp2}`\n❌ SL: `{sl}`\n📐 R/R: `{rr}`\n\n💡 _{analysis}_\n\n🔐 Live position updates in VIP group",
+
+    "📡 *ALPHA SIGNAL — {pair}*\n\n*{direction}* | `{timeframe}`\n\nEntry: `{entry}`\nTP1: `{tp1}` | TP2: `{tp2}`\nSL: `{sl}`\nRisk/Reward: `{rr}`\n\n_{analysis}_\n\n🔐 Full trade management inside VIP",
+
+    "🐋 *WHALE DESK | {pair}*\n\n{direction} SETUP | `{timeframe}`\n\n▶ Entry: `{entry}`\n▶ Target 1: `{tp1}`\n▶ Target 2: `{tp2}`\n▶ Stop: `{sl}`\n▶ R/R: `{rr}`\n\n_{analysis}_",
+
+    "📊 *TRADE IDEA — {pair}*\n\nDirection: *{direction}*\nTF: `{timeframe}` | R/R: `{rr}`\n\nEntry: `{entry}`\nTP1: `{tp1}` → TP2: `{tp2}`\nStop: `{sl}`\n\n💡 _{analysis}_\n\n🔐 Managed in real-time inside VIP",
+]
+
+# ─── VIP promo (standalone channel post) ──────────────────────────────────────
+
+VIP_PROMOS = [
+    "🔐 *Alpha VIP — Now Open*\n\nIf you're watching this channel, you're seeing the public results.\n\nThe *live setups, pre-call entries, on-chain alerts, and real-time position updates* are inside the VIP group.\n\nOne call covers the membership.\n\nAccess below 👇",
+    "💎 *Premium Intelligence. Serious Traders Only.*\n\nThis channel posts results.\nThe VIP group posts the setups *before* the move.\n\n• Crypto alpha (pre-DEX)\n• Forex & macro signals\n• Whale wallet alerts\n• On-chain flow reads\n\nIf you're serious about edges — the group is below 👇",
+    "🎯 *Everything you see here started inside the VIP group.*\n\nThe entries. The timing. The analysis.\n\nThe public channel is the scoreboard.\nThe group is where the game is played.\n\nAccess via crypto payment. Link below 👇",
+    "📡 *Our signal record speaks for itself.*\n\nWe don't post losses here because we manage them live inside.\n\nVIP members get:\n✅ Real-time entry alerts\n✅ SL management\n✅ Forex + crypto daily setups\n✅ On-chain whale flow\n\nJoin below 👇",
 ]
 
 
+# ─── Utility ───────────────────────────────────────────────────────────────────
+
 def _fmt_time(s: float) -> str:
     if s < 60:   return f"{int(s)}s"
-    if s < 3600: return f"{int(s//60)}m {int(s%60)}s"
+    if s < 3600: return f"{int(s//60)}m"
     return f"{int(s//3600)}h {int((s%3600)//60)}m"
 
 
 def _gain_str(pct: float) -> str:
-    if pct >= 100: return f"{pct/100+1:.1f}X"
+    mult = pct / 100 + 1
+    if mult >= 2:
+        return f"{mult:.1f}x"
     return f"+{pct:.0f}%"
 
 
-def _join_button(bot_username: str) -> InlineKeyboardMarkup | None:
-    if not bot_username:
-        return None
-    return InlineKeyboardMarkup([[
-        InlineKeyboardButton(
-            "🔥 Join Alpha VIP Group",
-            url=f"https://t.me/{bot_username}?start=vip"
-        )
-    ]])
+def _mult_float(pct: float) -> float:
+    return pct / 100 + 1
 
 
-# ─── Health server ─────────────────────────────────────────────────────────────
+# ─── Health server (Render keep-alive) ────────────────────────────────────────
 
 class _Health(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -116,47 +218,46 @@ class _Health(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "text/plain")
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
-        self.wfile.write(b"OK - Alpha Circle Bot is alive")
-    def log_message(self, *_):
-        pass
+        self.wfile.write(b"OK - Alpha Circle Bot running")
+    def log_message(self, *_): pass
 
 
 def _start_health_server():
-    for port in [PORT, 8080, 10000, 3000]:
+    for port in [PORT, 10000, 8080, 3000]:
         try:
             srv = HTTPServer(("0.0.0.0", port), _Health)
             t = threading.Thread(target=srv.serve_forever, daemon=True)
             t.start()
-            log.info(f"✅ Health server listening on port {port}")
+            log.info(f"✅ Health server on :{port}")
             return
         except OSError:
             continue
-    log.warning("Health server could not bind to any port")
+    log.warning("⚠️  Health server could not bind to any port")
 
 
 def _self_ping_loop():
     import requests as _req
     url = os.getenv("RENDER_EXTERNAL_URL", "").rstrip("/")
     if not url:
-        log.info("RENDER_EXTERNAL_URL not set — self-ping disabled")
         return
     ping_url = url + "/health"
-    log.info(f"🏓 Self-ping enabled → {ping_url}")
+    log.info(f"🏓 Self-ping → {ping_url}")
     while True:
         time.sleep(13 * 60)
         try:
-            r = _req.get(ping_url, timeout=15)
-            log.info(f"🏓 Self-ping → {r.status_code}")
+            _req.get(ping_url, timeout=15)
         except Exception as e:
-            log.warning(f"🏓 Self-ping failed: {e}")
+            log.warning(f"Self-ping failed: {e}")
 
 
 def _start_self_ping():
-    t = threading.Thread(target=_self_ping_loop, daemon=True, name="self-ping")
-    t.start()
+    threading.Thread(target=_self_ping_loop, daemon=True, name="self-ping").start()
 
 
-# ─── Telegram helpers ─────────────────────────────────────────────────────────
+# ─── Telegram send helpers ─────────────────────────────────────────────────────
+
+last_sent_time: float = 0.0
+
 
 async def _throttle():
     global last_sent_time
@@ -183,12 +284,12 @@ async def _send_photo(bot: Bot, photo: bytes, caption: str,
         except TelegramError as e:
             msg = str(e)
             if "Peer_id_invalid" in msg or "chat not found" in msg.lower():
-                log.error("❌ Bot not in group — add the bot to the channel")
+                log.error("❌ Bot not in channel — add bot as admin")
                 return False
-            log.warning(f"Telegram error ({attempt+1}): {e}")
+            log.warning(f"TG error #{attempt+1}: {e}")
             await asyncio.sleep(6 * (attempt + 1))
         except Exception as e:
-            log.warning(f"Send error ({attempt+1}): {e}")
+            log.warning(f"Send error #{attempt+1}: {e}")
             await asyncio.sleep(5)
     return False
 
@@ -207,17 +308,17 @@ async def _send_text(bot: Bot, text: str, reply_markup=None) -> bool:
         except TelegramError as e:
             msg = str(e)
             if "Peer_id_invalid" in msg or "chat not found" in msg.lower():
-                log.error("❌ Bot not in group")
+                log.error("❌ Bot not in channel")
                 return False
-            log.warning(f"Telegram error ({attempt+1}): {e}")
+            log.warning(f"TG error #{attempt+1}: {e}")
             await asyncio.sleep(6 * (attempt + 1))
         except Exception as e:
-            log.warning(f"Send error ({attempt+1}): {e}")
+            log.warning(f"Send error #{attempt+1}: {e}")
             await asyncio.sleep(5)
     return False
 
 
-# ─── Send functions ───────────────────────────────────────────────────────────
+# ─── Send: initial DEX call ───────────────────────────────────────────────────
 
 async def send_initial_call(bot: Bot, token: dict, bot_username: str = ""):
     global last_sent_time
@@ -230,47 +331,59 @@ async def send_initial_call(bot: Bot, token: dict, bot_username: str = ""):
     name    = token.get("name", token.get("symbol", "???"))
     symbol  = token.get("symbol", "???")
     dex_url = token.get("url") or f"https://dexscreener.com/solana/{ca}"
+    chain   = token.get("chain", "SOL").upper()
 
-    text = random.choice(INITIAL_TEMPLATES).format(
+    caption = random.choice(CALL_TEMPLATES).format(
         name=name, symbol=symbol,
         mc=format_mc(mc), liq=format_mc(liq), vol=format_mc(vol),
         ca=ca, dex_url=dex_url
     )
 
-    # 25% of initial calls include the VIP join button
-    markup = _join_button(bot_username) if random.random() < 0.25 else None
+    # 50% of calls show the VIP button
+    markup = _join_button() if random.random() < 0.50 else None
 
-    call_card = chart_img = None
+    card = None
     try:
-        call_card = generate_initial_call_image(token)
+        card = build_call_card(
+            symbol=symbol,
+            mcap_str=format_mc(mc),
+            liq_str=format_mc(liq),
+            vol_str=format_mc(vol),
+            chain=chain,
+            username=bot_username or "alpha_circle1",
+        )
     except Exception as e:
         log.warning(f"Call card error: {e}")
+
+    chart = None
     try:
         bars = fetch_ohlcv_data(token.get("pair_address", ""))
-        chart_img = generate_chart_image(token, bars)
+        chart = generate_chart_image(token, bars)
     except Exception as e:
         log.warning(f"Chart error: {e}")
 
     sent = False
-    if call_card:
-        sent = await _send_photo(bot, call_card, text, reply_markup=markup)
-    elif chart_img:
-        sent = await _send_photo(bot, chart_img, text, reply_markup=markup)
+    if card:
+        sent = await _send_photo(bot, card, caption, reply_markup=markup)
+    elif chart:
+        sent = await _send_photo(bot, chart, caption, reply_markup=markup)
     else:
-        sent = await _send_text(bot, text, reply_markup=markup)
+        sent = await _send_text(bot, caption, reply_markup=markup)
 
-    if sent and call_card and chart_img:
+    if sent and card and chart:
         await asyncio.sleep(random.uniform(3, 7))
-        await _send_photo(bot, chart_img, f"📊 *{symbol}* chart — dexscreener")
+        await _send_photo(bot, chart, f"📊 *{symbol}* — chart")
 
     if sent:
         last_sent_time = time.time()
-        log.info(f"✅ Call sent: {symbol}  MC={format_mc(mc)}")
+        log.info(f"✅ Call: {symbol}  MC={format_mc(mc)}")
 
+
+# ─── Send: gain update ────────────────────────────────────────────────────────
 
 async def send_gain_update(bot: Bot, token: dict,
                            entry_mc: float, gain_pct: float,
-                           called_at: str, bot_username: str = ""):
+                           entry_mc_str: str, bot_username: str = ""):
     global last_sent_time
     await _throttle()
 
@@ -282,45 +395,103 @@ async def send_gain_update(bot: Bot, token: dict,
     dex_url = token.get("url") or f"https://dexscreener.com/solana/{ca}"
     elapsed = time.time() - tracked_coins.get(ca, {}).get("first_seen", time.time())
     gain_s  = _gain_str(gain_pct)
+    mult    = _mult_float(gain_pct)
 
-    text = random.choice(UPDATE_TEMPLATES).format(
+    caption = random.choice(UPDATE_TEMPLATES).format(
         name=name, symbol=symbol,
-        entry_mc=called_at, current_mc=format_mc(mc),
+        entry_mc=entry_mc_str, current_mc=format_mc(mc),
         gain_str=gain_s, liq=format_mc(liq),
         ca=ca, dex_url=dex_url, time_str=_fmt_time(elapsed)
     )
 
-    # 55% of update posts include the VIP join button
-    markup = _join_button(bot_username) if random.random() < 0.55 else None
+    # 100% of update posts get the double VIP button — this is how people join
+    markup = _join_button_double()
 
-    kol_card = chart_img = None
+    card = None
     try:
-        kol_card = generate_kol_card(token, gain_pct, entry_mc, called_at,
-                                     elapsed_str=_fmt_time(elapsed))
+        card = build_update_card(
+            symbol=symbol,
+            multiplier=mult,
+            mcap_str=entry_mc_str,
+            time_str=_fmt_time(elapsed),
+            username=bot_username or "alpha_circle1",
+        )
     except Exception as e:
-        log.warning(f"KOL card error: {e}")
+        log.warning(f"Update card error: {e}")
+
+    chart = None
     try:
         bars = fetch_ohlcv_data(token.get("pair_address", ""))
-        chart_img = generate_chart_image(token, bars)
+        chart = generate_chart_image(token, bars)
     except Exception as e:
         log.warning(f"Chart error: {e}")
 
     sent = False
-    if kol_card:
-        sent = await _send_photo(bot, kol_card, text, reply_markup=markup)
+    if card:
+        sent = await _send_photo(bot, card, caption, reply_markup=markup)
     else:
-        sent = await _send_text(bot, text, reply_markup=markup)
+        sent = await _send_text(bot, caption, reply_markup=markup)
 
-    if sent and chart_img:
+    if sent and chart:
         await asyncio.sleep(random.uniform(2, 5))
-        await _send_photo(bot, chart_img, f"📊 *{symbol}* — {gain_s} from entry")
+        await _send_photo(bot, chart, f"📊 *{symbol}* — {gain_s} from entry")
 
     if sent:
         last_sent_time = time.time()
-        log.info(f"✅ Update sent: {symbol}  {gain_s}")
+        log.info(f"✅ Update: {symbol}  {gain_s}")
 
 
-# ─── Scan loop (runs as a job) ────────────────────────────────────────────────
+# ─── Send: forex / macro signal ───────────────────────────────────────────────
+
+async def send_forex_signal(context: ContextTypes.DEFAULT_TYPE):
+    bot: Bot = context.bot
+    bot_username = context.job.data.get("bot_username", "alpha_circle1")
+
+    sig = random.choice(FOREX_SIGNALS)
+    caption = random.choice(FOREX_CAPTION_TEMPLATES).format(**sig)
+
+    # Always show VIP button on forex signals
+    markup = _join_button_double()
+
+    card = None
+    try:
+        card = build_forex_card(
+            pair=sig["pair"],
+            direction=sig["direction"],
+            entry=sig["entry"],
+            tp1=sig["tp1"],
+            tp2=sig["tp2"],
+            sl=sig["sl"],
+            timeframe=sig["timeframe"],
+            rr=sig["rr"],
+            username=bot_username,
+        )
+    except Exception as e:
+        log.warning(f"Forex card error: {e}")
+
+    if card:
+        await _send_photo(bot, card, caption, reply_markup=markup)
+    else:
+        await _send_text(bot, caption, reply_markup=markup)
+
+    log.info(f"📡 Forex signal sent: {sig['pair']} {sig['direction']}")
+
+
+# ─── Send: VIP promo post ──────────────────────────────────────────────────────
+
+async def send_vip_promo(context: ContextTypes.DEFAULT_TYPE):
+    bot: Bot = context.bot
+    text = random.choice(VIP_PROMOS)
+    markup = InlineKeyboardMarkup([[
+        InlineKeyboardButton("🔐 Get VIP Access Now", url=VIP_LINK)
+    ], [
+        InlineKeyboardButton("💳 Pay via Crypto", url=f"https://t.me/{BOT_USERNAME}?start=vip")
+    ]])
+    await _send_text(bot, text, reply_markup=markup)
+    log.info("📢 VIP promo post sent")
+
+
+# ─── DEX scanner loop ─────────────────────────────────────────────────────────
 
 async def scan_and_send(context: ContextTypes.DEFAULT_TYPE):
     bot: Bot = context.bot
@@ -378,24 +549,45 @@ async def scan_and_send(context: ContextTypes.DEFAULT_TYPE):
         sent_updates.pop(ca, None)
 
 
-# ─── Bot startup ──────────────────────────────────────────────────────────────
+# ─── Post-init (register jobs) ────────────────────────────────────────────────
 
 async def post_init(application: Application):
-    me = await application.bot.get_me()
-    username = me.username or ""
-    log.info(f"✅ Connected as @{username}")
-
     global BOT_USERNAME
-    BOT_USERNAME = username
+    me = await application.bot.get_me()
+    BOT_USERNAME = me.username or ""
+    log.info(f"✅ Connected as @{BOT_USERNAME}")
 
-    application.job_queue.run_repeating(
+    jq = application.job_queue
+
+    # DEX scanner — every 3 min
+    jq.run_repeating(
         scan_and_send,
         interval=SCAN_INTERVAL,
-        first=10,
-        data={"bot_username": username},
-        name="scanner",
+        first=15,
+        data={"bot_username": BOT_USERNAME},
+        name="dex-scanner",
     )
 
+    # Forex / macro signals — every ~4-5 hours with slight jitter
+    jq.run_repeating(
+        send_forex_signal,
+        interval=random.randint(14400, 18000),   # 4–5 h
+        first=random.randint(600, 1200),          # 10–20 min after start
+        data={"bot_username": BOT_USERNAME},
+        name="forex-signals",
+    )
+
+    # VIP promo post — every ~7 hours
+    jq.run_repeating(
+        send_vip_promo,
+        interval=random.randint(21600, 28800),   # 6–8 h
+        first=random.randint(1800, 3600),         # 30–60 min after start
+        data={},
+        name="vip-promo",
+    )
+
+
+# ─── Entry point ──────────────────────────────────────────────────────────────
 
 def main():
     log.info("🚀 Alpha Circle Bot starting...")
@@ -412,7 +604,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(build_payment_conversation())
 
-    log.info("📡 Starting polling...")
+    log.info("📡 Polling started")
     app.run_polling(drop_pending_updates=True)
 
 
