@@ -1,11 +1,8 @@
 """
-Payment flow modelled exactly on the Telegram-native payment bot UX shown in the reference screenshots.
-Flow:
-  1. /start vip  →  product description + pricing buttons
-  2. User picks plan  →  "in cart" + Continue/Remove buttons
-  3. Continue  →  wallet watch + SOL address + checkout total
-  4. User pastes their sending wallet  →  bot watches / user submits tx hash
-  5. Verified  →  group link delivered
+Payment flow for Alpha Circle VIP.
+User clicks "Join VIP" in channel → opens bot DM → sees product + pricing.
+Selects plan → sees SOL address + exact amount to send.
+Pastes tx hash → verified → receives group link.
 """
 
 import logging
@@ -18,39 +15,20 @@ from blockchain_verify import verify_transaction, SOL_ADDRESS, ETH_ADDRESS
 
 log = logging.getLogger(__name__)
 
-GROUP_LINK   = "https://t.me/+b7UesS3ulxxlZDdk"
-BNB_ADDRESS  = "bnb189gjjucwltdpnlemrveakf0q6xg0smfqdh6869"
+GROUP_LINK  = "https://t.me/+b7UesS3ulxxlZDdk"
+BNB_ADDRESS = "bnb189gjjucwltdpnlemrveakf0q6xg0smfqdh6869"
 
-# SOL price approximations — update when SOL moves significantly
+# Plans — update SOL amounts when price moves significantly
 PLANS = {
-    "monthly":  {"label": "$49 / month",   "usd": 49,  "sol": 0.42},
+    "monthly":  {"label": "$49 / month",    "usd": 49,  "sol": 0.42},
     "lifetime": {"label": "$75 / lifetime", "usd": 75,  "sol": 0.64},
 }
 
-CHOOSE_PLAN, CONFIRM_PLAN, ENTER_WALLET, ENTER_TXHASH = range(4)
+SELECT_PLAN, ENTER_WALLET, ENTER_TXHASH = range(3)
 
-# ── Product description (matches screenshot exactly) ───────────────────────────
-PRODUCT_HEADER = (
-    "🚀 *Alpha Circle VIP Channel*\n\n"
-    "💰 Very High ROI!\n\n"
-    "For you exclusively on VIP Channel:\n\n"
-    "✅ All the Calls our AI identifies, filtered and selected by our algorithm.\n"
-    "✅ No delay in publication. Early entry, high winrate, high ROI.\n"
-    "✅ Risks Classification.\n"
-    "✅ Copy CA with tap.\n"
-    "✅ No Spam.\n"
-    "✅ \"Print Money\" Strategy\n"
-    "🔥 Several 50\\-100x\\!\n\n"
-    "——————\-\n\n"
-    "☝️ Don't pay with Cex\\.\n\n"
-    "🆘 Support @alpha\\_circle1\n\n"
-    "🔒 *Telegram access*\n"
-    "Alpha Circle VIP Channel 💰\n\n"
-    "*Pricing:*"
-)
-
-PRODUCT_HEADER_MD = (
-    "🚀 *Alpha Circle VIP Channel*\n\n"
+# ── Product description (matches reference screenshots) ────────────────────────
+PRODUCT_MSG = (
+    "🚀 *Alpha Circle VIP*\n\n"
     "💰 Very High ROI!\n\n"
     "For you exclusively on VIP Channel:\n\n"
     "✅ All the Calls our AI identifies, filtered and selected by our algorithm.\n"
@@ -63,172 +41,123 @@ PRODUCT_HEADER_MD = (
     "——————-\n\n"
     "☝️ Don't pay with Cex.\n\n"
     "🆘 Support @alpha\\_circle1\n\n"
-    "🔒 *Telegram access*\n"
-    "Alpha Circle VIP Channel 💰\n\n"
-    "*Pricing:*"
+    "🔒 *Telegram access*\nAlpha Circle VIP Channel 💰\n\n"
+    "*Select your plan:*"
 )
 
-
-def _plan_buttons():
+def _plan_keyboard():
     return InlineKeyboardMarkup([[
-        InlineKeyboardButton("$49 / month",   callback_data="plan_monthly"),
+        InlineKeyboardButton("$49 / month",    callback_data="plan_monthly"),
         InlineKeyboardButton("$75 / lifetime", callback_data="plan_lifetime"),
     ]])
 
 
-def _cart_buttons(plan_key: str):
-    plan = PLANS[plan_key]
-    return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(f"✅ {plan['label']}", callback_data=f"plan_{plan_key}"),
-            InlineKeyboardButton("$75 / lifetime" if plan_key == "monthly" else "$49 / month",
-                                 callback_data="plan_lifetime" if plan_key == "monthly" else "plan_monthly"),
-        ],
-        [InlineKeyboardButton("🛒 Continue to payment", callback_data="cart_continue")],
-        [InlineKeyboardButton("✕ Remove from cart",    callback_data="cart_remove")],
-    ])
-
-
-# ── Handlers ───────────────────────────────────────────────────────────────────
-
+# ── /start handler ─────────────────────────────────────────────────────────────
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args or []
     if args and args[0].lower() in ("vip", "join", "pay", "alpha", "get"):
-        return await _show_product(update, context)
-    # Generic /start
+        return await _show_product(update.message, context)
+
+    # Generic /start — short welcome + button
+    kb = InlineKeyboardMarkup([[
+        InlineKeyboardButton("🔐 Join VIP", callback_data="pay_start")
+    ]])
     await update.message.reply_text(
         "👋 *Alpha Circle Bot*\n\n"
-        "I track on-chain moves and post early gem calls before the crowd finds them.\n\n"
-        "Want the full alpha? Hit below 👇",
+        "We post early calls before CT finds them.\n"
+        "VIP group gets them first — full details below 👇",
         parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("🔐 Get VIP Access", callback_data="pay_start")
-        ]])
+        reply_markup=kb,
     )
     return ConversationHandler.END
 
 
-async def _show_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = update.message or (update.callback_query.message if update.callback_query else None)
-    if not msg:
-        return ConversationHandler.END
-    await msg.reply_text(
-        PRODUCT_HEADER_MD,
-        parse_mode="Markdown",
-        reply_markup=_plan_buttons(),
-    )
-    return CHOOSE_PLAN
-
-
-async def pay_start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def pay_start_cb(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
-    return await _show_product(update, context)
+    return await _show_product(update.callback_query.message, context)
 
 
-async def choose_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def _show_product(msg, context):
+    await msg.reply_text(
+        PRODUCT_MSG,
+        parse_mode="Markdown",
+        reply_markup=_plan_keyboard(),
+    )
+    return SELECT_PLAN
+
+
+# ── Plan selected → show address + amount immediately ─────────────────────────
+async def select_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     plan_key = query.data.replace("plan_", "")
     if plan_key not in PLANS:
-        return CHOOSE_PLAN
+        return SELECT_PLAN
 
     plan = PLANS[plan_key]
+    sol  = plan["sol"]
     context.user_data["plan"] = plan_key
 
     await query.message.reply_text(
-        f"🟡 *in cart*\nproceed to payment",
+        f"✅ *{plan['label']}* selected\n\n"
+        f"——————-\n\n"
+        f"⏳ *Watching your wallet*\n"
+        f"Send payment from your wallet ➜ to store address\n\n"
+        f"🍎 *Store address* 📋\n"
+        f"↓ Send SOL to:\n"
+        f"`{SOL_ADDRESS}`\n\n"
+        f"*Cart*\n"
+        f"{plan['label']} 🟡 Alpha Circle VIP\n"
+        f"——————-\n"
+        f"`{sol:.5f} SOL` ← checkout total\n\n"
+        f"Once sent, paste the *wallet address you paid FROM* so we can verify 👇",
         parse_mode="Markdown",
-        reply_markup=_cart_buttons(plan_key),
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("↩ Change plan", callback_data="pay_start")
+        ]]),
     )
-    return CONFIRM_PLAN
+    return ENTER_WALLET
 
 
-async def cart_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    if query.data.startswith("plan_"):
-        # User changed plan
-        plan_key = query.data.replace("plan_", "")
-        if plan_key in PLANS:
-            context.user_data["plan"] = plan_key
-            plan = PLANS[plan_key]
-            await query.message.reply_text(
-                f"🟡 *in cart*\nproceed to payment",
-                parse_mode="Markdown",
-                reply_markup=_cart_buttons(plan_key),
-            )
-        return CONFIRM_PLAN
-
-    if query.data == "cart_remove":
-        await query.message.reply_text(
-            "Removed from cart. Come back anytime — the group is open.",
-        )
-        return ConversationHandler.END
-
-    if query.data == "cart_continue":
-        plan_key = context.user_data.get("plan", "monthly")
-        plan     = PLANS[plan_key]
-        sol_amt  = plan["sol"]
-
-        await query.message.reply_text(
-            f"1\\. Register your sending wallet address\n"
-            f"2\\. Manually send SOL to the store's address\n"
-            f"3\\. Join the premium channel right away\n\n"
-            f"⏳ *Watching your new wallet*\n"
-            f"Send payment from your wallet \\> Pay from here\n\n"
-            f"🍎 *store address* 📋\n"
-            f"↓ Send SOL to:\n"
-            f"`{SOL_ADDRESS}`\n\n"
-            f"*Cart*\n"
-            f"{plan['label']} 🟡 Alpha Circle VIP\n"
-            f"——————————\n"
-            f"`{sol_amt:.5f} SOL` ← checkout total\n\n"
-            f"*Paste the wallet address you are paying FROM:*",
-            parse_mode="MarkdownV2",
-        )
-        return ENTER_WALLET
-
-    return CONFIRM_PLAN
-
-
+# ── User pastes sending wallet ─────────────────────────────────────────────────
 async def enter_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     wallet = update.message.text.strip()
     if len(wallet) < 20:
         await update.message.reply_text(
-            "⚠️ That doesn't look like a valid wallet. Please paste your SOL wallet address:"
+            "⚠️ That doesn't look right. Please paste your SOL wallet address (the one you sent FROM):"
         )
         return ENTER_WALLET
 
     context.user_data["wallet"] = wallet
     plan_key = context.user_data.get("plan", "monthly")
     plan     = PLANS[plan_key]
-    sol_amt  = plan["sol"]
+    sol      = plan["sol"]
     short    = wallet[:6] + ".." + wallet[-4:]
 
     await update.message.reply_text(
-        f"⏳ *Watching your wallet* `{short}`\n\n"
-        f"Send exactly `{sol_amt:.5f} SOL` to:\n"
-        f"`{SOL_ADDRESS}`\n\n"
-        f"Once sent, paste your *transaction hash* (tx ID) below so we can verify it:",
+        f"⏳ *Watching wallet* `{short}`\n\n"
+        f"Amount to send: `{sol:.5f} SOL`\n"
+        f"To: `{SOL_ADDRESS}`\n\n"
+        f"After sending, paste your *transaction hash* (tx ID) here 👇\n"
+        f"_Find it on Solscan or your wallet history_",
         parse_mode="Markdown",
     )
     return ENTER_TXHASH
 
 
+# ── User pastes tx hash → verify → deliver group link ─────────────────────────
 async def enter_txhash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tx_hash = update.message.text.strip()
     if len(tx_hash) < 30:
         await update.message.reply_text(
-            "⚠️ That doesn't look like a valid tx hash. Please paste the full transaction ID:"
+            "⚠️ That doesn't look like a valid tx hash. Paste the full transaction ID:"
         )
         return ENTER_TXHASH
 
-    chain  = "sol"
-    wallet = context.user_data.get("wallet", "")
+    await update.message.reply_text("🔍 Verifying on-chain... one moment.")
 
-    await update.message.reply_text("🔍 Verifying on-chain... hold tight.")
-    success, msg = verify_transaction(chain, tx_hash, wallet)
+    wallet  = context.user_data.get("wallet", "")
+    success, msg = verify_transaction("sol", tx_hash, wallet)
 
     if success:
         plan_key = context.user_data.get("plan", "monthly")
@@ -236,17 +165,19 @@ async def enter_txhash(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"✅ *Payment confirmed!*\n\n"
             f"Plan: *{plan['label']}*\n\n"
-            f"Welcome to Alpha Circle VIP. You're now ahead of the public channel. "
-            f"Don't share this link — member-only access 🤫\n\n"
+            f"Welcome to Alpha Circle VIP 🏆\n"
+            f"You're now ahead of the public channel.\n"
+            f"Don't share — member-only link 🤫\n\n"
             f"👇 *Your access link:*\n{GROUP_LINK}",
             parse_mode="Markdown",
         )
-        log.info(f"✅ Payment verified — user {update.effective_user.id} "
+        log.info(f"✅ Payment OK — user={update.effective_user.id} "
                  f"plan={plan_key} tx={tx_hash}")
     else:
         await update.message.reply_text(
-            f"❌ *Could not verify the transaction*\n\n{msg}\n\n"
-            "Please double-check the tx hash and wallet, then try again with /pay",
+            f"❌ *Could not verify*\n\n{msg}\n\n"
+            "Check your tx hash and try again with /pay\n"
+            "_Make sure you sent from the wallet you registered above_",
             parse_mode="Markdown",
         )
 
@@ -254,27 +185,26 @@ async def enter_txhash(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Cancelled. Use /pay to restart anytime.")
+    await update.message.reply_text("Cancelled. Start again anytime with /pay")
     return ConversationHandler.END
 
 
+# ── Build conversation handler ─────────────────────────────────────────────────
 def build_payment_conversation() -> ConversationHandler:
     return ConversationHandler(
         entry_points=[
-            CommandHandler("pay",  _show_product),
-            CommandHandler("join", _show_product),
-            CallbackQueryHandler(pay_start_callback, pattern="^pay_start$"),
+            CommandHandler("pay",  _show_product_cmd),
+            CommandHandler("join", _show_product_cmd),
+            CallbackQueryHandler(pay_start_cb, pattern="^pay_start$"),
         ],
         states={
-            CHOOSE_PLAN: [
-                CallbackQueryHandler(choose_plan, pattern="^plan_(monthly|lifetime)$"),
-            ],
-            CONFIRM_PLAN: [
-                CallbackQueryHandler(cart_action,
-                    pattern="^(plan_monthly|plan_lifetime|cart_continue|cart_remove)$"),
+            SELECT_PLAN: [
+                CallbackQueryHandler(select_plan, pattern="^plan_(monthly|lifetime)$"),
+                CallbackQueryHandler(pay_start_cb, pattern="^pay_start$"),
             ],
             ENTER_WALLET: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, enter_wallet),
+                CallbackQueryHandler(pay_start_cb, pattern="^pay_start$"),
             ],
             ENTER_TXHASH: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, enter_txhash),
@@ -286,3 +216,7 @@ def build_payment_conversation() -> ConversationHandler:
         per_message=False,
         allow_reentry=True,
     )
+
+
+async def _show_product_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return await _show_product(update.message, context)
