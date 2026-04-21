@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: alpha-x-calls-bot
+    runtime: python
+    rootDir: bot
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: TELEGRAM_TOKEN
+        sync: false
+      - key: CHAT_ID
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: alpha-x-calls-bot
+          property: host
+    healthCheckPath: /health
+    autoDeploy: true
