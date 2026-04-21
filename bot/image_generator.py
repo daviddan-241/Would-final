@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 W, H = 1280, 640
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "assets")
 TMPL_DIR   = os.path.join(ASSETS_DIR, "templates")
-USERNAME   = "@Alpha_Calls"
+USERNAME   = "@Alpha_X_Calls"
 
 # ── Load background templates ──────────────────────────────────────────────────
 def _load_templates():
