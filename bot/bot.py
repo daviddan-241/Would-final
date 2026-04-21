@@ -69,47 +69,62 @@ def _join_button_double() -> InlineKeyboardMarkup:
 # ─── Caption templates — whale/professional tone ───────────────────────────────
 
 CALL_TEMPLATES = [
-    "🟢 *${symbol}*\nMC `{mc}` — early\n\n`{ca}`",
+    # — meme / CT insider style —
+    "🟢 *${symbol}*\n`{mc}` MC\n\n`{ca}`",
 
-    "*${symbol}* 🔔\n\ncaught at `{mc}` MC\nliq `{liq}` | vol `{vol}`\n\n`{ca}`\n{dex_url}",
+    "new gem 💎\n\n*${symbol}* at `{mc}` MC\nliq `{liq}` locked, vol picking: `{vol}`\n\nnot on CT yet. copy CA.\n`{ca}`\n{dex_url}",
 
-    "ALPHA CALL 🎯\n\n*${symbol}*\n`{mc}` MC — before everyone else\n\n`{ca}`",
+    "📡 caught *${symbol}* before the narrative\n\n`{mc}` MC — liq `{liq}`\n\n`{ca}`",
 
-    "new call 👇\n\n*${symbol}* — `{mc}` MC\nliq `{liq}` | vol `{vol}`\n\n`{ca}`\n{dex_url}",
+    "🔔 *${symbol}*\n\ncaught at `{mc}` — this the early entry window\nvol `{vol}` building\n\n`{ca}`\n{dex_url}",
 
-    "🟢 *${symbol}*\n\n`{mc}` MC entry\nliq `{liq}`\n\nCA:\n`{ca}`",
+    "i keep finding these before CT 👀\n\n*${symbol}* — `{mc}` MC\nliq `{liq}` | vol `{vol}`\n\n`{ca}`",
 
-    "early 🔑\n\n*${symbol}* — `{mc}` MC\nvol `{vol}` and moving\n\n`{ca}`\n{dex_url}",
+    "🚨 *${symbol}*\n\nMC `{mc}` — move now or watch from the sidelines\nliq `{liq}`\n\nCA 👇\n`{ca}`\n{dex_url}",
 
-    "*{name}* 📡\n\n`{mc}` | liq `{liq}` | vol `{vol}`\n\n`{ca}`",
+    # — insider/whale tone —
+    "⚡ insider alert\n\n*${symbol}* — `{mc}` MC\nsmart wallets entering\n\n`{ca}`",
 
-    "🚨 *${symbol}*\n\ncaught at `{mc}` MC\nclean entry. move fast.\n\n`{ca}`\n{dex_url}",
+    "🐋 whale wallet flagged *${symbol}*\n\n`{mc}` MC | liq `{liq}` | vol `{vol}`\n\ndon't sleep\n\n`{ca}`\n{dex_url}",
 
-    "new one dropped 👀\n\n*${symbol}* — `{mc}` MC\nliq `{liq}`\n\n`{ca}`",
+    "not posting this in public groups\n\n*${symbol}* — `{mc}` MC\nliq `{liq}`, clean chart\n\n`{ca}`",
 
-    "*${symbol}* 🟢\n\nMC `{mc}` | liq `{liq}` | vol `{vol}`\n\n`{ca}`\n{dex_url}",
+    "scanner flagged it. i'm in. 🎯\n\n*${symbol}* — `{mc}` MC\n\n`{ca}`\n{dex_url}",
+
+    # — professional / alpha —
+    "🔑 early position: *${symbol}*\n\nMC `{mc}` | liq `{liq}` | vol `{vol}`\nentry window open\n\n`{ca}`",
+
+    "*{name}* 🟢\n\n`{mc}` MC — pre-move\nliq `{liq}` | vol `{vol}`\n\n`{ca}`\n{dex_url}",
 ]
 
 UPDATE_TEMPLATES = [
-    "🟢 *${symbol}* — *{gain_str}*\n\ncalled at `{entry_mc}` → `{current_mc}`\n{time_str}\n\n`{ca}`",
+    # — scoreboard style —
+    "🟢 *${symbol}* — *{gain_str}*\n\n`{entry_mc}` → `{current_mc}`\n{time_str}\n\n`{ca}`",
 
-    "*${symbol}* running 🔥\n\n*{gain_str}* from entry\nin `{entry_mc}` → now `{current_mc}`\n{time_str}\n\n`{ca}`\n{dex_url}",
+    "📈 *{gain_str}* on *${symbol}*\n\ncalled at `{entry_mc}` — now `{current_mc}`\n{time_str} since entry\n\n`{ca}`\n{dex_url}",
 
-    "*{gain_str}* 📈\n\n*${symbol}* called at `{entry_mc}`\nnow at `{current_mc}`\n\n`{ca}`",
+    "W 🏆\n\n*${symbol}* — *{gain_str}*\nin at `{entry_mc}` · now `{current_mc}`\n{time_str}\n\n`{ca}`",
 
-    "this is why we don't sell early 💎\n\n*${symbol}* — *{gain_str}*\n`{entry_mc}` → `{current_mc}` | {time_str}\n\n`{ca}`\n{dex_url}",
+    # — meme / raw CT —
+    "bro 😭\n\n*${symbol}* just hit *{gain_str}*\ncalled at `{entry_mc}` → now `{current_mc}`\n{time_str} hold\n\n`{ca}`",
 
-    "W 🏆\n\n*${symbol}* — *{gain_str}*\ncalled at `{entry_mc}`, sitting at `{current_mc}`\n{time_str} in\n\n`{ca}`",
+    "imagine not being in this 💀\n\n*${symbol}* — *{gain_str}*\n`{entry_mc}` → `{current_mc}` · {time_str}\n\n`{ca}`\n{dex_url}",
 
-    "*${symbol}* *{gain_str}* 🚀\n\nentry `{entry_mc}` → `{current_mc}`\ntime: {time_str}\n\n`{ca}`\n{dex_url}",
+    "this is exactly why you don't sell early 💎\n\n*${symbol}* *{gain_str}*\ncalled at `{entry_mc}` · sitting `{current_mc}`\n\n`{ca}`",
 
-    "another one 🎯\n\n*${symbol}* — *{gain_str}*\nin at `{entry_mc}`, now `{current_mc}`\n\n`{ca}`",
+    # — insider / whale —
+    "⚡ *${symbol}* running\n\n*{gain_str}* from our entry\n`{entry_mc}` → `{current_mc}` in {time_str}\n\n`{ca}`\n{dex_url}",
 
-    "*{gain_str}* on *${symbol}* 💰\n\ncalled at `{entry_mc}` → `{current_mc}`\n{time_str}\n\n`{ca}`\n{dex_url}",
+    "🐋 called it. *${symbol}* *{gain_str}*\n\nentry `{entry_mc}` · current `{current_mc}`\ntime in: {time_str}\n\n`{ca}`",
 
-    "bro 😭\n\n*${symbol}* just did *{gain_str}*\ncalled it at `{entry_mc}`, now `{current_mc}`\n\n`{ca}`",
+    "another one for the record 🎯\n\n*${symbol}* — *{gain_str}*\n`{entry_mc}` → `{current_mc}`\n{time_str}\n\n`{ca}`\n{dex_url}",
 
-    "we don't miss 🐋\n\n*${symbol}* — *{gain_str}*\n`{entry_mc}` → `{current_mc}` | {time_str}\n\n`{ca}`\n{dex_url}",
+    # — professional —
+    "🚀 *${symbol}* — *{gain_str}*\n\nposition update: `{entry_mc}` → `{current_mc}`\ntime held: {time_str}\n\n`{ca}`",
+
+    "📊 *${symbol}* gain locked in\n\n*{gain_str}* from `{entry_mc}`\nnow trading `{current_mc}` | {time_str}\n\n`{ca}`\n{dex_url}",
+
+    "not every call does this. this one did. 🔥\n\n*${symbol}* — *{gain_str}*\n`{entry_mc}` → `{current_mc}` · {time_str}\n\n`{ca}`",
 ]
 
 # ─── Forex / macro signal data ─────────────────────────────────────────────────
@@ -178,22 +193,33 @@ FOREX_SIGNALS = [
 ]
 
 FOREX_CAPTION_TEMPLATES = [
-    "🎯 *SIGNAL | {pair}*\n\n📊 Bias: *{direction}*\n⏱ Timeframe: `{timeframe}`\n\n🎯 Entry Zone: `{entry}`\n✅ TP1: `{tp1}`\n✅ TP2: `{tp2}`\n❌ SL: `{sl}`\n📐 R/R: `{rr}`\n\n💡 _{analysis}_\n\n🔐 Live position updates in VIP group",
+    "🎯 *{pair} — {direction}*\n\n`{timeframe}` setup | R/R `{rr}`\n\nEntry: `{entry}`\n✅ TP1: `{tp1}`\n✅ TP2: `{tp2}`\n❌ SL: `{sl}`\n\n_{analysis}_\n\n🔐 real-time management inside VIP",
 
-    "📡 *ALPHA SIGNAL — {pair}*\n\n*{direction}* | `{timeframe}`\n\nEntry: `{entry}`\nTP1: `{tp1}` | TP2: `{tp2}`\nSL: `{sl}`\nRisk/Reward: `{rr}`\n\n_{analysis}_\n\n🔐 Full trade management inside VIP",
+    "📡 *SIGNAL | {pair}*\n\n{direction} | `{timeframe}` | R/R `{rr}`\n\nZone: `{entry}`\nTP1 `{tp1}` · TP2 `{tp2}`\nSL `{sl}`\n\n_{analysis}_",
 
-    "🐋 *WHALE DESK | {pair}*\n\n{direction} SETUP | `{timeframe}`\n\n▶ Entry: `{entry}`\n▶ Target 1: `{tp1}`\n▶ Target 2: `{tp2}`\n▶ Stop: `{sl}`\n▶ R/R: `{rr}`\n\n_{analysis}_",
+    "🐋 *{pair}* setup ready\n\nbias: *{direction}* | tf: `{timeframe}`\n\n▸ entry: `{entry}`\n▸ tp1: `{tp1}` → tp2: `{tp2}`\n▸ stop: `{sl}`\n▸ r/r: `{rr}`\n\n_{analysis}_\n\n🔐 active inside VIP",
 
-    "📊 *TRADE IDEA — {pair}*\n\nDirection: *{direction}*\nTF: `{timeframe}` | R/R: `{rr}`\n\nEntry: `{entry}`\nTP1: `{tp1}` → TP2: `{tp2}`\nStop: `{sl}`\n\n💡 _{analysis}_\n\n🔐 Managed in real-time inside VIP",
+    "macro desk 📊\n\n*{pair} — {direction}*\n`{timeframe}` | `{rr}` R/R\n\nentry `{entry}`\nTP `{tp1}` / `{tp2}` · SL `{sl}`\n\n_{analysis}_",
+
+    "⚡ *{pair}*\n\n{direction} setup triggered · `{timeframe}`\n\n`{entry}` zone\nTP1 `{tp1}` · TP2 `{tp2}`\nSL `{sl}` · R/R `{rr}`\n\n_{analysis}_\n\n🔐 trade managed live in VIP",
+
+    "not everyone sees this 👁\n\n*{pair} — {direction}*\ntf: `{timeframe}` | r/r: `{rr}`\n\nentry `{entry}`\ntp1 `{tp1}` → tp2 `{tp2}` · sl `{sl}`\n\n_{analysis}_",
 ]
 
 # ─── VIP promo (standalone channel post) ──────────────────────────────────────
 
 VIP_PROMOS = [
-    "🔐 *Alpha VIP — Now Open*\n\nIf you're watching this channel, you're seeing the public results.\n\nThe *live setups, pre-call entries, on-chain alerts, and real-time position updates* are inside the VIP group.\n\nOne call covers the membership.\n\nAccess below 👇",
-    "💎 *Premium Intelligence. Serious Traders Only.*\n\nThis channel posts results.\nThe VIP group posts the setups *before* the move.\n\n• Crypto alpha (pre-DEX)\n• Forex & macro signals\n• Whale wallet alerts\n• On-chain flow reads\n\nIf you're serious about edges — the group is below 👇",
-    "🎯 *Everything you see here started inside the VIP group.*\n\nThe entries. The timing. The analysis.\n\nThe public channel is the scoreboard.\nThe group is where the game is played.\n\nAccess via crypto payment. Link below 👇",
-    "📡 *Our signal record speaks for itself.*\n\nWe don't post losses here because we manage them live inside.\n\nVIP members get:\n✅ Real-time entry alerts\n✅ SL management\n✅ Forex + crypto daily setups\n✅ On-chain whale flow\n\nJoin below 👇",
+    "🔐 *Alpha_Calls VIP — Now Open*\n\nThis channel shows results.\n\nThe *live entries, pre-call alerts, on-chain whale moves, and real-time SL management* happen inside VIP before anything is posted here.\n\nOne trade covers the membership.\n\nJoin below 👇",
+
+    "💎 *Serious traders only.*\n\nPublic channel = scoreboard\nVIP group = where the money is made\n\n✅ Meme alpha — pre-CT\n✅ Forex & macro signals\n✅ Whale wallet monitoring\n✅ On-chain flow reads\n✅ Real-time position updates\n\n👇",
+
+    "📊 *The setups you've seen hit — they were posted in VIP first.*\n\nEvery entry. Every exit. Every SL move.\n\nThe public channel gets the result.\nVIP gets the trade.\n\nAccess via SOL / crypto payment. Link below 👇",
+
+    "⚡ *Alpha_Calls VIP — What You're Missing*\n\nMeme calls before they 10x\nForex signals with full TP/SL management\nWhale wallet alerts before CT wakes up\nInsider macro reads\n\nAll inside. Daily.\n\nJoin below 👇",
+
+    "🎯 *Why join VIP?*\n\nBecause by the time it's posted here, early buyers are already up.\n\nVIP members enter before the public call.\nThat edge is worth more than the membership.\n\n$49/month or $75 lifetime 👇",
+
+    "🐋 *VIP group is small on purpose.*\n\nSmaller group = less slippage on entries = better trades for members.\n\nSpots are limited. If you're seeing this post, there's still room.\n\nJoin 👇",
 ]
 
 
@@ -224,7 +250,7 @@ class _Health(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "text/plain")
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
-        self.wfile.write(b"OK - Alpha Circle Bot running")
+        self.wfile.write(b"OK - Alpha_Calls Bot running")
     def log_message(self, *_): pass
 
 
@@ -356,7 +382,7 @@ async def send_initial_call(bot: Bot, token: dict, bot_username: str = ""):
             liq_str=format_mc(liq),
             vol_str=format_mc(vol),
             chain=chain,
-            username=bot_username or "alpha_circle1",
+            username=bot_username or "Alpha_Calls",
         )
     except Exception as e:
         log.warning(f"Call card error: {e}")
@@ -407,7 +433,7 @@ async def send_gain_update(bot: Bot, token: dict,
             multiplier=mult,
             mcap_str=entry_mc_str,
             time_str=_fmt_time(elapsed),
-            username=bot_username or "alpha_circle1",
+            username=bot_username or "Alpha_Calls",
         )
     except Exception as e:
         log.warning(f"Update card error: {e}")
@@ -427,7 +453,7 @@ async def send_gain_update(bot: Bot, token: dict,
 
 async def send_forex_signal(context: ContextTypes.DEFAULT_TYPE):
     bot: Bot = context.bot
-    bot_username = context.job.data.get("bot_username", "alpha_circle1")
+    bot_username = context.job.data.get("bot_username", "Alpha_Calls")
 
     sig = random.choice(FOREX_SIGNALS)
     caption = random.choice(FOREX_CAPTION_TEMPLATES).format(**sig)
@@ -572,7 +598,7 @@ async def post_init(application: Application):
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
 def main():
-    log.info("🚀 Alpha Circle Bot starting...")
+    log.info("🚀 Alpha_Calls Bot starting...")
     _start_health_server()
     _start_self_ping()
 
