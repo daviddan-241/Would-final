@@ -59,17 +59,28 @@ def pnl_for_base(base: int, multiplier: float) -> str:
 _CHARS = sorted([f for f in os.listdir(ASSETS_DIR)
                  if f.lower().endswith(".png")]) \
          if os.path.isdir(ASSETS_DIR) else []
-_last_char: str = ""
+# also fold templates/* into the character pool for more variety
+_TEMPLATE_CHARS = sorted([
+    os.path.join("templates", f)
+    for f in (os.listdir(TEMPLATES_DIR) if os.path.isdir(TEMPLATES_DIR) else [])
+    if f.lower().endswith((".png", ".jpg", ".jpeg"))
+    and not f.lower().startswith("manifest")
+])
+_ALL_CHARS = _CHARS + _TEMPLATE_CHARS
+_recent_chars: list = []
+_RECENT_WINDOW = 5  # never repeat any of the last 5 characters
 
 
 def _pick_char_path() -> str:
-    """Pick a character cutout, no consecutive repeats."""
-    global _last_char
-    if not _CHARS:
+    """Pick a character cutout, avoiding the last 5 picks."""
+    global _recent_chars
+    if not _ALL_CHARS:
         return ""
-    pool = [f for f in _CHARS if f != _last_char] or _CHARS
+    pool = [f for f in _ALL_CHARS if f not in _recent_chars] or _ALL_CHARS
     pick = random.choice(pool)
-    _last_char = pick
+    _recent_chars.append(pick)
+    if len(_recent_chars) > min(_RECENT_WINDOW, max(1, len(_ALL_CHARS) - 1)):
+        _recent_chars.pop(0)
     return os.path.join(ASSETS_DIR, pick)
 
 
@@ -80,16 +91,26 @@ _SCENES = [
     {"top": (18, 28, 40),  "bot": (6,  10, 18)},  # blue night
     {"top": (35, 28, 22),  "bot": (10, 8,  6)},   # warm dusk
     {"top": (16, 26, 30),  "bot": (4,  8,  12)},  # teal night
-    {"top": (22, 22, 28),  "bot": (6,  6,  10)},  # neutral
+    {"top": (22, 22, 28),  "bot": (6,  6,  10)},  # neutral charcoal
+    {"top": (10, 18, 30),  "bot": (2,  4,  10)},  # midnight blue
+    {"top": (38, 16, 26),  "bot": (12, 4,  10)},  # crimson dusk
+    {"top": (14, 32, 30),  "bot": (4,  10, 12)},  # emerald deep
+    {"top": (24, 18, 34),  "bot": (8,  4,  14)},  # indigo
+    {"top": (30, 30, 18),  "bot": (10, 10, 4)},   # olive nightlight
+    {"top": (8,  20, 26),  "bot": (2,  6,  10)},  # ocean
 ]
-_last_scene: int = -1
+_recent_scenes: list = []
 
 
 def _pick_scene() -> dict:
-    global _last_scene
-    pool = [i for i in range(len(_SCENES)) if i != _last_scene]
+    global _recent_scenes
+    win = max(1, min(4, len(_SCENES) - 1))
+    pool = [i for i in range(len(_SCENES)) if i not in _recent_scenes] \
+           or list(range(len(_SCENES)))
     idx = random.choice(pool)
-    _last_scene = idx
+    _recent_scenes.append(idx)
+    if len(_recent_scenes) > win:
+        _recent_scenes.pop(0)
     return _SCENES[idx]
 
 

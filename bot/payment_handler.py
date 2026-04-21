@@ -10,6 +10,7 @@ Matches the real "Bullish Calls / Solana100xCall" Telegram payment-bot UX:
 """
 
 import logging
+import os
 import time
 import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -21,9 +22,11 @@ from blockchain_verify import verify_transaction, SOL_ADDRESS
 
 log = logging.getLogger(__name__)
 
-GROUP_LINK     = "https://t.me/+b7UesS3ulxxlZDdk"
-SUPPORT_USER   = "@JordanDev1979"
-CHANNEL_NAME   = "Alpha_X_Calls"
+GROUP_LINK     = os.getenv("VIP_GROUP_LINK",  "https://t.me/+b7UesS3ulxxlZDdk")
+SUPPORT_USER   = os.getenv("SUPPORT_USERNAME", "@JordanDev1979")
+if not SUPPORT_USER.startswith("@"):
+    SUPPORT_USER = "@" + SUPPORT_USER
+CHANNEL_NAME   = os.getenv("CHANNEL_NAME",     "Alpha_X_Calls")
 
 PLANS = {
     "monthly":   {"label": "$44 / month",     "usd": 44,  "short": "Monthly"},
@@ -64,32 +67,8 @@ def _usd_to_sol(usd: float) -> float:
 # ══════════════════════════════════════════════════════════════════════════════
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = context.args or []
-    if args and args[0].lower() in ("vip", "join", "pay", "alpha", "get", "premium"):
-        return await _show_product(update.message, context)
-    return await _show_start(update.message, context)
-
-
-async def _show_start(msg, context):
-    kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🛒 Open cart  •  Pricing", callback_data="pay_start")],
-        [InlineKeyboardButton("💎 What's inside VIP",     callback_data="pay_start")],
-        [InlineKeyboardButton("📊 Past 100x Results",     url=GROUP_LINK)],
-    ])
-    await msg.reply_text(
-        "1. ~~Register your new address / payment method~~\n"
-        "2. Manually send `SOL` to the store's address\n"
-        "3. Join premium channel right away\n\n"
-        "⏳ *Watching your new wallet*\n"
-        "Pay from here ▸\n\n"
-        "🍎 *store address* 📋\n"
-        f"`{SOL_ADDRESS}`\n\n"
-        f"Tap below to pick a plan and we'll calculate the exact `SOL` amount "
-        f"based on the live `SOL/USD` price.",
-        parse_mode="Markdown",
-        reply_markup=kb,
-    )
-    return ConversationHandler.END
+    """Plain /start in DM → straight to the product page (cleaner UX)."""
+    return await _show_product(update.message, context)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -97,31 +76,26 @@ async def _show_start(msg, context):
 # ══════════════════════════════════════════════════════════════════════════════
 
 PRODUCT_TEXT = (
-    "_______________\n\n"
-    f"*Alpha Premium Access*\n\n"
-    f"🚀 *{CHANNEL_NAME} | Premium Signals*\n\n"
-    "Real alpha. No fluff.\n\n"
-    "💎 *Your VIP Access:*\n\n"
-    "*5 VIP Signal Channels:*\n"
-    "🥷 Sniper  •  ⚡ ALPHA  •  💎 APEX  +\n"
-    "🏆 VIP Milestone Tracker\n"
-    "💬 VIP Trader Chatroom\n\n"
-    "📊 30+ quality signals daily\n"
-    "👥 300+ active traders\n"
-    "🌎 Memecoins  •  Forex  •  Stocks  •  Macro\n\n"
-    "💳 *Payment & Access*\n\n"
-    "Pay with your Solana wallet:\n"
-    "Phantom  •  Backpack  •  Solflare  •  Trojan  •  Bloom\n\n"
-    "⚠️ *Do NOT pay from CEX* (Binance, Coinbase, etc.)\n\n"
-    "✅ Instant access after payment\n"
-    "No waiting, no manual approval\n\n"
-    f"❓ Support: {SUPPORT_USER}\n"
-    "_(Payment or access issues only)_\n\n"
-    "👇 *All plans = Same VIP access*\n"
-    "Only difference: How long you stay.\n\n"
-    "🔒 *Telegram access*\n"
-    "🥂 Chadroom • ⚡ Alpha Signals • 💎 Apex • 🥷 Sniper\n\n"
-    "*Pricing:*"
+    f"*{CHANNEL_NAME}  ·  Premium Access*\n\n"
+    "Real alpha. No fluff. No hype posts.\n\n"
+    "🔐 *What you actually get*\n"
+    "▸ *Memecoin alpha 4–6h before* the public mirror\n"
+    "▸ Forex / macro setups with live TP & SL management\n"
+    "▸ Index & equities desk (NVDA, TSLA, META, AMD, COIN…)\n"
+    "▸ On-chain whale & insider wallet alerts\n"
+    "▸ Real-time entry / scale-in / exit calls\n"
+    "▸ VIP chatroom — direct access to the desk\n\n"
+    "💎 *Inside the group*\n"
+    "🥷 Sniper  ·  ⚡ Alpha  ·  💎 Apex\n"
+    "🏆 VIP Milestone Tracker  ·  💬 Chatroom\n\n"
+    "📊 30+ quality signals / day  ·  300+ active traders\n\n"
+    "💳 *Payment*\n"
+    "Pay with your Solana wallet — Phantom · Backpack · Solflare · Trojan · Bloom.\n"
+    "⚠️ *Never pay from a CEX* (Binance, Coinbase, OKX). Tx will not match.\n\n"
+    "✅ *Instant access* after on-chain confirmation. No manual approval.\n\n"
+    "👇 *All plans = same VIP access.*  Only difference: how long you stay inside.\n\n"
+    f"❓ Support: {SUPPORT_USER}  _(payment or access issues only)_\n\n"
+    "*Pricing*"
 )
 
 
@@ -344,10 +318,13 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def build_payment_conversation() -> ConversationHandler:
     return ConversationHandler(
         entry_points=[
+            CommandHandler("start",  start),
             CommandHandler("pay",    pay_cmd),
             CommandHandler("join",   pay_cmd),
             CommandHandler("vip",    pay_cmd),
             CallbackQueryHandler(pay_start_cb, pattern="^pay_start$"),
+            CallbackQueryHandler(select_plan,  pattern="^plan_(monthly|quarterly|lifetime)$"),
+            CallbackQueryHandler(cart_pay,     pattern="^cart_pay$"),
         ],
         states={
             SELECT_PLAN: [

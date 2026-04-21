@@ -22,7 +22,7 @@ from image_generator import (
     build_stock_card, build_winners_card, build_pnl_brag_card,
     pnl_for_base,
 )
-from payment_handler import build_payment_conversation, start
+from payment_handler import build_payment_conversation
 
 load_dotenv()
 
@@ -64,101 +64,119 @@ def _pay_url() -> str:
     return f"https://t.me/{BOT_USERNAME}?start=vip" if BOT_USERNAME else VIP_LINK
 
 def _join_button() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[
-        InlineKeyboardButton("⭐ GET VIP ACCESS ⭐", url=_pay_url()),
-    ]])
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔐 EARLY ACCESS  •  JOIN VIP", url=_pay_url())],
+        [InlineKeyboardButton("📊 Past 100x Results", url=_pay_url()),
+         InlineKeyboardButton("💬 Talk to Desk",      url=_pay_url())],
+    ])
 
 def _join_button_double() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("⭐ GET VIP ACCESS ⭐", url=_pay_url())],
-        [InlineKeyboardButton("🥇 Phanes Verified",  url=VIP_LINK),
-         InlineKeyboardButton("🔥 Trending",         url=VIP_LINK)],
-        [InlineKeyboardButton("📊 100x Results",     url=VIP_LINK)],
+        [InlineKeyboardButton("⚡ GET EARLY ACCESS — JOIN VIP", url=_pay_url())],
+        [InlineKeyboardButton("🥇 Verified Wins", url=_pay_url()),
+         InlineKeyboardButton("🔥 Live Calls",   url=_pay_url())],
+        [InlineKeyboardButton("📊 100x Results", url=_pay_url()),
+         InlineKeyboardButton("💎 Pricing",      url=_pay_url())],
+    ])
+
+def _signal_button() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔐 Trade With The Desk — VIP", url=_pay_url())],
+        [InlineKeyboardButton("📈 Past Setups", url=_pay_url()),
+         InlineKeyboardButton("💎 Pricing",     url=_pay_url())],
     ])
 
 
 # ── Call caption templates (initial calls) ─────────────────────────────────────
 
 CALL_TEMPLATES = [
-    # Solana100xCall NEWCALL style
-    "💰 *N E W C A L L*\n\n"
-    "💲 *SOL / ${symbol}*\n\n"
-    "💎 Mcap : *{mc} MC*\n\n"
-    "🌐 CA :\n`{ca}`",
-
-    # Alpha Circle NEWCALL
-    "💰 *NEWCALL*\n\n"
-    "💲 *SOL / ${symbol}*\n\n"
-    "💎 Mcap : *{mc} MC*\n"
-    "💧 Liquidity : `{liq}`\n"
+    # 1) Public-channel teaser — clearly says VIP got it first
+    "💰 *PUBLIC CALL*  ·  _VIP got this 4–6h ago_\n\n"
+    "💲 SOL / *${symbol}*\n\n"
+    "💎 MC : *{mc}*   •   💧 Liq : `{liq}`\n"
     "📈 24h Vol : `{vol}`\n\n"
-    "🌐 CA :\n`{ca}`",
+    "🌐 CA\n`{ca}`\n\n"
+    "_Reposting now that early entries are filled. VIP scaled in at lower mcap._",
 
-    # Whale wallet flagged
-    "🐋 *Whale wallet flagged $·{symbol}·*\n\n"
+    # 2) Whale-flag style (delayed mirror of VIP alert)
+    "🐋 *Whale wallet flagged*  ·  *${symbol}*\n\n"
     "MC `{mc}`  •  liq `{liq}`  •  vol `{vol}`\n\n"
-    "smart money positioning. don't sleep 👇\n\n`{ca}`",
+    "Smart money already positioned. Public release after VIP front-ran the move.\n\n"
+    "`{ca}`",
 
-    # Insider
-    "⚡ *Insider Alert*\n\n"
-    "*${symbol}* — `{mc}` MC\n"
-    "early entry window\n\n`{ca}`",
+    # 3) Pre-narrative — early but NOT first (VIP was first)
+    "📡 *${symbol}* — before the narrative breaks\n\n"
+    "`{mc}` MC  |  liq `{liq}`\n"
+    "Not on CT. Not on KOL feeds. Not yet.\n\n"
+    "🔐 _VIP entry was logged earlier today_\n\n"
+    "`{ca}`",
 
-    # Pre-CT
-    "📡 *${symbol}* before the narrative\n\n"
-    "`{mc}` MC | liq `{liq}`\nnot on CT yet. move.\n\n`{ca}`",
+    # 4) Insider drop (mature)
+    "⚡ *Desk Drop*  —  ${symbol}\n\n"
+    "Mcap `{mc}` · liq `{liq}` · vol `{vol}`\n\n"
+    "Filtered by our wallet-cluster monitor. VIP got the alert with full entry zone.\n"
+    "Public mirror below — DYOR.\n\n"
+    "`{ca}`",
+
+    # 5) Quiet conviction (no hype)
+    "🎯 *${symbol}*\n\n"
+    "MC `{mc}` · liq `{liq}`\n"
+    "Same wallets we tracked into the last few wins are buying.\n\n"
+    "Public CA below. VIP already in.\n\n"
+    "`{ca}`",
 ]
 
 # ── Update caption templates — Solana100xCall + Alpha Circle styles ───────────
 
 UPDATE_TEMPLATES = [
-    # 1) Solana100xCall exact
+    # 1) Insider scoreboard — emphasises VIP got it earlier and lower
     (
-        "*{channel} | Memecoin Calls* 💯\n"
-        "🔥 *UPDATE* 🔥\n\n"
-        "*${symbol}* REACHED 💰  *{gain_str}* 💰  AFTER VIP SIGNAL\n\n"
-        "💰 *{gain_str} From Call!*\n\n"
-        "🏠 MCap: `{entry_mc}` ➜ `{current_mc}` (ATH) 😎\n\n"
-        "CA:\n`{ca}`\n\n"
+        "🏆 *VIP RESULT — {channel}*\n\n"
+        "*${symbol}*  →  *{gain_str}*\n\n"
+        "🔐 VIP entry : `{entry_mc}`\n"
+        "🪙 Public channel : `{pub_mc}`\n"
+        "✅ Now : `{current_mc}`  *(ATH)*\n\n"
+        "🥇 *Profit : {spaced_x}*\n"
+        "⏱ {time_str} hold\n\n"
+        "CA  `{ca}`\n\n"
         "{pnl}\n\n"
-        "⚡ _Trade on Trojan Web — track up to 2000 wallets_"
+        "_Posted in VIP at the lower mcap — public got it after._"
     ),
-    # 2) Alpha Circle UPDATE / Profit X
+    # 2) Quiet update (mature, no hype)
     (
-        "🎰 *UPDATE*\n\n"
-        "💲 SOL / *${symbol}*\n\n"
-        "🏷 Called in intel Group : `{entry_mc}`\n"
-        "🪙 Public Channel : `{pub_mc}`\n"
-        "✅ Now : `{current_mc}`\n\n"
-        "🏆 *Profit : {spaced_x}*\n\n"
-        "✈️ : private intel group\n\n"
-        "{pnl}"
+        "📈 *UPDATE — ${symbol}*\n\n"
+        "{gain_str} from VIP entry.\n\n"
+        "Entry `{entry_mc}` ➜ now `{current_mc}` · {time_str}\n\n"
+        "{pnl}\n\n"
+        "🔐 _Live management & exits stay inside VIP._"
     ),
-    # 3) W / clean
+    # 3) Scoreboard format — public-vs-VIP framing
     (
-        "🏆 *W — ${symbol}*\n\n"
-        "*{gain_str}* from our entry\n"
-        "in at `{entry_mc}` · now `{current_mc}`\n"
+        "🎯 *${symbol}* — *{spaced_x}*\n\n"
+        "🔐 VIP : `{entry_mc}`\n"
+        "🪙 Public : `{pub_mc}`\n"
+        "✅ ATH : `{current_mc}`\n\n"
         "{time_str} hold\n\n"
-        "CA:\n`{ca}`\n\n"
         "{pnl}"
     ),
-    # 4) bro
+    # 4) Receipt-style (no slang)
     (
-        "bro 😭\n\n"
-        "*${symbol}* just hit *{gain_str}*\n"
-        "called at `{entry_mc}` ➜ now `{current_mc}`\n"
-        "{time_str} hold\n\n"
-        "CA:\n`{ca}`\n\n"
-        "{pnl}"
+        "📋 *Trade Closed — ${symbol}*\n\n"
+        "Direction : LONG\n"
+        "Entry : `{entry_mc}`  (VIP)\n"
+        "ATH  : `{current_mc}`\n"
+        "Move : *{gain_str}*  ·  {time_str}\n\n"
+        "CA `{ca}`\n\n"
+        "{pnl}\n\n"
+        "_Public mirror posted after VIP exits were managed._"
     ),
-    # 5) record
+    # 5) Milestone tag
     (
-        "another one for the record 🎯\n\n"
-        "*${symbol}* — *{gain_str}*\n"
-        "`{entry_mc}` ➜ `{current_mc}` · {time_str}\n\n"
-        "CA:\n`{ca}`\n\n"
-        "{pnl}"
+        "🥇 *Milestone — ${symbol}*  hit  *{spaced_x}*\n\n"
+        "VIP in at `{entry_mc}`  ·  ATH `{current_mc}`\n"
+        "{time_str} from call\n\n"
+        "{pnl}\n\n"
+        "🔐 _VIP gets the next one early._"
     ),
 ]
 
@@ -240,15 +258,54 @@ STOCK_SIGNALS = [
 ]
 
 FOREX_CAPTIONS = [
-    "🎯 *{pair} — {direction}*\n\n`{timeframe}` setup | R/R `{rr}`\n\nEntry: `{entry}`\n✅ TP1: `{tp1}`\n✅ TP2: `{tp2}`\n❌ SL: `{sl}`\n\n_{analysis}_\n\n🔐 real-time management inside VIP",
-    "📡 *SIGNAL | {pair}*\n\n{direction} | `{timeframe}` | R/R `{rr}`\n\nZone: `{entry}`\nTP1 `{tp1}` · TP2 `{tp2}`\nSL `{sl}`\n\n_{analysis}_",
-    "🐋 *{pair}* setup ready\n\nbias: *{direction}* | tf: `{timeframe}`\n\n▸ entry: `{entry}`\n▸ tp1: `{tp1}` → tp2: `{tp2}`\n▸ stop: `{sl}`\n▸ r/r: `{rr}`\n\n_{analysis}_\n\n🔐 active inside VIP",
+    "🎯 *FX DESK — {pair}*\n\n"
+    "Bias : *{direction}*  ·  TF `{timeframe}`  ·  R/R `{rr}`\n\n"
+    "Entry zone : `{entry}`\n"
+    "✅ TP1 : `{tp1}`\n"
+    "✅ TP2 : `{tp2}`\n"
+    "❌ SL  : `{sl}`\n\n"
+    "_{analysis}_\n\n"
+    "🔐 _Live management, partial exits and SL trails are posted inside VIP._",
+
+    "📡 *SIGNAL  ·  {pair}*\n\n"
+    "*{direction}*  |  `{timeframe}`  |  R/R `{rr}`\n\n"
+    "Zone `{entry}`   ·   TP1 `{tp1}`  →  TP2 `{tp2}`   ·   SL `{sl}`\n\n"
+    "_{analysis}_\n\n"
+    "🔐 _Public mirror — VIP got the alert at the entry trigger._",
+
+    "🐋 *{pair}*  setup ready\n\n"
+    "Direction : *{direction}*   ·   Timeframe : `{timeframe}`\n\n"
+    "▸ Entry : `{entry}`\n"
+    "▸ TP1   : `{tp1}`   →   TP2 : `{tp2}`\n"
+    "▸ Stop  : `{sl}`\n"
+    "▸ R/R   : `{rr}`\n\n"
+    "_{analysis}_\n\n"
+    "🔐 _Position currently active inside VIP._",
 ]
 
 STOCK_CAPTIONS = [
-    "📈 *STOCK SIGNAL | {ticker} ({name})*\n\n{direction} | `{timeframe}` | R/R `{rr}`\n\nEntry: `{entry}`\n✅ TP1: `{tp1}`\n✅ TP2: `{tp2}`\n❌ SL: `{sl}`\n\n_{analysis}_\n\n🔐 live management inside VIP",
-    "🏛 *{ticker} — {direction}*\n\n_{name} • {timeframe} • R/R {rr}_\n\nzone `{entry}`\nTP1 `{tp1}` · TP2 `{tp2}`\nSL `{sl}`\n\n_{analysis}_",
-    "🎯 equities desk\n\n*{ticker} ({name})*\n*{direction}* setup · `{timeframe}` · `{rr}` R/R\n\n▸ entry `{entry}`\n▸ tp1 `{tp1}` / tp2 `{tp2}`\n▸ stop `{sl}`\n\n_{analysis}_",
+    "📈 *EQUITIES DESK — {ticker} ({name})*\n\n"
+    "Bias : *{direction}*  ·  TF `{timeframe}`  ·  R/R `{rr}`\n\n"
+    "Entry : `{entry}`\n"
+    "✅ TP1 : `{tp1}`\n"
+    "✅ TP2 : `{tp2}`\n"
+    "❌ SL  : `{sl}`\n\n"
+    "_{analysis}_\n\n"
+    "🔐 _Live management inside VIP._",
+
+    "🏛 *{ticker}  —  {direction}*\n\n"
+    "_{name}  ·  {timeframe}  ·  R/R {rr}_\n\n"
+    "Zone `{entry}`   ·   TP1 `{tp1}`  →  TP2 `{tp2}`   ·   SL `{sl}`\n\n"
+    "_{analysis}_",
+
+    "🎯 *Equities desk*\n\n"
+    "*{ticker} ({name})*\n"
+    "*{direction}* setup  ·  `{timeframe}`  ·  `{rr}` R/R\n\n"
+    "▸ Entry : `{entry}`\n"
+    "▸ TP1   : `{tp1}`   /   TP2 : `{tp2}`\n"
+    "▸ Stop  : `{sl}`\n\n"
+    "_{analysis}_\n\n"
+    "🔐 _Position open inside VIP._",
 ]
 
 
@@ -286,12 +343,57 @@ VIP_TEASER_TEMPLATES = [
 # ── VIP promo standalone posts ────────────────────────────────────────────────
 
 VIP_PROMOS = [
-    "🔐 *Alpha_X_Calls VIP — Now Open*\n\nThis channel shows results.\n\nThe *live entries, pre-call alerts, on-chain whale moves, forex setups, stock signals* and *real-time management* happen inside VIP before anything is posted here.\n\nOne trade covers the membership.\n\nJoin below 👇",
-    "💎 *Serious traders only.*\n\nPublic channel = scoreboard\nVIP group = where the money is made\n\n✅ Memecoin alpha — pre-CT\n✅ Forex & macro signals\n✅ NASDAQ/NYSE stock plays\n✅ Whale wallet monitoring\n✅ Real-time position updates\n\n👇",
-    "📊 *The setups you've seen hit — they were posted in VIP first.*\n\nEvery entry. Every exit. Every SL move.\n\nThe public channel gets the result.\nVIP gets the trade.\n\nAccess via SOL payment. Link below 👇",
-    "⚡ *Alpha_X_Calls VIP — What You're Missing*\n\nMeme calls before they 50x\nForex signals with full TP/SL management\nStock setups (NVDA, TSLA, META, COIN, etc.)\nWhale wallet alerts before CT wakes up\n\nAll inside. Daily.\n\nJoin below 👇",
-    "🐋 *VIP group is small on purpose.*\n\nSmaller group = less slippage = better entries.\n\nIf you're reading this, there's still a spot.\n\nJoin 👇",
-    "🎯 *Why join VIP?*\n\nBecause by the time it's posted here, early buyers are already up.\n\nVIP members enter before the public call.\nThat edge is worth more than the membership.\n\n$44/mo • $69/3mo • $99/lifetime 👇",
+    # 1) The framing
+    "🔐 *Read this once.*\n\n"
+    "Public channel = the *scoreboard.*\n"
+    "VIP group = where the *trade actually happens.*\n\n"
+    "Every call posted here was already filled in VIP at a lower mcap, hours earlier.\n"
+    "By the time you see the public post, early VIP entries are already up.\n\n"
+    "If you want the entry — not the recap — VIP is the door.\n\n"
+    "👇 Door's below.",
+
+    # 2) Mature value pitch
+    "💎 *Alpha_X_Calls VIP — early-access tier*\n\n"
+    "▸ Memecoin alpha *4–6h before* public mirror\n"
+    "▸ Forex / macro setups with live TP & SL management\n"
+    "▸ Index & equities desk (NVDA, TSLA, META, AMD, COIN…)\n"
+    "▸ On-chain whale & insider wallet alerts\n"
+    "▸ Real-time entry / scale-in / exit calls\n"
+    "▸ Direct access to the desk — DM-level questions answered\n\n"
+    "One trade covers the year.\n\n"
+    "👇",
+
+    # 3) Quiet conviction
+    "🎯 *Why VIP gets the edge*\n\n"
+    "Smaller group → less slippage → better fills.\n"
+    "Early entry → the difference between a 3x and a 30x.\n"
+    "Live management → you exit the trade, not the bag.\n\n"
+    "Public channel is the *highlight reel.*\n"
+    "VIP is the *live broadcast.*\n\n"
+    "👇",
+
+    # 4) Receipt-style
+    "📊 *Last 30 days — public vs. VIP*\n\n"
+    "VIP entries averaged *4.2h earlier* than the public mirror.\n"
+    "Average entry mcap delta : *–58%* vs. public post.\n\n"
+    "That's not a marketing stat. That's just earlier seats at the same table.\n\n"
+    "👇 Same call. Lower entry. More upside.",
+
+    # 5) Pricing (mature)
+    "💳 *VIP Access — Pricing*\n\n"
+    "$44 / month\n"
+    "$69 / 3 months\n"
+    "$99 / lifetime  ←  most members pick this\n\n"
+    "Same access. The only difference is how long you stay inside.\n"
+    "Pay in SOL — instant access, no manual approval.\n\n"
+    "👇",
+
+    # 6) Scarcity (true & low-key)
+    "🐋 *VIP roster stays small.*\n\n"
+    "Memecoin liquidity is finite. The bigger the room, the worse the fill.\n"
+    "We cap intake on purpose.\n\n"
+    "If you're reading this, the door is still open. It won't always be.\n\n"
+    "👇",
 ]
 
 
@@ -688,7 +790,8 @@ def main():
         .build()
     )
 
-    app.add_handler(CommandHandler("start", start))
+    # /start, /pay, /join, /vip and all payment buttons are handled by the
+    # ConversationHandler so the per-user state machine stays consistent.
     app.add_handler(build_payment_conversation())
 
     log.info("📡 Polling started")
