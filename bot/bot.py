@@ -17,7 +17,11 @@ from telegram.ext import (
 )
 
 from dex_fetcher import fetch_trending_tokens, fetch_new_coins, format_mc
-from image_generator import build_update_card, build_call_card, build_forex_card, random_pnl
+from image_generator import (
+    build_update_card, build_call_card, build_forex_card,
+    build_stock_card, build_winners_card, build_pnl_brag_card,
+    pnl_for_base,
+)
 from payment_handler import build_payment_conversation, start
 
 load_dotenv()
@@ -50,6 +54,9 @@ last_sent_time: float = 0.0
 
 VIP_LINK = "https://t.me/+b7UesS3ulxxlZDdk"
 
+# Per-token PnL base assignments — chosen ONCE per token, kept across updates
+PNL_BASES = [50, 100, 100, 100, 200, 250, 500, 1000, 2530]
+
 
 # ── VIP keyboard buttons ───────────────────────────────────────────────────────
 
@@ -62,159 +69,229 @@ def _join_button() -> InlineKeyboardMarkup:
     ]])
 
 def _join_button_double() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[
-        InlineKeyboardButton("⭐ GET VIP ACCESS ⭐",   url=_pay_url()),
-    ], [
-        InlineKeyboardButton("📊 100x Results",          url=VIP_LINK),
-    ]])
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("⭐ GET VIP ACCESS ⭐", url=_pay_url())],
+        [InlineKeyboardButton("🥇 Phanes Verified",  url=VIP_LINK),
+         InlineKeyboardButton("🔥 Trending",         url=VIP_LINK)],
+        [InlineKeyboardButton("📊 100x Results",     url=VIP_LINK)],
+    ])
 
 
-# ── Call caption templates ─────────────────────────────────────────────────────
+# ── Call caption templates (initial calls) ─────────────────────────────────────
 
 CALL_TEMPLATES = [
-    "💸 *NEW CALL*\n\nSOL / *${symbol}*\n\n💎 Mcap : {mc} MC\n\n🌐 CA :\n`{ca}`",
+    # Solana100xCall NEWCALL style
+    "💰 *N E W C A L L*\n\n"
+    "💲 *SOL / ${symbol}*\n\n"
+    "💎 Mcap : *{mc} MC*\n\n"
+    "🌐 CA :\n`{ca}`",
 
-    "💸 *N E W C A L L*\n\nSOL / *${symbol}*\n\n💎 Mcap : {mc} MC\n\n🌐 CA :\n`{ca}`",
+    # Alpha Circle NEWCALL
+    "💰 *NEWCALL*\n\n"
+    "💲 *SOL / ${symbol}*\n\n"
+    "💎 Mcap : *{mc} MC*\n"
+    "💧 Liquidity : `{liq}`\n"
+    "📈 24h Vol : `{vol}`\n\n"
+    "🌐 CA :\n`{ca}`",
 
-    "🟢 caught *${symbol}* early\n\n`{mc}` MC — liq `{liq}`, vol picking: `{vol}`\n\nCA 👇\n`{ca}`",
+    # Whale wallet flagged
+    "🐋 *Whale wallet flagged $·{symbol}·*\n\n"
+    "MC `{mc}`  •  liq `{liq}`  •  vol `{vol}`\n\n"
+    "smart money positioning. don't sleep 👇\n\n`{ca}`",
 
-    "📡 *${symbol}* before the narrative\n\n`{mc}` MC | liq `{liq}`\n\nnot on CT yet. move.\n\n`{ca}`",
+    # Insider
+    "⚡ *Insider Alert*\n\n"
+    "*${symbol}* — `{mc}` MC\n"
+    "early entry window\n\n`{ca}`",
 
-    "🔔 *${symbol}*\n\ncaught at `{mc}` — early entry window\nvol `{vol}` building\n\n`{ca}`",
-
-    "i keep finding these before CT 👀\n\n*${symbol}* — `{mc}` MC\nliq `{liq}` | vol `{vol}`\n\n`{ca}`",
-
-    "⚡ insider alert\n\n*${symbol}* — `{mc}` MC\nsmart wallets entering\n\n`{ca}`",
-
-    "🐋 whale wallet flagged *${symbol}*\n\n`{mc}` MC | liq `{liq}` | vol `{vol}`\n\ndon't sleep\n\n`{ca}`",
-
-    "🔑 early position: *${symbol}*\n\nMC `{mc}` | liq `{liq}` | vol `{vol}`\nentry window open\n\n`{ca}`",
+    # Pre-CT
+    "📡 *${symbol}* before the narrative\n\n"
+    "`{mc}` MC | liq `{liq}`\nnot on CT yet. move.\n\n`{ca}`",
 ]
 
+# ── Update caption templates — Solana100xCall + Alpha Circle styles ───────────
+
 UPDATE_TEMPLATES = [
+    # 1) Solana100xCall exact
     (
-        "*${symbol}* REACHED 💰\n"
-        "{gain_str} 💰 AFTER VIP SIGNAL\n\n"
-        "💰 {gain_str} From Call!\n\n"
-        "🏠 MCap: `{entry_mc}` → `{current_mc}`\n\n"
+        "*{channel} | Memecoin Calls* 💯\n"
+        "🔥 *UPDATE* 🔥\n\n"
+        "*${symbol}* REACHED 💰  *{gain_str}* 💰  AFTER VIP SIGNAL\n\n"
+        "💰 *{gain_str} From Call!*\n\n"
+        "🏠 MCap: `{entry_mc}` ➜ `{current_mc}` (ATH) 😎\n\n"
         "CA:\n`{ca}`\n\n"
+        "{pnl}\n\n"
+        "⚡ _Trade on Trojan Web — track up to 2000 wallets_"
+    ),
+    # 2) Alpha Circle UPDATE / Profit X
+    (
+        "🎰 *UPDATE*\n\n"
+        "💲 SOL / *${symbol}*\n\n"
+        "🏷 Called in intel Group : `{entry_mc}`\n"
+        "🪙 Public Channel : `{pub_mc}`\n"
+        "✅ Now : `{current_mc}`\n\n"
+        "🏆 *Profit : {spaced_x}*\n\n"
+        "✈️ : private intel group\n\n"
         "{pnl}"
     ),
+    # 3) W / clean
     (
-        "📈 *{gain_str}* on *${symbol}*\n\n"
-        "🏠 Called: `{entry_mc}` → Now: `{current_mc}`\n"
-        "⏱ {time_str} since entry\n\n"
-        "CA:\n`{ca}`\n\n"
-        "{pnl}"
-    ),
-    (
-        "W 🏆\n\n"
-        "*${symbol}* — *{gain_str}*\n"
+        "🏆 *W — ${symbol}*\n\n"
+        "*{gain_str}* from our entry\n"
         "in at `{entry_mc}` · now `{current_mc}`\n"
-        "{time_str}\n\n"
-        "CA:\n`{ca}`\n\n"
-        "{pnl}"
-    ),
-    (
-        "bro 😭\n\n"
-        "*${symbol}* just hit *{gain_str}*\n"
-        "called at `{entry_mc}` → now `{current_mc}`\n"
         "{time_str} hold\n\n"
         "CA:\n`{ca}`\n\n"
         "{pnl}"
     ),
+    # 4) bro
     (
-        "this is exactly why you don't sell early 💎\n\n"
-        "*${symbol}* *{gain_str}*\n"
-        "called at `{entry_mc}` · sitting `{current_mc}`\n\n"
+        "bro 😭\n\n"
+        "*${symbol}* just hit *{gain_str}*\n"
+        "called at `{entry_mc}` ➜ now `{current_mc}`\n"
+        "{time_str} hold\n\n"
         "CA:\n`{ca}`\n\n"
         "{pnl}"
     ),
-    (
-        "⚡ *${symbol}* running\n\n"
-        "*{gain_str}* from our entry\n"
-        "`{entry_mc}` → `{current_mc}` in {time_str}\n\n"
-        "CA:\n`{ca}`\n\n"
-        "{pnl}"
-    ),
+    # 5) record
     (
         "another one for the record 🎯\n\n"
         "*${symbol}* — *{gain_str}*\n"
-        "`{entry_mc}` → `{current_mc}`\n"
-        "{time_str}\n\n"
-        "CA:\n`{ca}`\n\n"
-        "{pnl}"
-    ),
-    (
-        "not every call does this. this one did. 🔥\n\n"
-        "*${symbol}* — *{gain_str}*\n"
-        "`{entry_mc}` → `{current_mc}` · {time_str}\n\n"
+        "`{entry_mc}` ➜ `{current_mc}` · {time_str}\n\n"
         "CA:\n`{ca}`\n\n"
         "{pnl}"
     ),
 ]
 
 
-# ── Forex / macro data ─────────────────────────────────────────────────────────
+# ── Forex / macro signals ─────────────────────────────────────────────────────
 
 FOREX_SIGNALS = [
     {"pair": "EUR/USD", "direction": "LONG",  "timeframe": "4H",
-     "entry": "1.0840 – 1.0860", "tp1": "1.0940", "tp2": "1.1025",
-     "sl": "1.0785", "rr": "2.7:1",
+     "entry": "1.0840 – 1.0860", "tp1": "1.0940", "tp2": "1.1025", "sl": "1.0785", "rr": "2.7:1",
      "analysis": "DXY rejection at key resistance. EUR flow bias bullish ahead of ECB commentary."},
     {"pair": "GBP/USD", "direction": "LONG",  "timeframe": "H4",
-     "entry": "1.2660 – 1.2690", "tp1": "1.2780", "tp2": "1.2880",
-     "sl": "1.2600", "rr": "2.1:1",
+     "entry": "1.2660 – 1.2690", "tp1": "1.2780", "tp2": "1.2880", "sl": "1.2600", "rr": "2.1:1",
      "analysis": "Cable holding above key structural support. BoE hawkish pivot narrative."},
     {"pair": "USD/JPY", "direction": "SHORT", "timeframe": "Daily",
-     "entry": "154.80 – 155.20", "tp1": "152.50", "tp2": "150.00",
-     "sl": "156.40", "rr": "3.1:1",
+     "entry": "154.80 – 155.20", "tp1": "152.50", "tp2": "150.00", "sl": "156.40", "rr": "3.1:1",
      "analysis": "BoJ intervention risk elevated at 155+. Risk-off flow incoming."},
     {"pair": "XAU/USD", "direction": "LONG",  "timeframe": "H4",
-     "entry": "$3,080 – $3,095", "tp1": "$3,160", "tp2": "$3,250",
-     "sl": "$3,040", "rr": "2.5:1",
+     "entry": "$3,080 – $3,095", "tp1": "$3,160", "tp2": "$3,250", "sl": "$3,040", "rr": "2.5:1",
      "analysis": "Gold reclaiming ATH structure. Macro uncertainty + central bank accumulation."},
     {"pair": "BTC/USDT", "direction": "LONG", "timeframe": "4H/Daily",
-     "entry": "$82,400 – $83,200", "tp1": "$87,500", "tp2": "$93,000",
-     "sl": "$79,800", "rr": "3.2:1",
+     "entry": "$82,400 – $83,200", "tp1": "$87,500", "tp2": "$93,000", "sl": "$79,800", "rr": "3.2:1",
      "analysis": "HTF demand respected. Accumulation pattern confirmed on 4H. Spot ETF inflows accelerating."},
     {"pair": "ETH/USDT", "direction": "LONG", "timeframe": "4H",
-     "entry": "$1,580 – $1,620", "tp1": "$1,780", "tp2": "$1,950",
-     "sl": "$1,490", "rr": "2.4:1",
+     "entry": "$1,580 – $1,620", "tp1": "$1,780", "tp2": "$1,950", "sl": "$1,490", "rr": "2.4:1",
      "analysis": "ETH printing higher lows vs BTC. Pectra upgrade narrative building."},
     {"pair": "SOL/USDT", "direction": "LONG", "timeframe": "4H",
-     "entry": "$128 – $134", "tp1": "$158", "tp2": "$185",
-     "sl": "$118", "rr": "2.9:1",
+     "entry": "$128 – $134", "tp1": "$158", "tp2": "$185", "sl": "$118", "rr": "2.9:1",
      "analysis": "SOL showing relative strength. DEX volume at highs. Institutional accumulation visible on-chain."},
     {"pair": "GBP/JPY", "direction": "SHORT", "timeframe": "H4",
-     "entry": "195.50 – 196.00", "tp1": "193.20", "tp2": "191.00",
-     "sl": "197.20", "rr": "2.3:1",
+     "entry": "195.50 – 196.00", "tp1": "193.20", "tp2": "191.00", "sl": "197.20", "rr": "2.3:1",
      "analysis": "Risk-off tone. JPY strength + GBP weakness at resistance confluence."},
     {"pair": "AUD/USD", "direction": "SHORT", "timeframe": "H4",
-     "entry": "0.6380 – 0.6400", "tp1": "0.6290", "tp2": "0.6210",
-     "sl": "0.6450", "rr": "2.2:1",
+     "entry": "0.6380 – 0.6400", "tp1": "0.6290", "tp2": "0.6210", "sl": "0.6450", "rr": "2.2:1",
      "analysis": "China PMI miss weighing on AUD. RBA dovish tone."},
     {"pair": "USD/CHF", "direction": "SHORT", "timeframe": "Daily",
-     "entry": "0.9020 – 0.9050", "tp1": "0.8900", "tp2": "0.8780",
-     "sl": "0.9120", "rr": "2.6:1",
+     "entry": "0.9020 – 0.9050", "tp1": "0.8900", "tp2": "0.8780", "sl": "0.9120", "rr": "2.6:1",
      "analysis": "SNB holding reserves. Risk-off CHF bid. Clean break below key level."},
+]
+
+# ── Stock & index signals (NASDAQ, NYSE) ──────────────────────────────────────
+
+STOCK_SIGNALS = [
+    {"ticker": "NVDA",  "name": "NVIDIA",     "direction": "LONG",  "timeframe": "Daily",
+     "entry": "$118 – $122", "tp1": "$132", "tp2": "$148", "sl": "$112", "rr": "3.0:1",
+     "analysis": "AI capex super-cycle intact. New Blackwell shipments accelerating. HTF bullish structure."},
+    {"ticker": "TSLA",  "name": "Tesla",      "direction": "LONG",  "timeframe": "4H",
+     "entry": "$258 – $264", "tp1": "$282", "tp2": "$305", "sl": "$248", "rr": "2.4:1",
+     "analysis": "Robotaxi narrative + delivery beat. 4H reclaiming key supply zone."},
+    {"ticker": "AAPL",  "name": "Apple",      "direction": "LONG",  "timeframe": "Daily",
+     "entry": "$222 – $226", "tp1": "$238", "tp2": "$252", "sl": "$216", "rr": "2.6:1",
+     "analysis": "Services revenue at ATH. Apple Intelligence rollout driving upgrade cycle."},
+    {"ticker": "META",  "name": "Meta",       "direction": "LONG",  "timeframe": "Daily",
+     "entry": "$555 – $565", "tp1": "$598", "tp2": "$640", "sl": "$540", "rr": "2.7:1",
+     "analysis": "Ad revenue beat + AI spend ROI proven. Reels monetisation accelerating."},
+    {"ticker": "MSFT",  "name": "Microsoft",  "direction": "LONG",  "timeframe": "Daily",
+     "entry": "$418 – $424", "tp1": "$445", "tp2": "$472", "sl": "$408", "rr": "2.3:1",
+     "analysis": "Azure cloud growth +30%. Copilot adoption ramping in enterprise."},
+    {"ticker": "AMZN",  "name": "Amazon",     "direction": "LONG",  "timeframe": "4H",
+     "entry": "$182 – $186", "tp1": "$198", "tp2": "$212", "sl": "$176", "rr": "2.5:1",
+     "analysis": "AWS reaccelerating. Retail margins expanding. Holiday season tailwind."},
+    {"ticker": "GOOGL", "name": "Alphabet",   "direction": "LONG",  "timeframe": "Daily",
+     "entry": "$162 – $166", "tp1": "$178", "tp2": "$192", "sl": "$156", "rr": "2.6:1",
+     "analysis": "Gemini gaining traction. Search ads stable. YouTube + Cloud both beating."},
+    {"ticker": "SPY",   "name": "S&P 500",    "direction": "LONG",  "timeframe": "Daily",
+     "entry": "$556 – $560", "tp1": "$578", "tp2": "$598", "sl": "$548", "rr": "2.8:1",
+     "analysis": "Macro: rate-cut path priced in. Earnings beating. HTF bull trend intact."},
+    {"ticker": "QQQ",   "name": "Nasdaq 100", "direction": "LONG",  "timeframe": "4H",
+     "entry": "$478 – $482", "tp1": "$498", "tp2": "$518", "sl": "$470", "rr": "2.5:1",
+     "analysis": "Tech leadership re-emerging. AI capex theme + semis strength."},
+    {"ticker": "AMD",   "name": "AMD",        "direction": "LONG",  "timeframe": "Daily",
+     "entry": "$148 – $152", "tp1": "$168", "tp2": "$188", "sl": "$140", "rr": "2.5:1",
+     "analysis": "MI300 ramp ahead of guidance. Datacenter share-take vs INTC."},
+    {"ticker": "NFLX",  "name": "Netflix",    "direction": "LONG",  "timeframe": "Daily",
+     "entry": "$680 – $690", "tp1": "$725", "tp2": "$770", "sl": "$662", "rr": "2.4:1",
+     "analysis": "Subscriber adds accelerating. Ad-tier monetisation kicking in."},
+    {"ticker": "COIN",  "name": "Coinbase",   "direction": "LONG",  "timeframe": "4H",
+     "entry": "$245 – $252", "tp1": "$278", "tp2": "$310", "sl": "$232", "rr": "2.7:1",
+     "analysis": "BTC ETF inflows = volume = COIN earnings leverage. Beta to crypto cycle."},
 ]
 
 FOREX_CAPTIONS = [
     "🎯 *{pair} — {direction}*\n\n`{timeframe}` setup | R/R `{rr}`\n\nEntry: `{entry}`\n✅ TP1: `{tp1}`\n✅ TP2: `{tp2}`\n❌ SL: `{sl}`\n\n_{analysis}_\n\n🔐 real-time management inside VIP",
     "📡 *SIGNAL | {pair}*\n\n{direction} | `{timeframe}` | R/R `{rr}`\n\nZone: `{entry}`\nTP1 `{tp1}` · TP2 `{tp2}`\nSL `{sl}`\n\n_{analysis}_",
     "🐋 *{pair}* setup ready\n\nbias: *{direction}* | tf: `{timeframe}`\n\n▸ entry: `{entry}`\n▸ tp1: `{tp1}` → tp2: `{tp2}`\n▸ stop: `{sl}`\n▸ r/r: `{rr}`\n\n_{analysis}_\n\n🔐 active inside VIP",
-    "macro desk 📊\n\n*{pair} — {direction}*\n`{timeframe}` | `{rr}` R/R\n\nentry `{entry}`\nTP `{tp1}` / `{tp2}` · SL `{sl}`\n\n_{analysis}_",
-    "⚡ *{pair}*\n\n{direction} setup triggered · `{timeframe}`\n\n`{entry}` zone\nTP1 `{tp1}` · TP2 `{tp2}`\nSL `{sl}` · R/R `{rr}`\n\n_{analysis}_",
 ]
 
+STOCK_CAPTIONS = [
+    "📈 *STOCK SIGNAL | {ticker} ({name})*\n\n{direction} | `{timeframe}` | R/R `{rr}`\n\nEntry: `{entry}`\n✅ TP1: `{tp1}`\n✅ TP2: `{tp2}`\n❌ SL: `{sl}`\n\n_{analysis}_\n\n🔐 live management inside VIP",
+    "🏛 *{ticker} — {direction}*\n\n_{name} • {timeframe} • R/R {rr}_\n\nzone `{entry}`\nTP1 `{tp1}` · TP2 `{tp2}`\nSL `{sl}`\n\n_{analysis}_",
+    "🎯 equities desk\n\n*{ticker} ({name})*\n*{direction}* setup · `{timeframe}` · `{rr}` R/R\n\n▸ entry `{entry}`\n▸ tp1 `{tp1}` / tp2 `{tp2}`\n▸ stop `{sl}`\n\n_{analysis}_",
+]
+
+
+# ── VIP "X winners" teaser pool — looks like past wins ────────────────────────
+
+VIP_TEASERS = [
+    {"sym": "UNCEROID",  "x": 76,  "entry": "21k",  "ath": "1.6M"},
+    {"sym": "ASTEROID",  "x": 47,  "entry": "17.6k","ath": "842k"},
+    {"sym": "NINTONDO",  "x": 44,  "entry": "14.3k","ath": "631k"},
+    {"sym": "发财",       "x": 24,  "entry": "34.7k","ath": "836k"},
+    {"sym": "CHIBILAND", "x": 67,  "entry": "17.9k","ath": "1.2M"},
+    {"sym": "CRASHOUT",  "x": 48,  "entry": "16.5k","ath": "794k"},
+    {"sym": "CHSN",      "x": 196, "entry": "12.8k","ath": "2.5M"},
+    {"sym": "SOLANA",    "x": 42,  "entry": "18.4k","ath": "778k"},
+    {"sym": "UNC",       "x": 88,  "entry": "2.53k","ath": "224k"},
+    {"sym": "PEPE2",     "x": 35,  "entry": "22k",  "ath": "770k"},
+]
+
+VIP_TEASER_TEMPLATES = [
+    (
+        "💲 *{sym}*\n"
+        "*{x}x vip winners*\n\n"
+        "*${entry} ➜ ${ath} MCAP*\n\n"
+        "📊 CHART • 🆓 *FREE ENTRY*"
+    ),
+    (
+        "💎 *${sym} is currently sitting at ${ath} mcap*\n"
+        "from *${entry} VIP call out.*\n\n"
+        "Reached *{x}x VIP.*\n\n"
+        "🚀 JOIN NOW   •   📊 CHART"
+    ),
+]
+
+
+# ── VIP promo standalone posts ────────────────────────────────────────────────
+
 VIP_PROMOS = [
-    "🔐 *Alpha_X_Calls VIP — Now Open*\n\nThis channel shows results.\n\nThe *live entries, pre-call alerts, on-chain whale moves, and real-time management* happen inside VIP before anything is posted here.\n\nOne trade covers the membership.\n\nJoin below 👇",
-    "💎 *Serious traders only.*\n\nPublic channel = scoreboard\nVIP group = where the money is made\n\n✅ Meme alpha — pre-CT\n✅ Forex & macro signals\n✅ Whale wallet monitoring\n✅ Real-time position updates\n\n👇",
-    "📊 *The setups you've seen hit — they were posted in VIP first.*\n\nEvery entry. Every exit. Every SL move.\n\nThe public channel gets the result.\nVIP gets the trade.\n\nAccess via SOL / crypto payment. Link below 👇",
-    "⚡ *Alpha_X_Calls VIP — What You're Missing*\n\nMeme calls before they 10x\nForex signals with full TP/SL management\nWhale wallet alerts before CT wakes up\n\nAll inside. Daily.\n\nJoin below 👇",
-    "🎯 *Why join VIP?*\n\nBecause by the time it's posted here, early buyers are already up.\n\nVIP members enter before the public call.\nThat edge is worth more than the membership.\n\n$49/month or $75 lifetime 👇",
+    "🔐 *Alpha_X_Calls VIP — Now Open*\n\nThis channel shows results.\n\nThe *live entries, pre-call alerts, on-chain whale moves, forex setups, stock signals* and *real-time management* happen inside VIP before anything is posted here.\n\nOne trade covers the membership.\n\nJoin below 👇",
+    "💎 *Serious traders only.*\n\nPublic channel = scoreboard\nVIP group = where the money is made\n\n✅ Memecoin alpha — pre-CT\n✅ Forex & macro signals\n✅ NASDAQ/NYSE stock plays\n✅ Whale wallet monitoring\n✅ Real-time position updates\n\n👇",
+    "📊 *The setups you've seen hit — they were posted in VIP first.*\n\nEvery entry. Every exit. Every SL move.\n\nThe public channel gets the result.\nVIP gets the trade.\n\nAccess via SOL payment. Link below 👇",
+    "⚡ *Alpha_X_Calls VIP — What You're Missing*\n\nMeme calls before they 50x\nForex signals with full TP/SL management\nStock setups (NVDA, TSLA, META, COIN, etc.)\nWhale wallet alerts before CT wakes up\n\nAll inside. Daily.\n\nJoin below 👇",
     "🐋 *VIP group is small on purpose.*\n\nSmaller group = less slippage = better entries.\n\nIf you're reading this, there's still a spot.\n\nJoin 👇",
+    "🎯 *Why join VIP?*\n\nBecause by the time it's posted here, early buyers are already up.\n\nVIP members enter before the public call.\nThat edge is worth more than the membership.\n\n$44/mo • $69/3mo • $99/lifetime 👇",
 ]
 
 
@@ -227,7 +304,16 @@ def _fmt_time(s: float) -> str:
 
 def _gain_str(pct: float) -> str:
     mult = pct / 100 + 1
-    return f"{mult:.1f}x" if mult >= 2 else f"+{pct:.0f}%"
+    if mult >= 10:
+        return f"{mult:.1f}X"
+    if mult >= 2:
+        return f"{mult:.1f}x"
+    return f"+{pct:.0f}%"
+
+def _spaced_x(mult: float) -> str:
+    """ '4 8 . 1 X' Alpha-Circle style. """
+    s = f"{mult:.1f}X" if mult < 100 else f"{int(mult)}X"
+    return " ".join(list(s))
 
 def _mult_float(pct: float) -> float:
     return pct / 100 + 1
@@ -336,7 +422,7 @@ async def _send_text(bot: Bot, text: str, reply_markup=None) -> bool:
 
 # ── Send: initial DEX call ────────────────────────────────────────────────────
 
-async def send_initial_call(bot: Bot, token: dict, bot_username: str = ""):
+async def send_initial_call(bot: Bot, token: dict):
     global last_sent_time
     await _throttle()
 
@@ -377,7 +463,7 @@ async def send_initial_call(bot: Bot, token: dict, bot_username: str = ""):
 
 async def send_gain_update(bot: Bot, token: dict, entry_mc: float,
                            gain_pct: float, entry_mc_str: str,
-                           bot_username: str = ""):
+                           pnl_base: int):
     global last_sent_time
     await _throttle()
 
@@ -387,12 +473,15 @@ async def send_gain_update(bot: Bot, token: dict, entry_mc: float,
     elapsed  = time.time() - tracked_coins.get(ca, {}).get("first_seen", time.time())
     gain_s   = _gain_str(gain_pct)
     mult     = _mult_float(gain_pct)
-    pnl_text = random_pnl(mult)
+    pnl_text = pnl_for_base(pnl_base, mult)
+    spaced_x = _spaced_x(mult)
+    pub_mc   = format_mc(entry_mc * random.uniform(15, 35))
 
     caption = random.choice(UPDATE_TEMPLATES).format(
         symbol=symbol, entry_mc=entry_mc_str,
         current_mc=format_mc(mc), gain_str=gain_s,
         ca=ca, time_str=_fmt_time(elapsed), pnl=pnl_text,
+        spaced_x=spaced_x, pub_mc=pub_mc, channel="Alpha_X_Calls",
     )
 
     markup = _join_button_double()
@@ -437,16 +526,59 @@ async def send_forex_signal(context: ContextTypes.DEFAULT_TYPE):
     log.info(f"📡 Forex signal: {sig['pair']} {sig['direction']}")
 
 
+# ── Send: stock signal ────────────────────────────────────────────────────────
+
+async def send_stock_signal(context: ContextTypes.DEFAULT_TYPE):
+    bot: Bot = context.bot
+    sig      = random.choice(STOCK_SIGNALS)
+    caption  = random.choice(STOCK_CAPTIONS).format(**sig)
+    markup   = _join_button_double()
+    card     = None
+    try:
+        card = build_stock_card(
+            ticker=sig["ticker"], name=sig["name"], direction=sig["direction"],
+            entry=sig["entry"], tp1=sig["tp1"], tp2=sig["tp2"],
+            sl=sig["sl"], timeframe=sig["timeframe"], rr=sig["rr"],
+        )
+    except Exception as e:
+        log.warning(f"Stock card error: {e}")
+
+    if card:
+        await _send_photo(bot, card, caption, reply_markup=markup)
+    else:
+        await _send_text(bot, caption, reply_markup=markup)
+    log.info(f"🏛 Stock signal: {sig['ticker']} {sig['direction']}")
+
+
+# ── Send: VIP "X winners" teaser ──────────────────────────────────────────────
+
+async def send_vip_teaser(context: ContextTypes.DEFAULT_TYPE):
+    bot: Bot = context.bot
+    win = random.choice(VIP_TEASERS)
+    caption = random.choice(VIP_TEASER_TEMPLATES).format(**win)
+    markup = _join_button_double()
+    card = None
+    try:
+        card = build_winners_card(
+            symbol=win["sym"], multiplier=float(win["x"]),
+            entry=win["entry"], ath=win["ath"],
+        )
+    except Exception as e:
+        log.warning(f"Teaser card error: {e}")
+
+    if card:
+        await _send_photo(bot, card, caption, reply_markup=markup)
+    else:
+        await _send_text(bot, caption, reply_markup=markup)
+    log.info(f"🎯 VIP teaser: ${win['sym']} {win['x']}x")
+
+
 # ── Send: VIP promo post ──────────────────────────────────────────────────────
 
 async def send_vip_promo(context: ContextTypes.DEFAULT_TYPE):
     bot: Bot = context.bot
     text  = random.choice(VIP_PROMOS)
-    markup = InlineKeyboardMarkup([[
-        InlineKeyboardButton("⭐ GET VIP ACCESS ⭐", url=_pay_url()),
-    ], [
-        InlineKeyboardButton("📊 100x Results",       url=VIP_LINK),
-    ]])
+    markup = _join_button_double()
     await _send_text(bot, text, reply_markup=markup)
     log.info("📢 VIP promo sent")
 
@@ -477,6 +609,7 @@ async def scan_and_send(context: ContextTypes.DEFAULT_TYPE):
                 "entry_mc":     mc,
                 "entry_mc_str": format_mc(mc),
                 "first_seen":   time.time(),
+                "pnl_base":     random.choice(PNL_BASES),
             }
             await send_initial_call(bot, token)
             await asyncio.sleep(random.uniform(8, 20))
@@ -488,11 +621,13 @@ async def scan_and_send(context: ContextTypes.DEFAULT_TYPE):
 
         gain_pct = ((mc - entry_mc) / entry_mc) * 100
         done     = sent_updates.get(ca, [])
-        for threshold in [20, 50, 100, 200, 300, 500, 1000]:
+        # Bigger milestone ladder — go all the way to 200x
+        for threshold in [20, 50, 100, 200, 300, 500, 1000, 2000, 4000, 7000, 10000, 20000]:
             if gain_pct >= threshold and threshold not in done:
                 await send_gain_update(
                     bot, token, entry_mc, gain_pct,
                     tracked_coins[ca]["entry_mc_str"],
+                    tracked_coins[ca].get("pnl_base", 100),
                 )
                 sent_updates.setdefault(ca, []).append(threshold)
                 await asyncio.sleep(random.uniform(5, 12))
@@ -500,8 +635,8 @@ async def scan_and_send(context: ContextTypes.DEFAULT_TYPE):
 
         tracked_coins[ca]["token"] = token
 
-    # Prune old coins
-    cutoff = time.time() - 86400 * 3
+    # Prune old coins (keep 5 days for big-X stories)
+    cutoff = time.time() - 86400 * 5
     for ca in [k for k, v in tracked_coins.items()
                if v.get("first_seen", 0) < cutoff]:
         tracked_coins.pop(ca, None)
@@ -526,7 +661,15 @@ async def post_init(application: Application):
     jq.run_repeating(send_forex_signal, interval=random.randint(14400, 18000),
                      first=random.randint(600, 1200), name="forex-signals")
 
-    # VIP promo — every 6–8 h
+    # Stock signals — every 5–7 h, offset from forex
+    jq.run_repeating(send_stock_signal, interval=random.randint(18000, 25200),
+                     first=random.randint(2700, 5400), name="stock-signals")
+
+    # VIP "X winners" teaser — every 3–5 h
+    jq.run_repeating(send_vip_teaser,   interval=random.randint(10800, 18000),
+                     first=random.randint(900, 2400), name="vip-teaser")
+
+    # VIP promo (text) — every 6–8 h
     jq.run_repeating(send_vip_promo,   interval=random.randint(21600, 28800),
                      first=random.randint(1800, 3600), name="vip-promo")
 

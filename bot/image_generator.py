@@ -12,7 +12,8 @@ import random
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 W, H = 1280, 640
-ASSETS_DIR  = os.path.join(os.path.dirname(__file__), "assets")
+ASSETS_DIR    = os.path.join(os.path.dirname(__file__), "assets")
+TEMPLATES_DIR = os.path.join(ASSETS_DIR, "templates")
 CHANNEL_TAG = "ALPHA_X_CALLS"
 VIP_TAG     = "ALPHA_X_CALLS • JOIN VIP"
 
@@ -21,9 +22,17 @@ PNL_BASES = [50, 100, 100, 100, 200, 250, 500, 1000]
 
 def random_pnl(multiplier: float) -> str:
     base = random.choice(PNL_BASES)
+    return pnl_for_base(base, multiplier)
+
+
+def pnl_for_base(base: int, multiplier: float) -> str:
+    """PnL block matching Solana100xCall caption style — fixed base per token."""
     result = round(base * multiplier)
     profit = result - base
-    return f"💼 *Position PnL*\n💵 ${base:,} → ${result:,} (PnL + ${profit:,})"
+    return (
+        f"📋 *Position PnL*\n"
+        f"💵 ${base:,} ➜ ${result:,} (PnL + ${profit:,})"
+    )
 
 
 # ── Character images ───────────────────────────────────────────────────────────
@@ -40,7 +49,17 @@ def _pick_char() -> str:
     pool = [c for c in _CHAR_POOL if c != _last_char]
     pick = random.choice(pool)
     _last_char = pick
-    return os.path.join(ASSETS_DIR, pick)
+    p1 = os.path.join(TEMPLATES_DIR, pick)
+    if os.path.exists(p1):
+        return p1
+    p2 = os.path.join(ASSETS_DIR, pick)
+    if os.path.exists(p2):
+        return p2
+    # fall back to any png in assets/
+    for f in os.listdir(ASSETS_DIR):
+        if f.lower().endswith((".png", ".jpg", ".jpeg")):
+            return os.path.join(ASSETS_DIR, f)
+    return p1
 
 
 # ── Font helpers ───────────────────────────────────────────────────────────────
@@ -685,4 +704,201 @@ def build_forex_card(pair: str, direction: str, entry: str,
                      tp1: str, tp2: str, sl: str, timeframe: str,
                      rr: str, username: str = CHANNEL_TAG) -> bytes:
     canvas = _forex_card(pair, direction, entry, tp1, tp2, sl, timeframe, rr)
+    return _save(canvas)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  STOCK CARD — equities setup
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _stock_card(ticker: str, name: str, direction: str, entry: str,
+                tp1: str, tp2: str, sl: str, tf: str, rr: str) -> Image.Image:
+    theme    = _pick_theme()
+    is_long  = direction.upper() in ("LONG", "BUY")
+    dir_col  = (0, 120, 60, 255)   if is_long else (160, 30, 30, 255)
+    dir_text = (0, 220, 100, 255)  if is_long else (255, 90, 90, 255)
+    accent_c = theme["accent"] + (255,)
+
+    bg     = _make_bg(theme["glow"])
+    char   = _pick_char()
+    _paste_char(bg, char)
+    canvas = _dark_left_panel(bg, 0.54, 250)
+    draw   = ImageDraw.Draw(canvas)
+
+    tx, lim = 36, int(W * 0.52) - 36
+
+    # Accent bar
+    draw.rectangle([0, 0, 6, H], fill=accent_c)
+    _draw_channel_logo(draw, tx, 28, theme["accent"])
+
+    hdr = "📈 STOCK SIGNAL"
+    hw  = _tw(draw, hdr, _font(28, bold=True)) + 28
+    draw.rounded_rectangle([tx, 70, tx + hw, 70 + 44], radius=8, fill=dir_col)
+    draw.text((tx + 14, 80), hdr, font=_font(28, bold=True),
+              fill=(255, 255, 255, 255))
+
+    tk_sz = _fit(draw, ticker.upper(), lim, 88, 44)
+    draw.text((tx, 128), ticker.upper(),
+              font=_font(tk_sz, bold=True), fill=(255, 255, 255, 255))
+    draw.text((tx, 128 + tk_sz + 6), name,
+              font=_font(26), fill=(170, 170, 175, 220))
+
+    dy  = 128 + tk_sz + 50
+    dw  = _tw(draw, direction.upper(), _font(32, bold=True)) + 32
+    draw.rounded_rectangle([tx, dy, tx + dw, dy + 46], radius=10, fill=dir_col)
+    draw.text((tx + 14, dy + 8), direction.upper(),
+              font=_font(32, bold=True), fill=dir_text)
+    draw.text((tx + dw + 14, dy + 12), tf,
+              font=_font(26), fill=(155, 155, 160, 200))
+
+    fn, fb = _font(25), _font(25, bold=True)
+    dim    = (145, 145, 150, 200)
+    whi    = (215, 215, 220, 230)
+    grn    = (0, 210, 90, 255)
+    red    = (240, 80, 80, 255)
+    y0, lh = dy + 64, 38
+
+    for lbl, val, col in [
+        ("Entry  ", entry, whi),
+        ("TP 1   ", tp1,   grn),
+        ("TP 2   ", tp2,   grn),
+        ("SL     ", sl,    red),
+        ("R/R    ", rr,    whi),
+    ]:
+        draw.text((tx, y0), lbl, font=fn, fill=dim)
+        draw.text((tx + _tw(draw, lbl, fn), y0), val, font=fb, fill=col)
+        y0 += lh
+
+    _draw_username_badge(draw, tx, H - 84, CHANNEL_TAG, theme["accent"])
+    _draw_vip_bar(draw, theme)
+    return canvas
+
+
+def build_stock_card(ticker: str, name: str, direction: str, entry: str,
+                     tp1: str, tp2: str, sl: str, timeframe: str,
+                     rr: str) -> bytes:
+    return _save(_stock_card(ticker, name, direction, entry, tp1, tp2, sl, timeframe, rr))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  WINNERS TEASER CARD — "$SYM — Xx VIP Winners"
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _winners_card(symbol: str, mult: float, entry: str, ath: str) -> Image.Image:
+    theme    = _pick_theme()
+    accent_c = theme["accent"] + (255,)
+    ticker_c = theme["ticker"] + (255,)
+
+    bg     = _make_bg(theme["glow"])
+    char   = _pick_char()
+    _paste_char(bg, char)
+    scrim  = Image.new("RGBA", (W, H), (4, 6, 10, 200))
+    canvas = Image.alpha_composite(bg, scrim)
+    draw   = ImageDraw.Draw(canvas)
+
+    # Top banner
+    draw.rectangle([0, 0, W, 64], fill=accent_c)
+    hdr = "🔥 VIP WINNER  •  ALPHA_X_CALLS"
+    draw.text((32, 14), hdr, font=_font(34, bold=True), fill=(0, 0, 0, 255))
+
+    # Symbol
+    sym_t  = f"${symbol.upper()}"
+    sym_sz = _fit(draw, sym_t, W - 80, 110, 60)
+    sym_f  = _font(sym_sz, bold=True)
+    sw     = _tw(draw, sym_t, sym_f)
+    draw.text(((W - sw) // 2, 90), sym_t, font=sym_f, fill=(255, 255, 255, 255))
+
+    # Big mult
+    mt = f"{int(mult)}X"
+    sz = _fit(draw, mt, W - 80, 260, 110)
+    mf = _font(sz, bold=True)
+    mw = _tw(draw, mt, mf)
+    mx = (W - mw) // 2
+    my = 90 + sym_sz + 10
+    for ox, oy in [(-5, 5), (5, -5), (-5, -5), (5, 5)]:
+        draw.text((mx + ox, my + oy), mt, font=mf, fill=(0, 30, 12, 90))
+    draw.text((mx, my), mt, font=mf, fill=ticker_c)
+
+    mh   = mf.getbbox(mt)[3]
+    info = f"${entry}  ➜  ${ath} MCAP"
+    iw   = _tw(draw, info, _font(34, bold=True))
+    draw.text(((W - iw) // 2, my + mh + 16),
+              info, font=_font(34, bold=True), fill=(230, 230, 235, 255))
+
+    free = "📊 CHART  •  🆓 FREE ENTRY"
+    fw   = _tw(draw, free, _font(28, bold=True))
+    draw.text(((W - fw) // 2, H - 72),
+              free, font=_font(28, bold=True), fill=accent_c)
+
+    draw.rectangle([0, H - 36, W, H], fill=(0, 0, 0, 200))
+    tag = "ALPHA_X_CALLS  •  JOIN VIP"
+    tw  = _tw(draw, tag, _font(22, bold=True))
+    draw.text(((W - tw) // 2, H - 30),
+              tag, font=_font(22, bold=True), fill=accent_c)
+    return canvas
+
+
+def build_winners_card(symbol: str, multiplier: float,
+                       entry: str, ath: str) -> bytes:
+    return _save(_winners_card(symbol, multiplier, entry, ath))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  AXIOM-STYLE PNL BRAG CARD — "$SYM +$X PNL +Y% Invested $Z Position $W"
+# ══════════════════════════════════════════════════════════════════════════════
+
+def build_pnl_brag_card(symbol: str, invested: int, position: int) -> bytes:
+    pnl_usd = position - invested
+    pnl_pct = (pnl_usd / invested) * 100 if invested > 0 else 0
+
+    bg = Image.new("RGBA", (W, H), (8, 10, 14, 255))
+    draw = ImageDraw.Draw(bg)
+    # subtle blue accents
+    for r in range(420, 0, -10):
+        a = int(20 * (1 - r / 420) ** 1.4)
+        if a < 1: continue
+        draw.ellipse([W - 200 - r, 100 - r, W - 200 + r, 100 + r],
+                     fill=(40, 80, 160, a))
+    canvas = bg
+    draw = ImageDraw.Draw(canvas)
+
+    # AXIOM logo (top-right)
+    draw.text((W - 240, 38), "AXIOM", font=_font(48, bold=True),
+              fill=(255, 255, 255, 255))
+    draw.text((W - 75, 62), "Pro", font=_font(24), fill=(160, 160, 165, 200))
+
+    tx = 56
+    draw.text((tx, 130), f"${symbol.upper()}",
+              font=_font(56, bold=True), fill=(255, 255, 255, 255))
+
+    # Big green PnL banner
+    pnl_str = f"+${abs(pnl_usd) / 1000:,.2f}K" if abs(pnl_usd) >= 1000 else f"+${abs(pnl_usd):,}"
+    pf  = _font(110, bold=True)
+    pw  = _tw(draw, pnl_str, pf) + 60
+    bx, by = tx, 200
+    draw.rounded_rectangle([bx, by, bx + pw, by + 130], radius=8,
+                           fill=(0, 230, 140, 255))
+    draw.text((bx + 30, by + 8), pnl_str, font=pf, fill=(0, 0, 0, 255))
+
+    # Stats
+    fn, fb = _font(34), _font(34, bold=True)
+    dim = (155, 160, 170, 230)
+    whi = (235, 235, 240, 255)
+    grn = (0, 230, 140, 255)
+    y0  = by + 170
+    rows = [
+        ("PNL",      f"+{pnl_pct:,.2f}%", grn),
+        ("Invested", f"${invested / 1000:,.2f}K" if invested >= 1000 else f"${invested:,}", whi),
+        ("Position", f"${position / 1000:,.2f}K" if position >= 1000 else f"${position:,}", whi),
+    ]
+    for lbl, val, col in rows:
+        draw.text((tx, y0), lbl, font=fn, fill=dim)
+        draw.text((tx + 280, y0), val, font=fb, fill=col)
+        y0 += 50
+
+    # Footer
+    draw.text((tx, H - 70), "🚩  @ALPHA_X_CALLS",
+              font=_font(28, bold=True), fill=(220, 220, 225, 255))
+    draw.text((tx, H - 38), "axiom.trade   Save 10% off fees",
+              font=_font(20), fill=(150, 150, 155, 200))
     return _save(canvas)

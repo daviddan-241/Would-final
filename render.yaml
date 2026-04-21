@@ -2,9 +2,12 @@ services:
   - type: web
     name: alpha-x-calls-bot
     runtime: python
+    plan: free
     rootDir: bot
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: python bot.py
+    healthCheckPath: /health
+    autoDeploy: true
     envVars:
       - key: TELEGRAM_TOKEN
         sync: false
@@ -12,10 +15,17 @@ services:
         sync: false
       - key: BOT_USERNAME
         sync: false
-      - key: RENDER_EXTERNAL_URL
-        fromService:
-          type: web
-          name: alpha-x-calls-bot
-          property: host
-    healthCheckPath: /health
-    autoDeploy: true
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: PORT
+        value: "10000"
+      - key: SCAN_INTERVAL
+        value: "180"
+      - key: SEND_INTERVAL_MIN
+        value: "120"
+      - key: SEND_INTERVAL_MAX
+        value: "180"
+      - key: MIN_MC
+        value: "10000"
+      - key: MAX_MC
+        value: "800000"
