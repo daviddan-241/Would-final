@@ -57,60 +57,59 @@ def _pay_url() -> str:
 
 def _join_button() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([[
-        InlineKeyboardButton("🔐 Get VIP Access — $49/mo or $75 lifetime", url=_pay_url())
+        InlineKeyboardButton("🔐 Join VIP", url=_pay_url())
     ]])
 
 def _join_button_double() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔐 GET VIP ACCESS", url=_pay_url())],
-        [InlineKeyboardButton("$49 / month  |  $75 / lifetime", url=_pay_url())],
-    ])
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton("🔐 Join VIP", url=_pay_url())
+    ]])
 
 
 # ─── Caption templates — whale/professional tone ───────────────────────────────
 
 CALL_TEMPLATES = [
-    "🟢 *${symbol}*\n\nMC: `{mc}` — caught before CT woke up\nLiq `{liq}` confirmed. Vol moving: `{vol}`\n\nCA 👇\n`{ca}`\n{dex_url}",
+    "🟢 *${symbol}*\nMC `{mc}` — early\n\n`{ca}`",
 
-    "just added *${symbol}* to the bag\n\n`{mc}` MC right now. liq is clean at `{liq}`\nvolume already ticking: `{vol}`\n\nthis is exactly how the good ones start\n\n`{ca}`",
+    "*${symbol}* 🔔\n\ncaught at `{mc}` MC\nliq `{liq}` | vol `{vol}`\n\n`{ca}`\n{dex_url}",
 
-    "🎯 *{name}*\n\nentry at `{mc}` MC — pre-narrative\nLiq `{liq}` | Vol `{vol}`\n\nCA:\n`{ca}`\n{dex_url}",
+    "ALPHA CALL 🎯\n\n*${symbol}*\n`{mc}` MC — before everyone else\n\n`{ca}`",
 
-    "new call dropping 🔔\n\n*${symbol}* — `{mc}` MC\n\nteam moving quietly. liq `{liq}`, vol starting to pick up: `{vol}`\n\nwe are early. very.\n\n`{ca}`",
+    "new call 👇\n\n*${symbol}* — `{mc}` MC\nliq `{liq}` | vol `{vol}`\n\n`{ca}`\n{dex_url}",
 
-    "🟢 caught *{name}* at `{mc}` MC\n\nLiq `{liq}` | Vol 1H `{vol}`\n\nthis is the type of entry that changes wallets. you know what to do.\n\n`{ca}`\n{dex_url}",
+    "🟢 *${symbol}*\n\n`{mc}` MC entry\nliq `{liq}`\n\nCA:\n`{ca}`",
 
-    "alpha leak 🔑\n\n*${symbol}* on my radar — `{mc}` MC\n\nliq holding strong at `{liq}`, vol building\n\nCA:\n`{ca}`",
+    "early 🔑\n\n*${symbol}* — `{mc}` MC\nvol `{vol}` and moving\n\n`{ca}`\n{dex_url}",
 
-    "📡 scanner flagged *${symbol}*\n\n`{mc}` MC. clean structure. liq `{liq}`\n\nnot posted anywhere else yet. move fast.\n\n`{ca}`\n{dex_url}",
+    "*{name}* 📡\n\n`{mc}` | liq `{liq}` | vol `{vol}`\n\n`{ca}`",
 
-    "i only share the ones i'm actually in\n\n*{name}* — `{mc}` MC entry\nLiq `{liq}` | Vol `{vol}`\n\nCA below:\n`{ca}`",
+    "🚨 *${symbol}*\n\ncaught at `{mc}` MC\nclean entry. move fast.\n\n`{ca}`\n{dex_url}",
 
-    "🐋 wallet activity flagged *${symbol}*\n\nentry `{mc}` — before any push\nliq confirmed: `{liq}`\n\n`{ca}`\n{dex_url}",
+    "new one dropped 👀\n\n*${symbol}* — `{mc}` MC\nliq `{liq}`\n\n`{ca}`",
 
-    "this one hasn't been posted anywhere 👀\n\n*${symbol}* — `{mc}` MC\nLiq `{liq}` / Vol `{vol}`\n\n`{ca}`",
+    "*${symbol}* 🟢\n\nMC `{mc}` | liq `{liq}` | vol `{vol}`\n\n`{ca}`\n{dex_url}",
 ]
 
 UPDATE_TEMPLATES = [
-    "🟢 *${symbol}* — *{gain_str}*\n\ncalled at `{entry_mc}` → now `{current_mc}`\n{time_str} in the trade\n\nthis is why we move early\n\n`{ca}`",
+    "🟢 *${symbol}* — *{gain_str}*\n\ncalled at `{entry_mc}` → `{current_mc}`\n{time_str}\n\n`{ca}`",
 
-    "we printed 💰\n\n*{name}* — *{gain_str}* from entry\n\nin at `{entry_mc}`, sitting at `{current_mc}` now\n{time_str} hold. clean.\n\n`{ca}`\n{dex_url}",
+    "*${symbol}* running 🔥\n\n*{gain_str}* from entry\nin `{entry_mc}` → now `{current_mc}`\n{time_str}\n\n`{ca}`\n{dex_url}",
 
-    "scoreboard update 📋\n\n*${symbol}* — *{gain_str}*\nentry `{entry_mc}` → `{current_mc}`\ntime: {time_str}\n\n`{ca}`",
+    "*{gain_str}* 📈\n\n*${symbol}* called at `{entry_mc}`\nnow at `{current_mc}`\n\n`{ca}`",
 
-    "🏆 *{name}* doing what we thought\n\n*{gain_str}* since our call\ncalled at `{entry_mc}` | now `{current_mc}`\n\n`{ca}`\n{dex_url}",
+    "this is why we don't sell early 💎\n\n*${symbol}* — *{gain_str}*\n`{entry_mc}` → `{current_mc}` | {time_str}\n\n`{ca}`\n{dex_url}",
 
-    "the members who followed this call are very happy rn\n\n*${symbol}* — *{gain_str}*\ncalled at `{entry_mc}` → `{current_mc}` now\n{time_str}\n\n`{ca}`",
+    "W 🏆\n\n*${symbol}* — *{gain_str}*\ncalled at `{entry_mc}`, sitting at `{current_mc}`\n{time_str} in\n\n`{ca}`",
 
-    "💎 *${symbol}* — *{gain_str}*\n\nentry `{entry_mc}` → `{current_mc}`\ntime in: {time_str} | liq: `{liq}`\n\npatience + early entry. always.\n\n`{ca}`\n{dex_url}",
+    "*${symbol}* *{gain_str}* 🚀\n\nentry `{entry_mc}` → `{current_mc}`\ntime: {time_str}\n\n`{ca}`\n{dex_url}",
 
-    "another W for the circle 🎯\n\n*{name}* — *{gain_str}*\nfrom `{entry_mc}` to `{current_mc}`\n{time_str}\n\n`{ca}`",
+    "another one 🎯\n\n*${symbol}* — *{gain_str}*\nin at `{entry_mc}`, now `{current_mc}`\n\n`{ca}`",
 
-    "called it at `{entry_mc}` and here we are 🔥\n\n*${symbol}* — *{gain_str}*\nnow at `{current_mc}`\n\nVIP group was in before CT even heard the name\n\n`{ca}`\n{dex_url}",
+    "*{gain_str}* on *${symbol}* 💰\n\ncalled at `{entry_mc}` → `{current_mc}`\n{time_str}\n\n`{ca}`\n{dex_url}",
 
-    "imagine not being in this circle rn 😭\n\n*{name}* — *{gain_str}*\ncalled at `{entry_mc}` → `{current_mc}` now\n{time_str} hold\n\n`{ca}`",
+    "bro 😭\n\n*${symbol}* just did *{gain_str}*\ncalled it at `{entry_mc}`, now `{current_mc}`\n\n`{ca}`",
 
-    "🐋 *${symbol}* running exactly like we said\n\n*{gain_str}* | in at `{entry_mc}` → `{current_mc}`\nliq still holding: `{liq}`\n\n`{ca}`\n{dex_url}",
+    "we don't miss 🐋\n\n*${symbol}* — *{gain_str}*\n`{entry_mc}` → `{current_mc}` | {time_str}\n\n`{ca}`\n{dex_url}",
 ]
 
 # ─── Forex / macro signal data ─────────────────────────────────────────────────
