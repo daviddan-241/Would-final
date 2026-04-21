@@ -1,5 +1,5 @@
 """
-Payment flow for Alpha Circle VIP.
+Payment flow for Alpha_Calls VIP.
 User clicks "Join VIP" in channel → opens bot DM → sees product + pricing.
 Selects plan → sees SOL address + exact amount to send.
 Pastes tx hash → verified → receives group link.
@@ -28,7 +28,7 @@ SELECT_PLAN, ENTER_WALLET, ENTER_TXHASH = range(3)
 
 # ── Product description (matches reference screenshots) ────────────────────────
 PRODUCT_MSG = (
-    "🚀 *Alpha Circle VIP*\n\n"
+    "🚀 *Alpha_Calls VIP*\n\n"
     "💰 Very High ROI!\n\n"
     "For you exclusively on VIP Channel:\n\n"
     "✅ All the Calls our AI identifies, filtered and selected by our algorithm.\n"
@@ -41,7 +41,7 @@ PRODUCT_MSG = (
     "——————-\n\n"
     "☝️ Don't pay with Cex.\n\n"
     "🆘 Support @alpha\\_circle1\n\n"
-    "🔒 *Telegram access*\nAlpha Circle VIP Channel 💰\n\n"
+    "🔒 *Telegram access*\nAlpha_Calls VIP Channel 💰\n\n"
     "*Select your plan:*"
 )
 
@@ -63,7 +63,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         InlineKeyboardButton("🔐 Join VIP", callback_data="pay_start")
     ]])
     await update.message.reply_text(
-        "👋 *Alpha Circle Bot*\n\n"
+        "👋 *Alpha_Calls Bot*\n\n"
         "We post early calls before CT finds them.\n"
         "VIP group gets them first — full details below 👇",
         parse_mode="Markdown",
@@ -107,7 +107,7 @@ async def select_plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"↓ Send SOL to:\n"
         f"`{SOL_ADDRESS}`\n\n"
         f"*Cart*\n"
-        f"{plan['label']} 🟡 Alpha Circle VIP\n"
+        f"{plan['label']} 🟡 Alpha_Calls VIP\n"
         f"——————-\n"
         f"`{sol:.5f} SOL` ← checkout total\n\n"
         f"Once sent, paste the *wallet address you paid FROM* so we can verify 👇",
@@ -165,7 +165,7 @@ async def enter_txhash(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"✅ *Payment confirmed!*\n\n"
             f"Plan: *{plan['label']}*\n\n"
-            f"Welcome to Alpha Circle VIP 🏆\n"
+            f"Welcome to Alpha_Calls VIP 🏆\n"
             f"You're now ahead of the public channel.\n"
             f"Don't share — member-only link 🤫\n\n"
             f"👇 *Your access link:*\n{GROUP_LINK}",
