@@ -16,12 +16,15 @@ from telegram.ext import (
     CommandHandler, ContextTypes,
 )
 
-from dex_fetcher import fetch_trending_tokens, fetch_new_coins, format_mc
+from dex_fetcher import (
+    fetch_trending_tokens, fetch_new_coins, fetch_ohlcv_data, format_mc,
+)
 from image_generator import (
     build_update_card, build_call_card, build_forex_card,
     build_stock_card, build_winners_card, build_pnl_brag_card,
     pnl_for_base,
 )
+from chart_generator import generate_chart_image
 from payment_handler import build_payment_conversation
 
 load_dotenv()
@@ -52,7 +55,12 @@ tracked_coins:  dict  = {}
 sent_updates:   dict  = {}
 last_sent_time: float = 0.0
 
-VIP_LINK = "https://t.me/+b7UesS3ulxxlZDdk"
+VIP_LINK     = os.getenv("VIP_GROUP_LINK", "https://t.me/+b7UesS3ulxxlZDdk")
+SUPPORT_USER = os.getenv("SUPPORT_USERNAME", "Dave_211").lstrip("@")
+DESK_URL     = f"https://t.me/{SUPPORT_USER}"
+CHAINS_ENABLED = [c.strip().lower() for c in
+                  os.getenv("DEX_CHAINS", "solana,ethereum,bsc,base").split(",")
+                  if c.strip()]
 
 # Per-token PnL base assignments — chosen ONCE per token, kept across updates
 PNL_BASES = [50, 100, 100, 100, 200, 250, 500, 1000, 2530]
@@ -63,27 +71,37 @@ PNL_BASES = [50, 100, 100, 100, 200, 250, 500, 1000, 2530]
 def _pay_url() -> str:
     return f"https://t.me/{BOT_USERNAME}?start=vip" if BOT_USERNAME else VIP_LINK
 
+def _past_url() -> str:
+    return f"https://t.me/{BOT_USERNAME}?start=past100x" if BOT_USERNAME else _pay_url()
+
 def _join_button() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🔐 EARLY ACCESS  •  JOIN VIP", url=_pay_url())],
-        [InlineKeyboardButton("📊 Past 100x Results", url=_pay_url()),
-         InlineKeyboardButton("💬 Talk to Desk",      url=_pay_url())],
+        [InlineKeyboardButton("📊 Past 100x Results", url=_past_url()),
+         InlineKeyboardButton("💬 Talk to Desk",      url=DESK_URL)],
     ])
 
 def _join_button_double() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("⚡ GET EARLY ACCESS — JOIN VIP", url=_pay_url())],
-        [InlineKeyboardButton("🥇 Verified Wins", url=_pay_url()),
+        [InlineKeyboardButton("🥇 Verified Wins", url=_past_url()),
          InlineKeyboardButton("🔥 Live Calls",   url=_pay_url())],
-        [InlineKeyboardButton("📊 100x Results", url=_pay_url()),
-         InlineKeyboardButton("💎 Pricing",      url=_pay_url())],
+        [InlineKeyboardButton("📊 100x Results", url=_past_url()),
+         InlineKeyboardButton("💬 Talk to Desk", url=DESK_URL)],
     ])
 
 def _signal_button() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🔐 Trade With The Desk — VIP", url=_pay_url())],
-        [InlineKeyboardButton("📈 Past Setups", url=_pay_url()),
-         InlineKeyboardButton("💎 Pricing",     url=_pay_url())],
+        [InlineKeyboardButton("📈 Past Setups", url=_past_url()),
+         InlineKeyboardButton("💬 Talk to Desk", url=DESK_URL)],
+    ])
+
+def _pnl_button() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("📈 Take next entry — VIP", url=_pay_url())],
+        [InlineKeyboardButton("📊 Past 100x", url=_past_url()),
+         InlineKeyboardButton("💬 Desk",      url=DESK_URL)],
     ])
 
 
@@ -556,9 +574,29 @@ async def send_initial_call(bot: Bot, token: dict):
     sent = await _send_photo(bot, card, caption, reply_markup=markup) if card \
         else await _send_text(bot, caption, reply_markup=markup)
 
+    # Real candle chart immediately after the call (TradingView/DEX style)
+    try:
+        await asyncio.sleep(random.uniform(2, 5))
+        pair_addr = token.get("pair_address", "")
+        bars = fetch_ohlcv_data(
+            pair_addr or ca,
+            chain=token.get("chain", "solana"),
+            resolution="15",
+        )
+        chart_png = generate_chart_image(token, bars)
+        chart_caption = (
+            f"📊 *${symbol}* — live 15m chart  ·  MC `{format_mc(mc)}`\n"
+            f"_VIP entry was tagged earlier today at a lower mcap. "
+            f"Live management posted inside the group._"
+        )
+        await _send_photo(bot, chart_png, chart_caption,
+                          reply_markup=_signal_button())
+    except Exception as e:
+        log.warning(f"Chart attach failed for {symbol}: {e}")
+
     if sent:
         last_sent_time = time.time()
-        log.info(f"✅ Call: {symbol}  MC={format_mc(mc)}")
+        log.info(f"✅ Call: {symbol}  MC={format_mc(mc)}  chain={token.get('chain','sol')}")
 
 
 # ── Send: gain update ──────────────────────────────────────────────────────────
@@ -685,17 +723,92 @@ async def send_vip_promo(context: ContextTypes.DEFAULT_TYPE):
     log.info("📢 VIP promo sent")
 
 
+# ── Send: PnL brag (Phanes / Axiom-style trade screenshot) ────────────────────
+
+PNL_BRAG_POOL = [
+    # Memecoin wins
+    {"sym": "BONK",      "invested":  500, "position":  47_300, "kind": "meme"},
+    {"sym": "WIF",       "invested": 1000, "position":  38_400, "kind": "meme"},
+    {"sym": "PEPE",      "invested":  250, "position":  21_900, "kind": "meme"},
+    {"sym": "MOODENG",   "invested":  200, "position":  18_650, "kind": "meme"},
+    {"sym": "MEW",       "invested":  500, "position":  19_800, "kind": "meme"},
+    {"sym": "POPCAT",    "invested":  300, "position":  14_400, "kind": "meme"},
+    {"sym": "BOME",      "invested":  400, "position":  31_600, "kind": "meme"},
+    {"sym": "RETARDIO",  "invested":  150, "position":   9_650, "kind": "meme"},
+    {"sym": "SLERF",     "invested":  600, "position":  17_250, "kind": "meme"},
+    # Forex wins
+    {"sym": "XAU/USD",   "invested": 2500, "position":   7_400, "kind": "fx"},
+    {"sym": "GBP/USD",   "invested": 1500, "position":   4_200, "kind": "fx"},
+    {"sym": "USD/JPY",   "invested": 2000, "position":   5_800, "kind": "fx"},
+    {"sym": "EUR/USD",   "invested": 1000, "position":   2_650, "kind": "fx"},
+    # Equity wins
+    {"sym": "NVDA",      "invested": 5000, "position":  12_400, "kind": "stock"},
+    {"sym": "TSLA",      "invested": 3000, "position":   7_650, "kind": "stock"},
+    {"sym": "COIN",      "invested": 2500, "position":   8_900, "kind": "stock"},
+    {"sym": "META",      "invested": 4000, "position":   9_300, "kind": "stock"},
+    # Crypto majors
+    {"sym": "BTC",       "invested": 5000, "position":  11_200, "kind": "crypto"},
+    {"sym": "SOL",       "invested": 1500, "position":   6_400, "kind": "crypto"},
+    {"sym": "ETH",       "invested": 3000, "position":   7_100, "kind": "crypto"},
+]
+
+PNL_BRAG_CAPTIONS = [
+    "📋 *Member screenshot — VIP*\n\n"
+    "Posted in the chat 20 minutes ago. Same call, same entry, "
+    "same exit zone — every member who took the trade closed green.\n\n"
+    "🔐 _Live management is the difference. Public sees the recap. "
+    "VIP gets the entry & the exit._",
+
+    "🥇 *Closed inside VIP — ${sym}*\n\n"
+    "Member dropped the screenshot in the chat. "
+    "Entry/SL/TP were all called live, exits were managed in real time.\n\n"
+    "🔐 _This is what the room looks like every day._",
+
+    "💵 *Receipt from the chatroom*\n\n"
+    "Just one of today's closes. Multi-asset desk — memecoins, forex, "
+    "equities — same room, same playbook.\n\n"
+    "🔐 _Stop watching the recap. Take the next entry inside VIP._",
+
+    "📊 *VIP close*\n\n"
+    "No screenshots edited. No dramatized P&L. Just a member "
+    "posting their close after the desk called the exit.\n\n"
+    "🔐 _Door's below._",
+]
+
+
+async def send_pnl_brag(context: ContextTypes.DEFAULT_TYPE):
+    bot: Bot = context.bot
+    pick = random.choice(PNL_BRAG_POOL)
+    caption = random.choice(PNL_BRAG_CAPTIONS).format(sym=pick["sym"])
+    try:
+        card = build_pnl_brag_card(
+            symbol=pick["sym"],
+            invested=pick["invested"],
+            position=pick["position"],
+        )
+    except Exception as e:
+        log.warning(f"PnL brag card error: {e}")
+        await _send_text(bot, caption, reply_markup=_pnl_button())
+        return
+    await _send_photo(bot, card, caption, reply_markup=_pnl_button())
+    log.info(f"💵 PnL brag: ${pick['sym']} ${pick['invested']}→${pick['position']}")
+
+
 # ── DEX scanner loop ──────────────────────────────────────────────────────────
 
 async def scan_and_send(context: ContextTypes.DEFAULT_TYPE):
     bot: Bot = context.bot
 
-    log.info("🔍 Scanning DEX Screener...")
+    log.info(f"🔍 Scanning DEX Screener  ·  chains={CHAINS_ENABLED}")
+    pool: list = []
     try:
-        new_coins = fetch_new_coins("solana", MIN_MC, MAX_MC)
-        trending  = fetch_trending_tokens("solana")
-        all_tokens = {t["address"]: t for t in (new_coins + trending)
-                      if t.get("address")}
+        for ch in CHAINS_ENABLED:
+            try:
+                pool += fetch_new_coins(ch, MIN_MC, MAX_MC)
+                pool += fetch_trending_tokens(ch)
+            except Exception as e:
+                log.warning(f"Chain {ch} fetch failed: {e}")
+        all_tokens = {t["address"]: t for t in pool if t.get("address")}
     except Exception as e:
         log.error(f"Fetch error: {e}")
         return
@@ -774,6 +887,10 @@ async def post_init(application: Application):
     # VIP promo (text) — every 6–8 h
     jq.run_repeating(send_vip_promo,   interval=random.randint(21600, 28800),
                      first=random.randint(1800, 3600), name="vip-promo")
+
+    # PnL brag screenshot — every 4–6 h, offset
+    jq.run_repeating(send_pnl_brag,    interval=random.randint(14400, 21600),
+                     first=random.randint(1500, 4200), name="pnl-brag")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
