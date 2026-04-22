@@ -574,26 +574,6 @@ async def send_initial_call(bot: Bot, token: dict):
     sent = await _send_photo(bot, card, caption, reply_markup=markup) if card \
         else await _send_text(bot, caption, reply_markup=markup)
 
-    # Real candle chart immediately after the call (TradingView/DEX style)
-    try:
-        await asyncio.sleep(random.uniform(2, 5))
-        pair_addr = token.get("pair_address", "")
-        bars = fetch_ohlcv_data(
-            pair_addr or ca,
-            chain=token.get("chain", "solana"),
-            resolution="15",
-        )
-        chart_png = generate_chart_image(token, bars)
-        chart_caption = (
-            f"📊 *${symbol}* — live 15m chart  ·  MC `{format_mc(mc)}`\n"
-            f"_VIP entry was tagged earlier today at a lower mcap. "
-            f"Live management posted inside the group._"
-        )
-        await _send_photo(bot, chart_png, chart_caption,
-                          reply_markup=_signal_button())
-    except Exception as e:
-        log.warning(f"Chart attach failed for {symbol}: {e}")
-
     if sent:
         last_sent_time = time.time()
         log.info(f"✅ Call: {symbol}  MC={format_mc(mc)}  chain={token.get('chain','sol')}")
