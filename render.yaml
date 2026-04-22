@@ -15,6 +15,14 @@ services:
         sync: false
       - key: BOT_USERNAME
         sync: false
+      - key: VIP_GROUP_LINK
+        sync: false
+      - key: SUPPORT_USERNAME
+        value: "Dave_211"
+      - key: CHANNEL_NAME
+        value: "Alpha_X_Calls"
+      - key: DEX_CHAINS
+        value: "solana,ethereum,bsc,base"
       - key: PYTHON_VERSION
         value: "3.11.9"
       - key: PORT

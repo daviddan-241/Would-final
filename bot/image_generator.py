@@ -517,48 +517,173 @@ def build_winners_card(symbol: str, multiplier: float,
     return _save(canvas)
 
 
-# ── AXIOM-style PnL brag card (clean dark, no template) ───────────────────────
+# ── PnL brag cards — 3 distinct styles with no-repeat rotation ────────────────
 
-def build_pnl_brag_card(symbol: str, invested: int, position: int) -> bytes:
+_recent_pnl_styles: list = []
+
+def _pick_pnl_style(num_styles: int) -> int:
+    global _recent_pnl_styles
+    pool = [i for i in range(num_styles) if i not in _recent_pnl_styles] \
+           or list(range(num_styles))
+    pick = random.choice(pool)
+    _recent_pnl_styles.append(pick)
+    if len(_recent_pnl_styles) > max(1, num_styles - 1):
+        _recent_pnl_styles.pop(0)
+    return pick
+
+
+def _fmt_money(v: float) -> str:
+    if abs(v) >= 1000:
+        return f"${v/1000:,.2f}K"
+    return f"${int(v):,}"
+
+
+def _fmt_signed(v: float) -> str:
+    sign = "+" if v >= 0 else "-"
+    return sign + _fmt_money(abs(v))
+
+
+# Style A — AXIOM Pro (original clean dark)
+def _pnl_axiom(symbol: str, invested: int, position: int) -> bytes:
     pnl_usd = position - invested
     pnl_pct = (pnl_usd / invested) * 100 if invested > 0 else 0
 
     bg = _gradient_bg()
     draw = ImageDraw.Draw(bg)
-
-    # AXIOM brand top-right
-    draw.text((W - 250, 40), "AXIOM",
-              font=_font(48, bold=True), fill=WHITE)
-    draw.text((W -  85, 64), "Pro", font=_font(24), fill=DIM)
+    draw.text((W - 260, 40), "AXIOM", font=_font(48, bold=True), fill=WHITE)
+    draw.text((W -  85, 64), "Pro",   font=_font(24), fill=DIM)
 
     tx = 64
     draw.text((tx, 130), f"${symbol.upper()}",
               font=_font(56, bold=True), fill=WHITE)
 
-    # Big green PnL banner
-    pnl_str = (f"+${abs(pnl_usd) / 1000:,.2f}K"
-               if abs(pnl_usd) >= 1000 else f"+${abs(pnl_usd):,}")
-    pf  = _font(110, bold=True)
+    pnl_str = _fmt_signed(pnl_usd)
+    pf  = _font(108, bold=True)
     pw  = _tw(draw, pnl_str, pf) + 60
     bx, by = tx, 210
-    draw.rounded_rectangle([bx, by, bx + pw, by + 138],
-                           radius=10, fill=TS_GREEN)
+    col = TS_GREEN if pnl_usd >= 0 else (235, 70, 70, 255)
+    draw.rounded_rectangle([bx, by, bx + pw, by + 138], radius=10, fill=col)
     draw.text((bx + 30, by + 10), pnl_str, font=pf, fill=(0, 0, 0, 255))
 
     fn, fb = _font(32), _font(32, bold=True)
     y0 = by + 180
-    rows = [
-        ("PNL",      f"+{pnl_pct:,.2f}%", TS_GREEN),
-        ("Invested", (f"${invested / 1000:,.2f}K"
-                     if invested >= 1000 else f"${invested:,}"), WHITE),
-        ("Position", (f"${position / 1000:,.2f}K"
-                     if position >= 1000 else f"${position:,}"), WHITE),
-    ]
-    for lbl, val, col in rows:
+    for lbl, val, c in [
+        ("PNL",      f"{'+' if pnl_pct>=0 else ''}{pnl_pct:,.2f}%", col),
+        ("Invested", _fmt_money(invested), WHITE),
+        ("Position", _fmt_money(position), WHITE),
+    ]:
         draw.text((tx, y0), lbl, font=fn, fill=DIM)
-        draw.text((tx + 280, y0), val, font=fb, fill=col)
+        draw.text((tx + 280, y0), val, font=fb, fill=c)
         y0 += 50
 
     _draw_username_badge(draw, tx, H - 130)
-    canvas = _bottom_bar(bg)
-    return _save(canvas)
+    return _save(_bottom_bar(bg))
+
+
+# Style B — Phanes-style PnL ticket (centred huge multiplier + percent banner)
+def _pnl_phanes(symbol: str, invested: int, position: int) -> bytes:
+    pnl_usd = position - invested
+    pnl_pct = (pnl_usd / invested) * 100 if invested > 0 else 0
+    mult    = position / invested if invested else 1
+    is_win  = pnl_usd >= 0
+
+    bg = _gradient_bg({"top": (8, 14, 22), "bot": (2, 4, 8)})
+    draw = ImageDraw.Draw(bg)
+
+    # Top brand bar
+    draw.rectangle([0, 0, W, 64], fill=(0, 0, 0, 220))
+    draw.text((34, 16), "Phanes  •  Live PnL",
+              font=_font(28, bold=True), fill=TS_GREEN)
+    draw.text((W - 220, 18), "alpha_x_calls",
+              font=_font(24, bold=True), fill=WHITE)
+
+    # Symbol
+    sym_t = f"${symbol.upper()}"
+    sf = _font(56, bold=True)
+    sw = _tw(draw, sym_t, sf)
+    draw.text(((W - sw) // 2, 100), sym_t, font=sf, fill=WHITE)
+
+    # Centred huge multiplier
+    mult_t = f"{mult:.2f}x" if mult < 100 else f"{int(mult)}x"
+    mf = _font(220, bold=True)
+    mw = _tw(draw, mult_t, mf)
+    col = TS_GREEN if is_win else (235, 70, 70, 255)
+    draw.text(((W - mw) // 2, 180), mult_t, font=mf, fill=col)
+
+    # Centred percent banner
+    pct_t = f"{'+' if is_win else ''}{pnl_pct:,.2f}%"
+    pf = _font(64, bold=True)
+    pw = _tw(draw, pct_t, pf) + 80
+    px = (W - pw) // 2
+    py = 420
+    draw.rounded_rectangle([px, py, px + pw, py + 84], radius=14, fill=col)
+    draw.text((px + 40, py + 8), pct_t, font=pf, fill=(0, 0, 0, 255))
+
+    # Bottom row: invested → position
+    rf = _font(30)
+    rfb = _font(30, bold=True)
+    line = f"{_fmt_money(invested)}  ➜  {_fmt_money(position)}   "
+    diff = f"  ({_fmt_signed(pnl_usd)})"
+    lw = _tw(draw, line, rf) + _tw(draw, diff, rfb)
+    lx = (W - lw) // 2
+    ly = py + 110
+    draw.text((lx, ly), line, font=rf, fill=DIM)
+    draw.text((lx + _tw(draw, line, rf), ly), diff, font=rfb, fill=col)
+
+    return _save(_bottom_bar(bg))
+
+
+# Style C — Trojan-style trade receipt (top-aligned data table)
+def _pnl_trojan(symbol: str, invested: int, position: int) -> bytes:
+    pnl_usd = position - invested
+    pnl_pct = (pnl_usd / invested) * 100 if invested > 0 else 0
+    is_win  = pnl_usd >= 0
+    col = TS_GREEN if is_win else (235, 70, 70, 255)
+
+    canvas = _base_canvas(use_char=True)
+    draw   = ImageDraw.Draw(canvas)
+
+    tx = 56
+    # header pill
+    hdr_t = "TROJAN  •  TRADE CLOSED"
+    hf = _font(24, bold=True)
+    hw = _tw(draw, hdr_t, hf) + 28
+    draw.rounded_rectangle([tx, 40, tx + hw, 40 + 40], radius=8,
+                           fill=(20, 24, 30, 235), outline=col, width=2)
+    draw.text((tx + 14, 47), hdr_t, font=hf, fill=col)
+
+    # symbol
+    sym_t = f"${symbol.upper()}"
+    draw.text((tx, 100), sym_t, font=_font(64, bold=True), fill=WHITE)
+
+    # Big PnL
+    pnl_t = _fmt_signed(pnl_usd)
+    pf = _font(96, bold=True)
+    draw.text((tx, 178), pnl_t, font=pf, fill=col)
+
+    # subline
+    sub = f"{'+' if is_win else ''}{pnl_pct:,.2f}% realised"
+    draw.text((tx, 290), sub, font=_font(32, bold=True), fill=col)
+
+    # rows
+    fn, fb = _font(28), _font(28, bold=True)
+    y0 = 360
+    for lbl, val, c in [
+        ("Invested", _fmt_money(invested),   WHITE),
+        ("Closed at", _fmt_money(position),  WHITE),
+        ("Net P&L",   _fmt_signed(pnl_usd),  col),
+    ]:
+        draw.text((tx, y0), lbl, font=fn, fill=DIM)
+        draw.text((tx + 240, y0), val, font=fb, fill=c)
+        y0 += 44
+
+    _draw_username_badge(draw, tx, H - 130)
+    return _save(_bottom_bar(canvas))
+
+
+_PNL_STYLES = [_pnl_axiom, _pnl_phanes, _pnl_trojan]
+
+
+def build_pnl_brag_card(symbol: str, invested: int, position: int) -> bytes:
+    style_idx = _pick_pnl_style(len(_PNL_STYLES))
+    return _PNL_STYLES[style_idx](symbol, invested, position)
