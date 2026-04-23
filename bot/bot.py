@@ -68,39 +68,58 @@ PNL_BASES = [50, 100, 100, 100, 200, 250, 500, 1000, 2530]
 
 # ── VIP keyboard buttons ───────────────────────────────────────────────────────
 
+def _desk_url(desk: str = "vip") -> str:
+    return f"https://t.me/{BOT_USERNAME}?start={desk}" if BOT_USERNAME else VIP_LINK
+
 def _pay_url() -> str:
-    return f"https://t.me/{BOT_USERNAME}?start=vip" if BOT_USERNAME else VIP_LINK
+    return _desk_url("vip")
 
 def _past_url() -> str:
-    return f"https://t.me/{BOT_USERNAME}?start=past100x" if BOT_USERNAME else _pay_url()
+    return _desk_url("past100x")
 
 def _join_button() -> InlineKeyboardMarkup:
+    """Generic VIP join (used by VIP teaser/promo)."""
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔐 EARLY ACCESS  •  JOIN VIP", url=_pay_url())],
-        [InlineKeyboardButton("📊 Past 100x Results", url=_past_url()),
+        [InlineKeyboardButton("🔐 EARLY ACCESS  •  JOIN VIP", url=_desk_url("vip"))],
+        [InlineKeyboardButton("📊 Past 100x Results", url=_desk_url("past100x")),
          InlineKeyboardButton("💬 Talk to Desk",      url=DESK_URL)],
     ])
 
 def _join_button_double() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("⚡ GET EARLY ACCESS — JOIN VIP", url=_pay_url())],
-        [InlineKeyboardButton("🥇 Verified Wins", url=_past_url()),
-         InlineKeyboardButton("🔥 Live Calls",   url=_pay_url())],
-        [InlineKeyboardButton("📊 100x Results", url=_past_url()),
+        [InlineKeyboardButton("⚡ GET EARLY ACCESS — JOIN VIP", url=_desk_url("vip"))],
+        [InlineKeyboardButton("🥇 Verified Wins", url=_desk_url("past100x")),
+         InlineKeyboardButton("🔥 Live Calls",   url=_desk_url("memecoin"))],
+        [InlineKeyboardButton("📊 100x Results", url=_desk_url("past100x")),
          InlineKeyboardButton("💬 Talk to Desk", url=DESK_URL)],
     ])
 
 def _signal_button() -> InlineKeyboardMarkup:
+    """Memecoin call card buttons → memecoin desk."""
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔐 Trade With The Desk — VIP", url=_pay_url())],
-        [InlineKeyboardButton("📈 Past Setups", url=_past_url()),
+        [InlineKeyboardButton("🚀 Memecoin Desk — VIP", url=_desk_url("memecoin"))],
+        [InlineKeyboardButton("📈 Past Setups", url=_desk_url("past100x")),
+         InlineKeyboardButton("💬 Talk to Desk", url=DESK_URL)],
+    ])
+
+def _forex_button() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("💱 Forex Desk — VIP", url=_desk_url("forex"))],
+        [InlineKeyboardButton("📊 Past 100x", url=_desk_url("past100x")),
+         InlineKeyboardButton("💬 Talk to Desk", url=DESK_URL)],
+    ])
+
+def _stock_button() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🏛 Stocks & Indices Desk — VIP", url=_desk_url("stock"))],
+        [InlineKeyboardButton("📊 Past 100x", url=_desk_url("past100x")),
          InlineKeyboardButton("💬 Talk to Desk", url=DESK_URL)],
     ])
 
 def _pnl_button() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📈 Take next entry — VIP", url=_pay_url())],
-        [InlineKeyboardButton("📊 Past 100x", url=_past_url()),
+        [InlineKeyboardButton("📈 Live Signal Mgmt — VIP", url=_desk_url("signal"))],
+        [InlineKeyboardButton("📊 Past 100x", url=_desk_url("past100x")),
          InlineKeyboardButton("💬 Desk",      url=DESK_URL)],
     ])
 
@@ -628,7 +647,7 @@ async def send_forex_signal(context: ContextTypes.DEFAULT_TYPE):
     bot: Bot = context.bot
     sig      = random.choice(FOREX_SIGNALS)
     caption  = random.choice(FOREX_CAPTIONS).format(**sig)
-    markup   = _join_button_double()
+    markup   = _forex_button()
     card     = None
     try:
         card = build_forex_card(
@@ -652,7 +671,7 @@ async def send_stock_signal(context: ContextTypes.DEFAULT_TYPE):
     bot: Bot = context.bot
     sig      = random.choice(STOCK_SIGNALS)
     caption  = random.choice(STOCK_CAPTIONS).format(**sig)
-    markup   = _join_button_double()
+    markup   = _stock_button()
     card     = None
     try:
         card = build_stock_card(
