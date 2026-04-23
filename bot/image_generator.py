@@ -281,47 +281,218 @@ def _base_canvas(use_char: bool = True) -> Image.Image:
     return _left_scrim(bg)
 
 
-# ── Initial CALL card ─────────────────────────────────────────────────────────
+# ── Initial CALL card  (3 distinct styles, rotated) ───────────────────────────
 
-def build_call_card(symbol: str, mcap_str: str, liq_str: str,
-                    vol_str: str, chain: str = "SOL",
-                    username: str = CHANNEL_TAG) -> bytes:
+_recent_call_styles: list = []
+
+def _pick_style(n: int, recent: list, window: int = 2) -> int:
+    pool = [i for i in range(n) if i not in recent] or list(range(n))
+    pick = random.choice(pool)
+    recent.append(pick)
+    if len(recent) > min(window, max(1, n - 1)):
+        recent.pop(0)
+    return pick
+
+
+def _stat_pill(draw, x, y, label, value, label_col=DIM, val_col=WHITE,
+               fn=None, fb=None):
+    fn = fn or _font(28)
+    fb = fb or _font(28, bold=True)
+    draw.text((x, y), label, font=fn, fill=label_col)
+    draw.text((x + _tw(draw, label, fn), y), value, font=fb, fill=val_col)
+
+
+def _draw_chain_chip(draw, x, y, chain_t, fill=(50, 60, 220, 255)):
+    cf = _font(24, bold=True)
+    cw = _tw(draw, chain_t, cf) + 24
+    draw.rounded_rectangle([x, y, x + cw, y + 36], radius=8, fill=fill)
+    draw.text((x + 12, y + 5), chain_t, font=cf, fill=WHITE)
+    return cw
+
+
+def _chain_color(chain: str):
+    return {
+        "SOL":      (153, 69, 255, 255),
+        "SOLANA":   (153, 69, 255, 255),
+        "ETH":      (114, 137, 218, 255),
+        "ETHEREUM": (114, 137, 218, 255),
+        "BSC":      (243, 186, 47, 255),
+        "BNB":      (243, 186, 47, 255),
+        "BASE":     (0, 82, 255, 255),
+    }.get(chain.upper(), (50, 60, 220, 255))
+
+
+# ─── Style A — TokenScan green (anchored left) ───────────────────────────────
+def _call_style_a(symbol, mcap_str, liq_str, vol_str, chain):
     canvas = _base_canvas()
     draw   = ImageDraw.Draw(canvas)
-
     tx, lim = 56, int(W * 0.55) - 56
     _draw_tokenscan_logo(draw, tx, 40)
 
     sym_t  = f"${symbol.upper()}"
     sym_sz = _fit(draw, sym_t, lim, 84, 44)
-    draw.text((tx, 138), sym_t,
-              font=_font(sym_sz, bold=True), fill=TS_GREEN)
+    draw.text((tx, 138), sym_t, font=_font(sym_sz, bold=True), fill=TS_GREEN)
 
     label_y = 138 + sym_sz + 14
-    draw.text((tx, label_y), "NEW CALL",
-              font=_font(46, bold=True), fill=WHITE)
+    draw.text((tx, label_y), "NEW CALL", font=_font(46, bold=True), fill=WHITE)
 
-    fn, fb = _font(30), _font(30, bold=True)
-    rows = [
-        ("MC:   ", mcap_str),
-        ("Liq:  ", liq_str),
-        ("Vol:  ", vol_str),
-    ]
+    rows = [("MC:   ", mcap_str), ("Liq:  ", liq_str), ("Vol:  ", vol_str)]
     y = label_y + 70
     for lbl, val in rows:
-        draw.text((tx, y), lbl, font=fn, fill=DIM)
-        draw.text((tx + _tw(draw, lbl, fn), y), val, font=fb, fill=WHITE)
+        _stat_pill(draw, tx, y, lbl, val, fn=_font(30), fb=_font(30, bold=True))
         y += 44
 
-    chain_t = chain.upper()
-    cf = _font(24, bold=True)
-    cw = _tw(draw, chain_t, cf) + 24
-    draw.rounded_rectangle([tx, y + 8, tx + cw, y + 8 + 36],
-                           radius=8, fill=(50, 60, 220, 255))
-    draw.text((tx + 12, y + 13), chain_t, font=cf, fill=WHITE)
-
+    _draw_chain_chip(draw, tx, y + 8, chain.upper(), fill=_chain_color(chain))
     _draw_username_badge(draw, tx, H - 130)
-    canvas = _bottom_bar(canvas)
+    return _bottom_bar(canvas)
+
+
+# ─── Style B — Centered Hero (massive ticker, ribbon header, side panel) ─────
+def _call_style_b(symbol, mcap_str, liq_str, vol_str, chain):
+    canvas = _base_canvas()
+    draw   = ImageDraw.Draw(canvas)
+
+    # top ribbon
+    chip_col = _chain_color(chain)
+    draw.rectangle([0, 0, W, 70], fill=(0, 0, 0, 220))
+    draw.rectangle([0, 64, W, 70], fill=chip_col)
+    rib = f"DESK ALERT  ·  {chain.upper()} CHAIN  ·  EARLY ENTRY"
+    rf = _font(24, bold=True)
+    draw.text(((W - _tw(draw, rib, rf)) // 2, 22), rib, font=rf, fill=WHITE)
+
+    # giant centered symbol
+    sym_t  = f"${symbol.upper()}"
+    sym_sz = _fit(draw, sym_t, int(W * 0.78), 168, 90)
+    sym_w  = _tw(draw, sym_t, _font(sym_sz, bold=True))
+    sx = (W - sym_w) // 2
+    draw.text((sx, 130), sym_t,
+              font=_font(sym_sz, bold=True), fill=TS_GREEN)
+
+    # subtitle
+    sub = "LIVE CALL  •  desk verified"
+    sf  = _font(28, bold=True)
+    sw  = _tw(draw, sub, sf)
+    draw.text(((W - sw) // 2, 130 + sym_sz + 14), sub, font=sf, fill=WHITE)
+
+    # rounded stat panel (centered, full width)
+    pn_y = 130 + sym_sz + 80
+    pn_h = 180
+    pad  = 60
+    draw.rounded_rectangle([pad, pn_y, W - pad, pn_y + pn_h],
+                           radius=20, fill=(0, 0, 0, 180),
+                           outline=(60, 70, 80, 220), width=2)
+
+    cells = [("MARKET CAP", mcap_str),
+             ("LIQUIDITY",  liq_str),
+             ("24H VOL",    vol_str)]
+    cw = (W - pad * 2) // 3
+    for i, (lbl, val) in enumerate(cells):
+        cx = pad + cw * i
+        lf = _font(22, bold=True)
+        vf = _font(40, bold=True)
+        lw = _tw(draw, lbl, lf)
+        vw = _tw(draw, val, vf)
+        draw.text((cx + (cw - lw) // 2, pn_y + 28), lbl, font=lf, fill=DIM)
+        draw.text((cx + (cw - vw) // 2, pn_y + 70), val, font=vf, fill=TS_GREEN)
+        if i < 2:
+            draw.line([(cx + cw, pn_y + 30), (cx + cw, pn_y + pn_h - 30)],
+                      fill=(70, 80, 90, 200), width=2)
+
+    # CTA strip
+    cta = "🔐  EARLY ACCESS LIVE INSIDE THE VIP  ·  alpha_x_calls"
+    cf  = _font(24, bold=True)
+    cw2 = _tw(draw, cta, cf)
+    draw.rounded_rectangle([(W - cw2) // 2 - 24, pn_y + pn_h + 28,
+                            (W + cw2) // 2 + 24, pn_y + pn_h + 28 + 50],
+                           radius=14, fill=TS_GREEN_SOFT)
+    draw.text(((W - cw2) // 2, pn_y + pn_h + 40), cta, font=cf,
+              fill=(0, 0, 0, 255))
+
+    return _bottom_bar(canvas)
+
+
+# ─── Style C — Trade Ticket (split panel + chart line) ───────────────────────
+def _call_style_c(symbol, mcap_str, liq_str, vol_str, chain):
+    canvas = _base_canvas(use_char=False)
+    draw   = ImageDraw.Draw(canvas)
+
+    # split: left dossier panel, right ticker hero
+    panel_w = 560
+    draw.rectangle([0, 0, panel_w, H], fill=(8, 12, 18, 230))
+
+    _draw_tokenscan_logo(draw, 36, 36)
+
+    draw.text((36, 110), "DEAL TICKET",
+              font=_font(28, bold=True), fill=DIM)
+
+    sym_t  = f"${symbol.upper()}"
+    sym_sz = _fit(draw, sym_t, panel_w - 72, 78, 38)
+    draw.text((36, 150), sym_t,
+              font=_font(sym_sz, bold=True), fill=TS_GREEN)
+
+    # data rows
+    rows = [
+        ("CHAIN",       chain.upper()),
+        ("MARKET CAP",  mcap_str),
+        ("LIQUIDITY",   liq_str),
+        ("24H VOLUME",  vol_str),
+        ("STATUS",      "DESK ENTRY  ✓"),
+    ]
+    y = 150 + sym_sz + 40
+    for lbl, val in rows:
+        draw.text((36, y), lbl, font=_font(20, bold=True), fill=DIM)
+        draw.text((36, y + 24), val,
+                  font=_font(30, bold=True), fill=WHITE)
+        y += 70
+
+    _draw_username_badge(draw, 36, H - 130)
+
+    # right side — big symbol & "stylised chart line" silhouette
+    rng = random.Random(sum(ord(c) for c in symbol))
+    pts = []
+    base_y = int(H * 0.55)
+    span_x = W - panel_w - 80
+    n = 60
+    val = 0
+    for i in range(n):
+        val += rng.uniform(-0.6, 1.0)
+        pts.append((panel_w + 60 + int(span_x * i / (n - 1)),
+                    int(base_y - val * 18)))
+    # shaded fill under line
+    poly = [(panel_w + 60, H - 70)] + pts + [(W - 20, H - 70)]
+    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    od = ImageDraw.Draw(overlay)
+    od.polygon(poly, fill=(32, 224, 144, 50))
+    canvas = Image.alpha_composite(canvas, overlay)
+    draw   = ImageDraw.Draw(canvas)
+    for i in range(len(pts) - 1):
+        draw.line([pts[i], pts[i + 1]], fill=TS_GREEN, width=4)
+
+    # giant right-side symbol watermark
+    sym_big = _font(220, bold=True)
+    sw = _tw(draw, sym_t, sym_big)
+    draw.text((panel_w + 60 + (W - panel_w - 60 - sw) // 2, 60),
+              sym_t, font=sym_big, fill=(255, 255, 255, 30))
+
+    # tag pill bottom-right
+    tag = "EARLY  ·  desk verified"
+    tf = _font(22, bold=True)
+    tw = _tw(draw, tag, tf) + 28
+    draw.rounded_rectangle([W - tw - 36, H - 130, W - 36, H - 130 + 44],
+                           radius=12, fill=TS_GREEN_SOFT)
+    draw.text((W - tw - 22, H - 130 + 10), tag, font=tf,
+              fill=(0, 0, 0, 255))
+
+    return _bottom_bar(canvas)
+
+
+def build_call_card(symbol: str, mcap_str: str, liq_str: str,
+                    vol_str: str, chain: str = "SOL",
+                    username: str = CHANNEL_TAG) -> bytes:
+    """Pick one of 3 distinct visual styles, never repeating recently."""
+    styles = [_call_style_a, _call_style_b, _call_style_c]
+    idx    = _pick_style(len(styles), _recent_call_styles, window=2)
+    canvas = styles[idx](symbol, mcap_str, liq_str, vol_str, chain)
     return _save(canvas)
 
 
@@ -370,45 +541,45 @@ def build_update_card(symbol: str, multiplier: float, mcap_str: str,
     return _save(canvas)
 
 
-# ── FOREX card (no neon — clean dark + small character) ───────────────────────
+# ── FOREX card (2 styles, rotated) ────────────────────────────────────────────
 
-def build_forex_card(pair: str, direction: str, entry: str,
-                     tp1: str, tp2: str, sl: str, timeframe: str,
-                     rr: str, username: str = CHANNEL_TAG) -> bytes:
-    canvas = _base_canvas()
-    draw   = ImageDraw.Draw(canvas)
+_recent_forex_styles: list = []
+_recent_stock_styles: list = []
 
+
+def _trade_panel(canvas, draw, kind_label, asset, direction, timeframe,
+                 entry, tp1, tp2, sl, rr, sub=None):
+    """Style A: anchored-left, dark base, character on right (existing)."""
     tx, lim = 56, int(W * 0.58) - 56
     _draw_tokenscan_logo(draw, tx, 40)
 
     is_long = direction.upper() in ("LONG", "BUY")
     dir_col = (0, 200, 110, 255) if is_long else (235, 70, 70, 255)
 
-    hdr = "FX SIGNAL" if "/" in pair else "TRADE SIGNAL"
     hf  = _font(28, bold=True)
-    hw  = _tw(draw, hdr, hf) + 28
+    hw  = _tw(draw, kind_label, hf) + 28
     draw.rounded_rectangle([tx, 100, tx + hw, 100 + 44],
                            radius=8, fill=dir_col)
-    draw.text((tx + 14, 110), hdr, font=hf, fill=(0, 0, 0, 255))
+    draw.text((tx + 14, 110), kind_label, font=hf, fill=(0, 0, 0, 255))
 
-    pair_sz = _fit(draw, pair.upper(), lim, 76, 38)
-    draw.text((tx, 156), pair.upper(),
-              font=_font(pair_sz, bold=True), fill=WHITE)
+    a_sz = _fit(draw, asset, lim, 76, 38)
+    draw.text((tx, 156), asset,
+              font=_font(a_sz, bold=True), fill=WHITE)
+    sub_y = 156 + a_sz + 4
+    if sub:
+        draw.text((tx, sub_y), sub, font=_font(24), fill=DIM)
+        sub_y += 30
 
-    dy = 156 + pair_sz + 6
+    dy = sub_y + 6
     df = _font(34, bold=True)
     dw = _tw(draw, direction.upper(), df) + 32
     draw.rounded_rectangle([tx, dy, tx + dw, dy + 50], radius=10, fill=dir_col)
-    draw.text((tx + 14, dy + 8), direction.upper(),
-              font=df, fill=(0, 0, 0, 255))
-    draw.text((tx + dw + 14, dy + 12), timeframe,
-              font=_font(26), fill=DIM)
+    draw.text((tx + 14, dy + 8), direction.upper(), font=df, fill=(0, 0, 0, 255))
+    draw.text((tx + dw + 14, dy + 12), timeframe, font=_font(26), fill=DIM)
 
     fn, fb = _font(26), _font(26, bold=True)
-    grn    = (0, 220, 120, 255)
-    red    = (240, 80, 80, 255)
+    grn, red = (0, 220, 120, 255), (240, 80, 80, 255)
     y0, lh = dy + 70, 40
-
     for lbl, val, col in [
         ("Entry  ", entry, WHITE),
         ("TP 1   ", tp1,   grn),
@@ -419,9 +590,101 @@ def build_forex_card(pair: str, direction: str, entry: str,
         draw.text((tx, y0), lbl, font=fn, fill=DIM)
         draw.text((tx + _tw(draw, lbl, fn), y0), val, font=fb, fill=col)
         y0 += lh
-
     _draw_username_badge(draw, tx, H - 130)
-    canvas = _bottom_bar(canvas)
+    return _bottom_bar(canvas)
+
+
+def _trade_ticket(kind_label, asset, direction, timeframe, entry, tp1, tp2,
+                  sl, rr, sub=None):
+    """Style B: terminal/Bloomberg ticket — full bleed grid, dual columns."""
+    canvas = _base_canvas(use_char=False)
+    draw   = ImageDraw.Draw(canvas)
+
+    is_long = direction.upper() in ("LONG", "BUY")
+    dir_col = (0, 220, 130, 255) if is_long else (240, 80, 80, 255)
+
+    # top ribbon
+    draw.rectangle([0, 0, W, 80], fill=(8, 12, 18, 230))
+    draw.rectangle([0, 76, W, 80], fill=dir_col)
+    rib = f"{kind_label}  ·  {direction.upper()}  ·  {timeframe}"
+    rf  = _font(28, bold=True)
+    draw.text((40, 26), rib, font=rf, fill=WHITE)
+    # right side desk tag
+    tag = "ALPHA · X · DESK"
+    tf  = _font(22, bold=True)
+    tw  = _tw(draw, tag, tf)
+    draw.text((W - tw - 40, 30), tag, font=tf, fill=DIM)
+
+    # giant asset name centred
+    asset_sz = _fit(draw, asset, int(W * 0.85), 150, 80)
+    aw = _tw(draw, asset, _font(asset_sz, bold=True))
+    draw.text(((W - aw) // 2, 110), asset,
+              font=_font(asset_sz, bold=True), fill=WHITE)
+    if sub:
+        sf = _font(28)
+        sw = _tw(draw, sub, sf)
+        draw.text(((W - sw) // 2, 110 + asset_sz + 8), sub, font=sf, fill=DIM)
+
+    # 2x3 grid panel
+    py = 110 + asset_sz + (60 if sub else 30)
+    ph = 280
+    px = 60
+    pw = W - 120
+    draw.rounded_rectangle([px, py, px + pw, py + ph], radius=20,
+                           fill=(0, 0, 0, 200),
+                           outline=(60, 70, 80, 220), width=2)
+    cells = [
+        ("ENTRY", entry, WHITE),
+        ("R/R",   rr,    WHITE),
+        ("TP 1",  tp1,   (0, 220, 130, 255)),
+        ("TP 2",  tp2,   (0, 220, 130, 255)),
+        ("SL",    sl,    (240, 80, 80, 255)),
+        ("BIAS",  direction.upper(), dir_col),
+    ]
+    cw = pw // 3
+    rh = ph // 2
+    lf = _font(20, bold=True)
+    vf = _font(38, bold=True)
+    for i, (lbl, val, col) in enumerate(cells):
+        cx = px + cw * (i % 3)
+        cy = py + rh * (i // 3)
+        lw = _tw(draw, lbl, lf)
+        vw = _tw(draw, val, vf)
+        draw.text((cx + (cw - lw) // 2, cy + 24), lbl, font=lf, fill=DIM)
+        draw.text((cx + (cw - vw) // 2, cy + 60), val, font=vf, fill=col)
+        # dividers
+        if i % 3 != 2:
+            draw.line([(cx + cw, cy + 24), (cx + cw, cy + rh - 24)],
+                      fill=(60, 70, 80, 200), width=2)
+        if i < 3:
+            draw.line([(cx + 24, cy + rh), (cx + cw - 24, cy + rh)],
+                      fill=(60, 70, 80, 200), width=2)
+
+    # footer CTA
+    cta = "🔐  Live management inside VIP  ·  alpha_x_calls"
+    cf  = _font(24, bold=True)
+    cw2 = _tw(draw, cta, cf)
+    draw.rounded_rectangle([(W - cw2) // 2 - 24, py + ph + 30,
+                            (W + cw2) // 2 + 24, py + ph + 30 + 50],
+                           radius=14, fill=TS_GREEN_SOFT)
+    draw.text(((W - cw2) // 2, py + ph + 42), cta, font=cf,
+              fill=(0, 0, 0, 255))
+    return _bottom_bar(canvas)
+
+
+def build_forex_card(pair: str, direction: str, entry: str,
+                     tp1: str, tp2: str, sl: str, timeframe: str,
+                     rr: str, username: str = CHANNEL_TAG) -> bytes:
+    kind = "FX SIGNAL" if "/" in pair else "TRADE SIGNAL"
+    idx = _pick_style(2, _recent_forex_styles, window=1)
+    if idx == 0:
+        canvas = _base_canvas()
+        draw   = ImageDraw.Draw(canvas)
+        canvas = _trade_panel(canvas, draw, kind, pair.upper(), direction,
+                              timeframe, entry, tp1, tp2, sl, rr)
+    else:
+        canvas = _trade_ticket(kind, pair.upper(), direction, timeframe,
+                               entry, tp1, tp2, sl, rr)
     return _save(canvas)
 
 
@@ -430,55 +693,16 @@ def build_forex_card(pair: str, direction: str, entry: str,
 def build_stock_card(ticker: str, name: str, direction: str, entry: str,
                      tp1: str, tp2: str, sl: str, timeframe: str,
                      rr: str) -> bytes:
-    canvas = _base_canvas()
-    draw   = ImageDraw.Draw(canvas)
-
-    tx, lim = 56, int(W * 0.58) - 56
-    _draw_tokenscan_logo(draw, tx, 40)
-
-    is_long = direction.upper() in ("LONG", "BUY")
-    dir_col = (0, 200, 110, 255) if is_long else (235, 70, 70, 255)
-
-    hdr = "STOCK SIGNAL"
-    hf  = _font(26, bold=True)
-    hw  = _tw(draw, hdr, hf) + 28
-    draw.rounded_rectangle([tx, 100, tx + hw, 100 + 42],
-                           radius=8, fill=dir_col)
-    draw.text((tx + 14, 110), hdr, font=hf, fill=(0, 0, 0, 255))
-
-    tk_sz = _fit(draw, ticker.upper(), lim, 80, 42)
-    draw.text((tx, 154), ticker.upper(),
-              font=_font(tk_sz, bold=True), fill=WHITE)
-    draw.text((tx, 154 + tk_sz + 4), name,
-              font=_font(24), fill=DIM)
-
-    dy = 154 + tk_sz + 50
-    df = _font(30, bold=True)
-    dw = _tw(draw, direction.upper(), df) + 30
-    draw.rounded_rectangle([tx, dy, tx + dw, dy + 46], radius=10, fill=dir_col)
-    draw.text((tx + 14, dy + 8), direction.upper(),
-              font=df, fill=(0, 0, 0, 255))
-    draw.text((tx + dw + 14, dy + 12), timeframe,
-              font=_font(24), fill=DIM)
-
-    fn, fb = _font(24), _font(24, bold=True)
-    grn    = (0, 220, 120, 255)
-    red    = (240, 80, 80, 255)
-    y0, lh = dy + 64, 36
-
-    for lbl, val, col in [
-        ("Entry  ", entry, WHITE),
-        ("TP 1   ", tp1,   grn),
-        ("TP 2   ", tp2,   grn),
-        ("SL     ", sl,    red),
-        ("R/R    ", rr,    WHITE),
-    ]:
-        draw.text((tx, y0), lbl, font=fn, fill=DIM)
-        draw.text((tx + _tw(draw, lbl, fn), y0), val, font=fb, fill=col)
-        y0 += lh
-
-    _draw_username_badge(draw, tx, H - 130)
-    canvas = _bottom_bar(canvas)
+    idx = _pick_style(2, _recent_stock_styles, window=1)
+    if idx == 0:
+        canvas = _base_canvas()
+        draw   = ImageDraw.Draw(canvas)
+        canvas = _trade_panel(canvas, draw, "STOCK SIGNAL", ticker.upper(),
+                              direction, timeframe, entry, tp1, tp2, sl, rr,
+                              sub=name)
+    else:
+        canvas = _trade_ticket("EQUITY DESK", ticker.upper(), direction,
+                               timeframe, entry, tp1, tp2, sl, rr, sub=name)
     return _save(canvas)
 
 

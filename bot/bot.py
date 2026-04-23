@@ -69,7 +69,8 @@ PNL_BASES = [50, 100, 100, 100, 200, 250, 500, 1000, 2530]
 # ── VIP keyboard buttons ───────────────────────────────────────────────────────
 
 def _desk_url(desk: str = "vip") -> str:
-    return f"https://t.me/{BOT_USERNAME}?start={desk}" if BOT_USERNAME else VIP_LINK
+    handle = (BOT_USERNAME or "").lstrip("@").strip()
+    return f"https://t.me/{handle}?start={desk}" if handle else VIP_LINK
 
 def _pay_url() -> str:
     return _desk_url("vip")
