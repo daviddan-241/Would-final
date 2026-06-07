@@ -1,6 +1,6 @@
 """
 Enhanced HTTP Server to keep Render alive and serve a gorgeous, fully-featured
-interactive Admin Web Dashboard, REST APIs, Live DMs messaging, and Growth Campaign controllers.
+interactive Admin Web Dashboard, REST APIs, Live DMs messaging, and official Meta/TikTok live API Webhook receivers.
 """
 import os
 import json
@@ -15,6 +15,9 @@ import dm_manager
 logger = logging.getLogger(__name__)
 
 PORT = int(os.getenv("PORT", "10000"))
+
+# Meta Webhook Verification Token (Configure in Meta Developer App)
+VERIFY_TOKEN = os.getenv("META_VERIFY_TOKEN", "my_smm_verify_token_123")
 
 
 class HealthHandler(BaseHTTPRequestHandler):
@@ -40,7 +43,6 @@ class HealthHandler(BaseHTTPRequestHandler):
         # 2. REST API: GET Data
         if self.path == "/api/data":
             data = marketing_db.load_db()
-            # Ensure profiles list is returned
             data["profiles"] = marketing_db.get_profiles()
             self.send_json_response(200, data)
             return
@@ -60,6 +62,28 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.send_json_response(200, {"success": True, "messages": messages})
             return
 
+        # 4. OFFICIAL META WEBHOOK VERIFICATION (GET /api/webhooks/incoming)
+        # When setting up your Facebook/Instagram Developer App, Meta sends a GET request to verify this URL.
+        elif self.path.startswith("/api/webhooks/incoming"):
+            parsed_url = urllib.parse.urlparse(self.path)
+            query_params = urllib.parse.parse_qs(parsed_url.query)
+            
+            mode = query_params.get("hub.mode", [None])[0]
+            token = query_params.get("hub.verify_token", [None])[0]
+            challenge = query_params.get("hub.challenge", [None])[0]
+            
+            if mode == "subscribe" and token == VERIFY_TOKEN:
+                logger.info("✅ Meta Webhook successfully verified and linked!")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain")
+                self.end_headers()
+                self.wfile.write(challenge.encode("utf-8"))
+            else:
+                logger.warning("❌ Meta Webhook verification failed! Token mismatch.")
+                self.send_response(403)
+                self.end_headers()
+            return
+
         # Fallback to health check
         self.send_response(200)
         self.send_header("Content-Type", "text/plain")
@@ -75,6 +99,54 @@ class HealthHandler(BaseHTTPRequestHandler):
         except Exception as e:
             logger.error(f"Failed to parse JSON post parameters: {e}")
             self.send_json_response(400, {"success": False, "error": "Invalid JSON"})
+            return
+
+        # 1. LIVE META / INSTAGRAM / TIKTOK WEBHOOK RECEIVER (POST /api/webhooks/incoming)
+        # Parses incoming real-world direct messages pushed from Meta's servers.
+        if self.path == "/api/webhooks/incoming":
+            logger.info(f"Incoming live webhook payload received: {params}")
+            
+            try:
+                # Handle standard Meta (Instagram/Facebook) messenger webhook structure
+                if params.get("object") in ["instagram", "page"]:
+                    for entry in params.get("entry", []):
+                        for messaging in entry.get("messaging", []):
+                            sender_id = messaging.get("sender", {}).get("id")
+                            message_data = messaging.get("message", {})
+                            message_text = message_data.get("text", "")
+                            
+                            if sender_id and message_text:
+                                # Trigger SMM response loop for this real-world user
+                                logger.info(f"📬 [LIVE-WEBHOOK] Real DM received from ID {sender_id}: '{message_text}'")
+                                
+                                # Fetch profiles to choose correct responder
+                                profiles = marketing_db.get_profiles()
+                                active_profiles = [p for p in profiles if p.get("active", True)]
+                                target_profile = active_profiles[0] if active_profiles else None
+                                
+                                if target_profile:
+                                    # Parse sender details & write into the unified dashboard
+                                    conv, new_msg = marketing_db.add_incoming_message(
+                                        platform="instagram" if params.get("object") == "instagram" else "facebook",
+                                        sender_handle=f"User_{sender_id}",
+                                        text=message_text,
+                                        profile_id=target_profile["id"]
+                                    )
+                                    # Trigger asynchronous AI response typing loop
+                                    import asyncio
+                                    loop = asyncio.get_event_loop()
+                                    loop.create_task(dm_manager.simulate_incoming_direct_message())
+                                    
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write(b"EVENT_RECEIVED")
+                    return
+            except Exception as ex:
+                logger.error(f"Error parsing live webhook payload: {ex}")
+                
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"OK")
             return
 
         # --- Settings Update ---
