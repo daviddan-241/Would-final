@@ -196,9 +196,11 @@ async def execute_mirror_cycle(bot_instance=None):
     """
     Scans all active target profiles, checks for new content,
     rewrites it using AI/Rules, and posts it.
+    Supports profile-specific Telegram bots on the fly!
     """
     targets = marketing_db.get_targets()
     settings = marketing_db.get_settings()
+    profiles = marketing_db.get_profiles()
     
     if not settings.get("auto_mirror_enabled", True):
         return
@@ -228,12 +230,26 @@ async def execute_mirror_cycle(bot_instance=None):
             success = False
             destination = target.get("destination", "TG_GROUP")
             
-            if destination == "TG_GROUP" and bot_instance:
-                # Post to Telegram
+            if destination == "TG_GROUP":
+                # Check for profile-specific Telegram credentials
+                active_profile = next((p for p in profiles if p.get("active", True)), None)
+                
+                # Default fallback configs
                 import config
+                bot_token = config.TELEGRAM_BOT_TOKEN
                 chat_id = config.TELEGRAM_CHAT_ID
-                if chat_id:
-                    await bot_instance.send_message(
+                active_bot = bot_instance
+                
+                # If the active profile has custom Bot credentials, instantiate them!
+                if active_profile and active_profile.get("tg_bot_token") and active_profile.get("tg_chat_id"):
+                    bot_token = active_profile["tg_bot_token"]
+                    chat_id = active_profile["tg_chat_id"]
+                    from telegram import Bot
+                    active_bot = Bot(token=bot_token)
+                    logger.info(f"🤖 [MULTI-BOT] Using profile-specific bot token for Persona '{active_profile['name']}' to post cloner updates.")
+                
+                if active_bot and chat_id:
+                    await active_bot.send_message(
                         chat_id=chat_id,
                         text=f"📢 <b>Mirrored {target['platform'].title()} Post ({target['handle']})</b>\n\n{rewritten_text}",
                         parse_mode="HTML"

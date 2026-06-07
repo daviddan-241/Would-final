@@ -163,12 +163,14 @@ class HealthHandler(BaseHTTPRequestHandler):
             cta_link = params.get("cta_link", "")
             ai_tone = params.get("ai_tone", "casual")
             avatar = params.get("avatar", "")
+            tg_bot_token = params.get("tg_bot_token", "")
+            tg_chat_id = params.get("tg_chat_id", "")
             
             if not name or not bio:
                 self.send_json_response(400, {"success": False, "error": "Missing name or biography"})
                 return
                 
-            new_prof = marketing_db.add_profile(name, niche, bio, cta_link, ai_tone, avatar)
+            new_prof = marketing_db.add_profile(name, niche, bio, cta_link, ai_tone, avatar, tg_bot_token, tg_chat_id)
             self.send_json_response(200, {"success": True, "profile": new_prof})
             return
 

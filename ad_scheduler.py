@@ -15,23 +15,38 @@ logger = logging.getLogger(__name__)
 
 async def post_ad_to_telegram(bot_instance, content: str, image_url: Optional[str] = None) -> bool:
     """Sends a promotional ad to the configured Telegram chat."""
-    if not bot_instance or not config.TELEGRAM_CHAT_ID:
+    # Check for active SMM profile specific Telegram credentials
+    profiles = marketing_db.get_profiles()
+    active_profile = next((p for p in profiles if p.get("active", True)), None)
+    
+    bot_token = config.TELEGRAM_BOT_TOKEN
+    chat_id = config.TELEGRAM_CHAT_ID
+    active_bot = bot_instance
+    
+    if active_profile and active_profile.get("tg_bot_token") and active_profile.get("tg_chat_id"):
+        bot_token = active_profile["tg_bot_token"]
+        chat_id = active_profile["tg_chat_id"]
+        from telegram import Bot
+        active_bot = Bot(token=bot_token)
+        logger.info(f"🤖 [MULTI-BOT] Posting scheduled ad using credentials for SMM Persona '{active_profile['name']}' to Chat ID '{chat_id}'.")
+
+    if not active_bot or not chat_id:
         logger.warning("Telegram Bot or Chat ID not configured. Cannot post ad.")
         return False
         
     try:
         if image_url:
             # Send photo with caption
-            await bot_instance.send_photo(
-                chat_id=config.TELEGRAM_CHAT_ID,
+            await active_bot.send_photo(
+                chat_id=chat_id,
                 photo=image_url,
                 caption=content,
                 parse_mode="HTML"
             )
         else:
             # Send plain text
-            await bot_instance.send_message(
-                chat_id=config.TELEGRAM_CHAT_ID,
+            await active_bot.send_message(
+                chat_id=chat_id,
                 text=content,
                 parse_mode="HTML",
                 disable_web_page_preview=True

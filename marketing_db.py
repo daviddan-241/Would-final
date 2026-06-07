@@ -1,6 +1,7 @@
 """
 Marketing database for storing profiles (personas), target accounts, ads, connected accounts, raids,
 unified inbox conversations, messages, auto-responder rules, growth hacking campaigns, and settings.
+Supports profile-specific Telegram bot tokens and chat IDs.
 """
 import os
 import json
@@ -12,10 +13,10 @@ logger = logging.getLogger(__name__)
 DB_FILE = os.getenv("MARKETING_DB_FILE", os.path.join(os.path.dirname(os.path.abspath(__file__)), "marketing_data.json"))
 
 _data = {
-    "profiles": [],          # Multiple SMM Personas: {id, name, niche, bio, cta_link, ai_tone, avatar, active}
+    "profiles": [],          # SMM Personas: {id, name, niche, bio, cta_link, ai_tone, avatar, active, tg_bot_token, tg_chat_id}
     "targets": [],           # Influencer/Target accounts to mirror
     "ads": [],               # Scheduled promotional ads
-    "accounts": [],          # Connected SMM Accounts fleet (supports multiple accounts per platform!)
+    "accounts": [],          # Connected SMM Accounts fleet
     "raids": [],             # Created raids
     "conversations": [],     # Unified Inbox: {id, profile_id, platform, sender_handle, avatar, unread, last_message_time}
     "messages": {},          # Conversation messages: {conv_id: [messages]}
@@ -90,7 +91,9 @@ def get_profiles():
                 "cta_link": "https://t.me/join_alpha_calls",
                 "ai_tone": "bullish_crypto_enthusiast",
                 "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=CryptoAlpha",
-                "active": True
+                "active": True,
+                "tg_bot_token": "",
+                "tg_chat_id": ""
             },
             {
                 "id": "prof_default_celeb",
@@ -100,7 +103,9 @@ def get_profiles():
                 "cta_link": "https://onlyfans.com/sophie_rain",
                 "ai_tone": "hype",
                 "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Sophie",
-                "active": True
+                "active": True,
+                "tg_bot_token": "",
+                "tg_chat_id": ""
             },
             {
                 "id": "prof_default_casual",
@@ -110,14 +115,16 @@ def get_profiles():
                 "cta_link": "https://instagram.com/sarah_m",
                 "ai_tone": "casual",
                 "avatar": "https://api.dicebear.com/7.x/lorelei/svg?seed=Sarah",
-                "active": True
+                "active": True,
+                "tg_bot_token": "",
+                "tg_chat_id": ""
             }
         ]
         save_db()
     return db["profiles"]
 
 
-def add_profile(name, niche, bio, cta_link, ai_tone, avatar=""):
+def add_profile(name, niche, bio, cta_link, ai_tone, avatar="", tg_bot_token="", tg_chat_id=""):
     db = load_db()
     if "profiles" not in db:
         db["profiles"] = []
@@ -126,12 +133,14 @@ def add_profile(name, niche, bio, cta_link, ai_tone, avatar=""):
     new_prof = {
         "id": prof_id,
         "name": name,
-        "niche": niche,         # crypto, celeb, casual, personal
+        "niche": niche,         # crypto, celeb, casual
         "bio": bio,
         "cta_link": cta_link,   # private account or target url
         "ai_tone": ai_tone,     # bullish_crypto_enthusiast, hype, professional, casual
         "avatar": avatar or f"https://api.dicebear.com/7.x/pixel-art/svg?seed={name}",
-        "active": True
+        "active": True,
+        "tg_bot_token": tg_bot_token.strip(),
+        "tg_chat_id": tg_chat_id.strip()
     }
     db["profiles"].append(new_prof)
     save_db()
@@ -232,7 +241,7 @@ def toggle_ad(ad_id):
     save_db()
 
 
-# --- Connected Accounts CRUD (Supports multiple accounts per platform) ---
+# Connected Accounts CRUD
 def get_accounts():
     db = load_db()
     if "accounts" not in db:
@@ -248,8 +257,8 @@ def add_account(platform, username, password="", token_session="", status="Activ
     acc_id = f"acc_{int(time.time() * 1000)}"
     new_acc = {
         "id": acc_id,
-        "platform": platform,       # twitter, tiktok, instagram, facebook
-        "username": username,       # handle/profile name
+        "platform": platform,
+        "username": username,
         "password": password,
         "token_session": token_session,
         "status": status,
