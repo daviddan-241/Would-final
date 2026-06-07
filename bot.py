@@ -1,6 +1,6 @@
 """
-Telegram Coin Scanner Bot
-Fresh coins only. No repeats. Photo + inline buttons.
+Telegram Coin Scanner & SMM Raid Engine Bot
+Fresh coins only + Multi-Platform Auto-Post, Mirroring, Ad Scheduling & Auto-Raid Engine.
 """
 import logging
 import asyncio
@@ -25,20 +25,156 @@ scan_count = 0
 total_posted = 0
 
 
+# --- SMM Telegram Handlers ---
+
+async def mirror_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Sets up a target account to clone, rewrite and post content."""
+    args = context.args
+    if len(args) < 2:
+        await update.message.reply_text(
+            "❌ Usage: <code>/mirror [platform] [handle]</code>\n"
+            "Example: <code>/mirror twitter @elonmusk</code>\n"
+            "Platforms: twitter, tiktok, instagram, facebook",
+            parse_mode=ParseMode.HTML
+        )
+        return
+        
+    platform = args[0].lower()
+    handle = args[1]
+    
+    if platform not in ["twitter", "tiktok", "instagram", "facebook"]:
+        await update.message.reply_text("❌ Invalid platform. Supported: twitter, tiktok, instagram, facebook.")
+        return
+        
+    import marketing_db
+    marketing_db.add_target(platform, handle, "TG_GROUP")
+    await update.message.reply_text(
+        f"✅ Registered <b>{platform.title()}</b> mirror stream for <code>{handle}</code>!\n"
+        f"New posts will be copied, rewritten by AI, and automatically posted.",
+        parse_mode=ParseMode.HTML
+    )
+
+
+async def raid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Launches a multi-platform community raid with deep action links and executes auto-raiding."""
+    args = context.args
+    if not args:
+        await update.message.reply_text(
+            "❌ Usage: <code>/raid [url] [optional_caption]</code>\n"
+            "Example: <code>/raid https://x.com/elonmusk/status/... Bullish!</code>",
+            parse_mode=ParseMode.HTML
+        )
+        return
+        
+    url = args[0]
+    caption = " ".join(args[1:]) if len(args) > 1 else ""
+    
+    platform = "twitter"
+    if "tiktok.com" in url:
+        platform = "tiktok"
+    elif "instagram.com" in url:
+        platform = "instagram"
+    elif "facebook.com" in url:
+        platform = "facebook"
+        
+    import marketing_db
+    import raid_engine
+    
+    # 1. Register active raid in DB (triggers automated self-bots fleet)
+    marketing_db.add_raid(platform, url, caption)
+    
+    # 2. Build community interactive post
+    msg = raid_engine.build_raid_message(platform, url, caption)
+    kbd = raid_engine.generate_raid_keyboard(platform, url)
+    
+    await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=kbd)
+
+
+async def schedule_ad_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Schedules recurrent ads at regular intervals (in minutes)."""
+    args = context.args
+    if len(args) < 2:
+        await update.message.reply_text(
+            "❌ Usage: <code>/schedule_ad [interval_min] [text_content]</code>\n"
+            "Example: <code>/schedule_ad 30 🚀 Secure your entry!</code>",
+            parse_mode=ParseMode.HTML
+        )
+        return
+        
+    try:
+        interval = int(args[0])
+    except ValueError:
+        await update.message.reply_text("❌ Interval must be a number representing minutes.")
+        return
+        
+    content = " ".join(args[1:])
+    
+    import marketing_db
+    marketing_db.add_ad("telegram", content, interval)
+    await update.message.reply_text(
+        f"✅ Scheduled recurring promotional ad! Running every <b>{interval}</b> minutes.",
+        parse_mode=ParseMode.HTML
+    )
+
+
+async def accounts_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Lists connected automated self-bots."""
+    import marketing_db
+    accs = marketing_db.get_accounts()
+    if not accs:
+        await update.message.reply_text(
+            "⚠️ No automated SMM accounts linked yet.\n"
+            "Open the Web Dashboard at port 10000 to add credentials and tokens!",
+            parse_mode=ParseMode.HTML
+        )
+        return
+        
+    text = "👤 <b>SMM Automated Account Fleet:</b>\n\n"
+    for acc in accs:
+        text += f"• <b>{acc['platform'].title()}</b>: <code>{acc['username']}</code> ({acc['status']})\n"
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+
+
+# --- Core Scanner Handlers ---
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cid = update.effective_chat.id
     await update.message.reply_text(
-        f"🤖 <b>Coin Scanner Bot</b>\n\n"
-        f"Chat ID: <code>{cid}</code>\n\n"
-        "/status /scan /stats /clear",
+        f"🤖 <b>Coin Scanner & SMM Master Bot</b>\n\n"
+        f"Group/Chat ID: <code>{cid}</code>\n\n"
+        "🟢 <b>Scanner Commands:</b>\n"
+        "/status — View system health\n"
+        "/scan — Perform manual coin check\n"
+        "/stats — View scan counters\n"
+        "/clear — Empty coin database cache\n\n"
+        "🔥 <b>SMM & Marketing Commands:</b>\n"
+        "/raid <code>[url] [caption]</code> — Detonate multi-platform raid\n"
+        "/mirror <code>[platform] [handle]</code> — Clone & rewrite content\n"
+        "/schedule_ad <code>[minutes] [text]</code> — Run recurrent ads\n"
+        "/accounts — Show automated account fleet",
         parse_mode=ParseMode.HTML,
     )
 
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    import marketing_db
+    db = marketing_db.load_db()
+    targets_count = len(db.get("targets", []))
+    completed_raids = len([r for r in db.get("raids", []) if r.get("status") == "Completed"])
+    ads_count = len(db.get("ads", []))
+    accounts_count = len(db.get("accounts", []))
+
     await update.message.reply_text(
-        f"📊 Interval: {config.SCAN_INTERVAL}s | Cached: {seen_db.seen_count()} | "
-        f"Scans: {scan_count} | Posted: {total_posted}",
+        f"📊 <b>System status report:</b>\n\n"
+        f"⏱ <b>Coin Scan Interval:</b> {config.SCAN_INTERVAL}s\n"
+        f"📁 <b>Cached Tokens:</b> {seen_db.seen_count()}\n"
+        f"📈 <b>Token Scans:</b> {scan_count} | Posted: {total_posted}\n\n"
+        f"🎯 <b>SMM Marketing Engine:</b>\n"
+        f"• Clone targets: <b>{targets_count}</b>\n"
+        f"• Connected automated accounts: <b>{accounts_count}</b>\n"
+        f"• Active ad rotations: <b>{ads_count}</b>\n"
+        f"• Automated raids executed: <b>{completed_raids}</b>",
+        parse_mode=ParseMode.HTML
     )
 
 
@@ -164,7 +300,12 @@ async def periodic_scan(bot: Bot):
 
 
 async def post_init(app: Application):
+    # Start the core token scanner loop
     asyncio.create_task(periodic_scan(app.bot))
+    
+    # Start the SMM automated marketing & cloning engine
+    from engine_coordinator import start_all_smm_services
+    start_all_smm_services(app.bot)
 
 
 def main():
@@ -179,15 +320,25 @@ def main():
         print("❌ Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID!")
         return
 
+    # Start Health check & fully interactive Admin Dashboard Server
     start_health_server()
-    print("🚀 Starting Coin Scanner Bot...")
+    print("🚀 Starting SMM-Upgraded Coin Scanner Bot...")
 
     app = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
+    
+    # Core commands
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("scan", manual_scan_command))
     app.add_handler(CommandHandler("stats", stats_command))
     app.add_handler(CommandHandler("clear", clear_command))
+    
+    # SMM commands
+    app.add_handler(CommandHandler("mirror", mirror_command))
+    app.add_handler(CommandHandler("raid", raid_command))
+    app.add_handler(CommandHandler("schedule_ad", schedule_ad_command))
+    app.add_handler(CommandHandler("accounts", accounts_command))
+    
     app.post_init = post_init
     app.run_polling(drop_pending_updates=True)
 
