@@ -96,7 +96,7 @@
 <body class="h-screen flex flex-col justify-between overflow-hidden">
 
     <!-- Top Premium iOS-Style Header -->
-    <header class="app-header sticky top-0 z-40 px-5 pt-10 pb-4 flex items-center justify-between">
+    <header id="main-app-header" class="app-header sticky top-0 z-40 px-5 pt-10 pb-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
             <div id="header-persona-avatar" class="w-10 h-10 rounded-full bg-gray-800 border border-white/10 flex items-center justify-center font-bold">
                 ?
@@ -123,43 +123,49 @@
         <!-- TAB: CHATS (WhatsApp Style Inbox Overhaul) -->
         <div id="tab-chats" class="tab-content space-y-4 pb-32">
             
-            <!-- WhatsApp Contacts List Header -->
-            <div class="flex items-center justify-between px-1">
-                <h3 class="font-extrabold text-xs uppercase tracking-wider text-gray-500">Live Leads Inbox</h3>
-                <span class="text-xs text-[#00a884] font-bold" id="inbox-count-badge">0 Contacts</span>
+            <!-- VIEW A: Chats List View (Only shows contacts; NO message keyboard/input bar visible!) -->
+            <div id="chats-list-view" class="space-y-4">
+                <div class="flex items-center justify-between px-1">
+                    <h3 class="font-extrabold text-xs uppercase tracking-wider text-gray-500">Live Leads Inbox</h3>
+                    <span class="text-xs text-[#00a884] font-bold" id="inbox-count-badge">0 Contacts</span>
+                </div>
+
+                <!-- Apple Search Contacts Bar -->
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-500 text-xs"></i>
+                    <input type="text" placeholder="Search contacts by handle..." id="conv-search" oninput="filterConversations()" class="w-full pl-9 pr-4 py-3 text-xs bg-[#121314] dark:bg-[#121314] light:bg-gray-100 rounded-xl border border-white/10 dark:border-white/10 light:border-black/10 focus:outline-none focus:ring-0">
+                </div>
+
+                <!-- Contacts Scroll List -->
+                <div class="space-y-2.5 overflow-y-auto pr-1" id="conversations-list-container">
+                    <!-- Dynamic Conversations list -->
+                </div>
             </div>
 
-            <!-- Apple Search Contacts Bar -->
-            <div class="relative">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-500 text-xs"></i>
-                <input type="text" placeholder="Search contacts by handle..." id="conv-search" oninput="filterConversations()" class="w-full pl-9 pr-4 py-3 text-xs bg-[#121314] dark:bg-[#121314] light:bg-gray-100 rounded-xl border border-white/10 dark:border-white/10 light:border-black/10 focus:outline-none focus:ring-0">
-            </div>
-
-            <!-- Contacts Scroll List -->
-            <div class="space-y-2.5 max-h-48 overflow-y-auto pr-1" id="conversations-list-container">
-                <!-- Dynamic Conversations -->
-            </div>
-
-            <!-- Premium iOS Messenger Style Chatroom Frame -->
-            <div class="ios-card flex flex-col h-[380px] justify-between overflow-hidden shadow-2xl rounded-2xl" style="background-color: #000000; border: 0.5px solid rgba(255,255,255,0.08);">
-                <!-- Room Header -->
+            <!-- VIEW B: Premium iOS iMessage Chatroom Frame (Only visible when contact is selected!) -->
+            <div id="chatroom-view" class="hidden flex flex-col h-[calc(100vh-160px)] justify-between overflow-hidden shadow-2xl rounded-2xl" style="background-color: #000000; border: 0.5px solid rgba(255,255,255,0.08);">
+                <!-- Room Header with Back Button -->
                 <div class="p-4 flex items-center justify-between bg-[#121314] dark:bg-[#121314] light:bg-[#f2f2f7] border-b border-white/10 dark:border-white/10 light:border-black/5">
-                    <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <!-- Back Button to slide back to contact list -->
+                        <button onclick="closeChatroom()" class="text-[#0a84ff] font-bold text-xs flex items-center gap-1 active:scale-95 transition-transform mr-1 shrink-0">
+                            <i class="fa-solid fa-chevron-left text-sm"></i> Back
+                        </button>
                         <div class="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center text-xs text-gray-300 font-bold" id="chat-avatar-placeholder">?</div>
                         <div class="min-w-0">
                             <h4 class="text-xs font-bold text-white dark:text-white light:text-black truncate" id="chat-title-handle">Select a contact</h4>
                             <p class="text-[9px] text-[#8696a0]" id="chat-subtitle-platform">Waiting for chat thread...</p>
                         </div>
                     </div>
-                    <span class="text-[9px] px-2.5 py-1 bg-[#0a84ff]/20 text-[#0a84ff] font-bold rounded-full">iMessage Real</span>
+                    <span class="text-[9px] px-2.5 py-1 bg-[#0a84ff]/20 text-[#0a84ff] font-bold rounded-full shrink-0">iMessage</span>
                 </div>
 
                 <!-- Chat Bubbles Area -->
                 <div class="flex-1 p-5 overflow-y-auto space-y-4 flex flex-col bg-[#000000]" id="chat-messages-container">
-                    <!-- Clean, normal, elegant blank starting screen as requested by iOS SMM parameters -->
+                    <!-- Dynamic messages render here cleanly -->
                 </div>
 
-                <!-- Input Text Box -->
+                <!-- Message Keyboard (Input Text Box - ONLY inside active chatroom!) -->
                 <form onsubmit="sendCustomReply(event)" class="p-3 flex gap-2 bg-[#121314] dark:bg-[#121314] light:bg-[#f2f2f7] border-t border-white/10 dark:border-white/10 light:border-black/5">
                     <input type="hidden" id="active-conv-id" value="">
                     <input type="text" id="chat-reply-input" placeholder="Type a message..." class="flex-1 px-4 py-3 rounded-full text-xs bg-[#242526] dark:bg-[#242526] light:bg-white border-none text-white dark:text-white light:text-black focus:outline-none focus:ring-0" disabled>
@@ -203,7 +209,7 @@
                 <p class="text-[9px] text-gray-500 leading-normal">Overrides individual persona redirect links, routing all traffic and inquiries straight into this destination.</p>
             </div>
 
-            <!-- Connected Accounts fleet (Supports Multiple Accounts simultaneously!) -->
+            <!-- Connected Accounts fleet -->
             <div class="ios-card p-5 space-y-4">
                 <h3 class="font-bold text-xs text-[#FF9500] uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-users"></i> Connected SMM Fleet (Multi-Account)</h3>
                 <form id="form-account" onsubmit="submitAccount(event)" class="space-y-3">
@@ -233,7 +239,7 @@
                 </div>
             </div>
 
-            <!-- Cloning & Mirroring Targets (Real Scrapers Setup - MULTIPLE RUNS SUPPORTED) -->
+            <!-- Cloning & Mirroring Targets (Real Scrapers Setup) -->
             <div class="ios-card p-5 space-y-4">
                 <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-copy text-blue-500"></i> Cloning & Mirroring Targets</h3>
                 <form id="form-target" onsubmit="submitTarget(event)" class="space-y-3">
@@ -262,12 +268,11 @@
                 </div>
             </div>
 
-            <!-- Organic Traffic Growth Hack Campaign Deployer (ULTRA niche dynamic categories support!) -->
+            <!-- Organic Traffic Growth Hack Campaign Deployer -->
             <div class="ios-card p-5 space-y-4">
                 <h3 class="font-bold text-xs text-[#AF52DE] uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i> Free Organic Growth Campaigns</h3>
                 <form id="form-growth" onsubmit="submitGrowthCampaign(event)" class="space-y-3">
                     <select id="growth-niche" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black font-semibold focus:outline-none">
-                        <!-- Dynamic Niche Categories Support for Crypto, Celeb, Casual, Modeling, Travel etc -->
                         <option value="solana">Solana Memecoins (SOL)</option>
                         <option value="ethereum">Ethereum Gems (ETH/Base)</option>
                         <option value="memecoins">General Crypto Speculation</option>
@@ -487,6 +492,9 @@
             
             document.getElementById("header-title").textContent = titleMap[tabId];
             document.getElementById("main-scroll-view").scrollTop = 0;
+            
+            // If switching to chats tab, make sure main header is visible
+            document.getElementById("main-app-header").classList.remove("hidden");
         }
 
         // Open/Close Persona Creator Fresh Page Overlay (iOS Native style slide transitions)
@@ -664,6 +672,13 @@
         async function selectConversation(id, handle, platform) {
             activeConversationId = id;
             
+            // Switch views dynamically to slide into the specific chat thread (and display input bar/keyboard!)
+            document.getElementById("chats-list-view").classList.add("hidden");
+            document.getElementById("chatroom-view").classList.remove("hidden");
+            
+            // Hide the active persona selector from top to give the Chatroom maximum visual screen estate!
+            document.getElementById("main-app-header").classList.add("hidden");
+            
             // Enable UI inputs
             document.getElementById("chat-reply-input").removeAttribute("disabled");
             document.getElementById("chat-send-btn").removeAttribute("disabled");
@@ -682,6 +697,21 @@
 
             // Reload messages instantly
             await loadMessages(id);
+            refreshData();
+        }
+
+        // Closes Chatroom and slides back to contacts list, completely hiding the input bar/keyboard!
+        function closeChatroom() {
+            activeConversationId = null;
+            document.getElementById("active-conv-id").value = "";
+            
+            // Hide Chatroom and restore Contacts list view
+            document.getElementById("chatroom-view").classList.add("hidden");
+            document.getElementById("chats-list-view").classList.remove("hidden");
+            
+            // Show main header again
+            document.getElementById("main-app-header").classList.remove("hidden");
+            
             refreshData();
         }
 
@@ -732,6 +762,21 @@
             if (res && res.success) {
                 textInput.value = "";
                 await loadMessages(conv_id);
+                refreshData();
+            }
+        }
+
+        // Save Global Redirect CTA Link
+        async function saveGlobalLink(e) {
+            e.preventDefault();
+            const link = document.getElementById("global-cta-input").value.trim();
+            const res = await fetchAPI("/api/settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ global_cta_link: link })
+            });
+            if (res) {
+                addLog(`Global redirect link updated: ${link}`, "text-blue-400");
                 refreshData();
             }
         }
