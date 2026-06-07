@@ -777,7 +777,6 @@
 
             // Switch Toggles state
             document.getElementById("toggle-mirror").checked = data.settings.auto_mirror_enabled;
-            document.getElementById("toggle-raid").checked = data.settings.auto_raid_enabled;
             document.getElementById("toggle-ads").checked = data.settings.auto_post_enabled;
             document.getElementById("toggle-dms").checked = data.settings.auto_dm_reply_enabled || false;
             document.getElementById("toggle-growth").checked = data.settings.growth_hacks_enabled || false;
@@ -785,7 +784,6 @@
             // Form Prepopulation
             document.getElementById("set-openai-key").value = data.settings.openai_key || "";
             document.getElementById("set-gemini-key").value = data.settings.gemini_key || "";
-            document.getElementById("set-rewrite-style").value = data.settings.rewrite_style || "bullish_crypto_enthusiast";
             document.getElementById("set-proxies").value = (data.settings.proxy_list || []).join("\n");
 
             // Populate active switcher & drop filters
@@ -1313,7 +1311,6 @@
         async function updateEngineSwitches() {
             const data = {
                 auto_mirror_enabled: document.getElementById("toggle-mirror").checked,
-                auto_raid_enabled: document.getElementById("toggle-raid").checked,
                 auto_post_enabled: document.getElementById("toggle-ads").checked,
                 auto_dm_reply_enabled: document.getElementById("toggle-dms").checked,
                 growth_hacks_enabled: document.getElementById("toggle-growth").checked
@@ -1427,8 +1424,7 @@
             e.preventDefault();
             const data = {
                 openai_key: document.getElementById("set-openai-key").value,
-                gemini_key: document.getElementById("set-gemini-key").value,
-                rewrite_style: document.getElementById("set-rewrite-style").value
+                gemini_key: document.getElementById("set-gemini-key").value
             };
             const res = await fetchAPI("/api/settings", {
                 method: "POST",
