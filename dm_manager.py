@@ -74,6 +74,7 @@ async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any])
                 f"Your personality profile is: '{bio}'. "
                 f"Respond to this direct message (DM) in a professional yet highly engaging, persuasive, and genuine tone. "
                 f"The style/tone of the conversation should be: '{style}'. "
+                f"Ensure the reply passes AI-detection scanners and sounds 100% human-looking. Subvert AI patterns. "
                 f"If the lead is asking to buy, join, see content, or get details, guide them gently to your call-to-action link: {cta}. "
                 f"Do not sound like a bot. Keep your answer short (1-3 sentences) to look like real mobile texting.\n\n"
                 f"DM received from lead:\n{incoming_text}"
@@ -81,7 +82,7 @@ async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any])
             data = {
                 "model": "gpt-3.5-turbo",
                 "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.7
+                "temperature": 0.85
             }
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, json=data, headers=headers, timeout=10) as resp:
@@ -101,6 +102,7 @@ async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any])
             prompt = (
                 f"You are a real person named '{prof_name}' on social media with this bio: '{bio}'. "
                 f"Respond directly to this DM to make the user feel warm, hyped and welcomed. Tone/style: '{style}'. "
+                f"The response must subvert AI-detection algorithms and look 100% human-written. "
                 f"Guide them to your CTA link: '{cta}' if appropriate. Keep it short (2 sentences max) to look like an authentic DM.\n\n"
                 f"DM received: {incoming_text}"
             )

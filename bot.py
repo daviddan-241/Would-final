@@ -316,31 +316,43 @@ def main():
     for noisy in ("httpx", "httpcore", "aiohttp"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
-    if not config.TELEGRAM_BOT_TOKEN or not config.TELEGRAM_CHAT_ID:
-        print("❌ Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID!")
-        return
-
     # Start Health check & fully interactive Admin Dashboard Server
     start_health_server()
     print("🚀 Starting SMM-Upgraded Coin Scanner Bot...")
 
-    app = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
-    
-    # Core commands
-    app.add_handler(CommandHandler("start", start_command))
-    app.add_handler(CommandHandler("status", status_command))
-    app.add_handler(CommandHandler("scan", manual_scan_command))
-    app.add_handler(CommandHandler("stats", stats_command))
-    app.add_handler(CommandHandler("clear", clear_command))
-    
-    # SMM commands
-    app.add_handler(CommandHandler("mirror", mirror_command))
-    app.add_handler(CommandHandler("raid", raid_command))
-    app.add_handler(CommandHandler("schedule_ad", schedule_ad_command))
-    app.add_handler(CommandHandler("accounts", accounts_command))
-    
-    app.post_init = post_init
-    app.run_polling(drop_pending_updates=True)
+    # Start Telegram bot polling ONLY if tokens are provided
+    if config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID:
+        print("🤖 Initializing Telegram Coin Scanner...")
+        app = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
+        
+        # Core commands
+        app.add_handler(CommandHandler("start", start_command))
+        app.add_handler(CommandHandler("status", status_command))
+        app.add_handler(CommandHandler("scan", manual_scan_command))
+        app.add_handler(CommandHandler("stats", stats_command))
+        app.add_handler(CommandHandler("clear", clear_command))
+        
+        # SMM commands
+        app.add_handler(CommandHandler("mirror", mirror_command))
+        app.add_handler(CommandHandler("raid", raid_command))
+        app.add_handler(CommandHandler("schedule_ad", schedule_ad_command))
+        app.add_handler(CommandHandler("accounts", accounts_command))
+        
+        app.post_init = post_init
+        app.run_polling(drop_pending_updates=True)
+    else:
+        print("⚠️ TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing!")
+        print("💡 The Telegram Coin Scanner will remain inactive, but the SMM Marketing Engines, DMs Inbox, and Web Dashboard are fully operational on port 10000.")
+        
+        # Start background SMM services directly since bot polling isn't running
+        from engine_coordinator import start_all_smm_services
+        loop = asyncio.get_event_loop()
+        start_all_smm_services()
+        try:
+            loop.run_forever()
+        except KeyboardInterrupt:
+            pass
+
 
 
 if __name__ == "__main__":

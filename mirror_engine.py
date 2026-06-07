@@ -99,13 +99,14 @@ async def ai_rewrite(text: str, style: str) -> str:
             prompt = (
                 f"You are a professional social media marketing assistant. Rewrite the following social media post "
                 f"to make it completely unique, natural, and highly engaging. The tone should be: '{style}'. "
-                f"Do not sound robotic. Maintain the core information but completely rewrite the sentence structures.\n\n"
+                f"Ensure the output bypasses and subverts AI-detection filters. Make the tone highly realistic, natural, "
+                f"and 100% human-looking. Never use robotic phrases. Maintain the core information but completely rewrite the sentence structures.\n\n"
                 f"Original Post:\n{text}"
             )
             data = {
                 "model": "gpt-3.5-turbo",
                 "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.7
+                "temperature": 0.8
             }
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, json=data, headers=headers, timeout=10) as resp:
@@ -123,7 +124,8 @@ async def ai_rewrite(text: str, style: str) -> str:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
             prompt = (
                 f"Rewrite this social media post to make it look completely natural, unique and engaging. "
-                f"Tone style: '{style}'. Keep the core facts but use different phrasing.\n\nOriginal: {text}"
+                f"The post must bypass AI-detection tools and sound like an authentic human wrote it. Tone style: '{style}'. "
+                f"Do not use structured or robotic patterns. Keep the core facts but use different phrasing.\n\nOriginal: {text}"
             )
             data = {
                 "contents": [{"parts": [{"text": prompt}]}]
