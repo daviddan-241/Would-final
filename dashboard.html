@@ -297,31 +297,34 @@
                     </div>
                 </div>
 
-                <!-- Chat Dialog Room -->
-                <div class="ios-card flex flex-col h-[320px] justify-between overflow-hidden">
+                <!-- Chat Dialog Room (WhatsApp Style Overhaul!) -->
+                <div class="ios-card flex flex-col h-[400px] justify-between overflow-hidden" style="background-color: #0b141a;">
                     <!-- Chat Header -->
-                    <div class="p-3 border-b border-white/5 flex items-center gap-2 bg-white/5">
-                        <div class="w-8 h-8 rounded-full bg-[#1C1C1E] flex items-center justify-center text-xs text-gray-300 font-bold" id="chat-avatar-placeholder">?</div>
-                        <div>
-                            <h4 class="text-xs font-bold text-gray-200" id="chat-title-handle">Select a thread</h4>
-                            <p class="text-[10px] text-gray-500" id="chat-subtitle-platform">Waiting for chat...</p>
+                    <div class="p-3 flex items-center justify-between bg-[#1f2c34] border-b border-white/5">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs text-gray-300 font-bold" id="chat-avatar-placeholder">?</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white leading-tight" id="chat-title-handle">Select a thread</h4>
+                                <p class="text-[9px] text-[#8696a0]" id="chat-subtitle-platform">Waiting for chat...</p>
+                            </div>
+                        </div>
+                        <span class="text-[9px] px-2 py-0.5 bg-[#00a884]/20 text-[#00a884] font-bold rounded-full">Secure DM</span>
+                    </div>
+
+                    <!-- Conversation Window with beautiful WhatsApp spacing -->
+                    <div class="flex-1 p-4 overflow-y-auto space-y-4 flex flex-col bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat" id="chat-messages-container">
+                        <div class="m-auto text-center text-[#8696a0] text-xs max-w-[200px] bg-[#1f2c34]/80 p-4 rounded-xl border border-white/5">
+                            <i class="fa-solid fa-comments text-2xl mb-1.5 block text-[#00a884]"></i>
+                            Tap a lead from your inbox list above to read and respond to messages in real-time.
                         </div>
                     </div>
 
-                    <!-- Conversation Window -->
-                    <div class="flex-1 p-3 overflow-y-auto space-y-2.5 flex flex-col text-xs bg-black/40" id="chat-messages-container">
-                        <div class="m-auto text-center text-gray-600 text-[11px]">
-                            <i class="fa-solid fa-comments text-3xl mb-1.5 block"></i>
-                            Double-click any lead above to chat directly from your iPhone.
-                        </div>
-                    </div>
-
-                    <!-- Text input bar -->
-                    <form onsubmit="sendCustomReply(event)" class="p-2 border-t border-white/5 flex gap-2 bg-[#1C1C1E]">
+                    <!-- Text input bar (WhatsApp Style) -->
+                    <form onsubmit="sendCustomReply(event)" class="p-2.5 flex gap-2 bg-[#1f2c34]">
                         <input type="hidden" id="active-conv-id" value="">
-                        <input type="text" id="chat-reply-input" placeholder="Type direct reply..." class="flex-1 p-2 rounded-lg text-xs bg-black border border-white/10 text-white" disabled>
-                        <button type="submit" id="chat-send-btn" class="bg-[#0A84FF] text-white p-2 rounded-lg text-xs font-bold disabled:opacity-40" disabled>
-                            <i class="fa-solid fa-paper-plane"></i>
+                        <input type="text" id="chat-reply-input" placeholder="Type a message..." class="flex-1 px-4 py-2.5 rounded-full text-xs bg-[#2a3942] border-none text-white focus:outline-none focus:ring-0" disabled>
+                        <button type="submit" id="chat-send-btn" class="bg-[#00a884] text-white p-2.5 rounded-full text-xs font-bold disabled:opacity-40 flex items-center justify-center w-9 h-9 shrink-0 shadow-lg shadow-black/20" disabled>
+                            <i class="fa-solid fa-paper-plane text-xs"></i>
                         </button>
                     </form>
                 </div>
@@ -795,7 +798,7 @@
             // Form Prepopulation
             document.getElementById("set-openai-key").value = data.settings.openai_key || "";
             document.getElementById("set-gemini-key").value = data.settings.gemini_key || "";
-            document.getElementById("set-rewrite-style").value = data.settings.rewrite_style || "bullish_crypto_enthusiast";
+            document.getElementById("set-rewrite-style").value = data.settings.rewrite_style || "bullish_crypto_enthUST";
             document.getElementById("set-proxies").value = (data.settings.proxy_list || []).join("\n");
 
             // Populate filters
@@ -954,11 +957,11 @@
             filtered.forEach(c => {
                 const isSelected = activeConversationId === c.id;
                 const div = document.createElement("div");
-                div.className = `p-3 rounded-xl flex items-center justify-between cursor-pointer transition-all ${isSelected ? 'bg-[#0A84FF]/20 border border-[#0A84FF]/30' : 'bg-white/5 border border-transparent'}`;
+                div.className = `p-3 rounded-xl flex items-center justify-between cursor-pointer transition-all ${isSelected ? 'bg-[#0A84FF]/20 border border-[#0A84FF]/30' : 'bg-[#1C1C1E] border border-transparent'}`;
                 div.setAttribute("onclick", `selectConversation('${c.id}', '${c.sender_handle}', '${c.platform}')`);
 
                 const platformIcon = getPlatformIcon(c.platform);
-                const unreadDot = c.unread > 0 ? `<span class="bg-[#0A84FF] w-2.5 h-2.5 rounded-full block"></span>` : "";
+                const unreadDot = c.unread > 0 ? `<span class="bg-[#00a884] w-2.5 h-2.5 rounded-full block"></span>` : "";
 
                 // Get persona name to show context in inbox
                 const persona = (dbData.profiles || []).find(p => p.id === c.profile_id);
@@ -967,13 +970,13 @@
                 div.innerHTML = `
                     <div class="flex items-center gap-3 min-w-0">
                         <img src="${c.avatar}" alt="Lead" class="w-8 h-8 rounded-full bg-[#1C1C1E] border border-white/5">
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-1 font-bold text-xs text-gray-200">
-                                <span>${c.sender_handle}</span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1 font-bold text-xs text-gray-200 justify-between">
+                                <span class="truncate max-w-[130px]">${c.sender_handle}</span>
                                 ${platformIcon}
                             </div>
                             <span class="text-[8px] bg-white/10 px-1 py-0.5 rounded text-gray-400 font-semibold inline-block truncate max-w-[120px] mt-0.5">${personaName}</span>
-                            <p class="text-[10px] text-gray-500 truncate mt-1 max-w-[120px]">${c.last_message_text}</p>
+                            <p class="text-[10px] text-gray-500 truncate mt-1 max-w-[140px]">${c.last_message_text}</p>
                         </div>
                     </div>
                     ${unreadDot}
@@ -1000,7 +1003,7 @@
             // Get conversation metadata
             const conv = (dbData.conversations || []).find(c => c.id === id);
             const persona = conv ? (dbData.profiles || []).find(p => p.id === conv.profile_id) : null;
-            const personaLabel = persona ? ` | Persona: ${persona.name}` : "";
+            const personaLabel = persona ? ` | ${persona.name}` : "";
 
             document.getElementById("chat-subtitle-platform").innerHTML = `Source: <span class="font-bold uppercase">${platform}</span>${personaLabel}`;
 
@@ -1021,14 +1024,19 @@
 
                 res.messages.forEach(m => {
                     const div = document.createElement("div");
-                    div.className = `flex ${m.is_incoming ? 'justify-start' : 'justify-end'}`;
+                    div.className = `flex ${m.is_incoming ? 'justify-start' : 'justify-end'} mb-1`;
 
                     const timeStr = new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    const bubbleBg = m.is_incoming ? 'bg-[#202c33] text-white rounded-tl-none border border-white/5' : 'bg-[#005c4b] text-white rounded-tr-none shadow-md shadow-black/10';
 
                     div.innerHTML = `
-                        <div class="max-w-[75%] p-3 rounded-xl text-xs ${m.is_incoming ? 'bg-white/10 text-gray-100 rounded-tl-none' : 'bg-[#0A84FF] text-white rounded-tr-none shadow-md shadow-[#0A84FF]/10'}">
-                            <p class="leading-relaxed break-words">${m.text}</p>
-                            <span class="block text-[8px] mt-1 opacity-50 ${m.is_incoming ? 'text-left' : 'text-right'}">${timeStr}</span>
+                        <div class="max-w-[75%] px-3 py-2 rounded-xl text-xs ${bubbleBg}">
+                            <p class="leading-relaxed break-words text-[12px]">${m.text}</p>
+                            <div class="flex items-center justify-end gap-1 mt-1 opacity-50">
+                                <span class="block text-[8px]">${timeStr}</span>
+                                ${!m.is_incoming ? '<i class="fa-solid fa-check-double text-[8px] text-[#53bdeb]"></i>' : ''}
+                            </div>
                         </div>
                     `;
                     container.appendChild(div);
@@ -1301,11 +1309,11 @@
 
         function getPlatformIcon(platform) {
             switch (platform.toLowerCase()) {
-                case "twitter": return `<i class="fa-brands fa-twitter text-blue-400"></i>`;
-                case "tiktok": return `<i class="fa-brands fa-tiktok text-pink-400"></i>`;
-                case "instagram": return `<i class="fa-brands fa-instagram text-pink-500"></i>`;
-                case "facebook": return `<i class="fa-brands fa-facebook text-blue-600"></i>`;
-                default: return `<i class="fa-solid fa-share-nodes"></i>`;
+                case "twitter": return `<i class="fa-brands fa-twitter text-blue-400 text-xs"></i>`;
+                case "tiktok": return `<i class="fa-brands fa-tiktok text-pink-400 text-xs"></i>`;
+                case "instagram": return `<i class="fa-brands fa-instagram text-pink-500 text-xs"></i>`;
+                case "facebook": return `<i class="fa-brands fa-facebook text-blue-600 text-xs"></i>`;
+                default: return `<i class="fa-solid fa-share-nodes text-xs"></i>`;
             }
         }
 

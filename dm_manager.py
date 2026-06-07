@@ -1,6 +1,7 @@
 """
 Social Media Inbox & AI Chatbot Response Engine — Handles receiving and sending direct messages (DMs)
 on X, Instagram, TikTok, and Facebook, with AI-driven natural conversational replies matching individual SMM Personas.
+Delivers conversational text first, followed by a separate link after a natural keyboard delay.
 """
 import logging
 import asyncio
@@ -14,11 +15,29 @@ import humanizer
 
 logger = logging.getLogger(__name__)
 
-# Simulated lists of leads based on niche targets
+# Simulated lists of leads based on niche targets with country details for sandbox representation
 NICHE_LEADS = {
-    "crypto": ["sol_whale_99", "crypto_kid_eth", "nft_collector_max", "gem_hunter_v", "defi_explorer"],
-    "celeb": ["fan_boy_lucas", "jack_love_reel", "emma_star_x", "official_tom", "kate_vlog_world"],
-    "casual": ["lucas_crypto", "hannah_brooks", "sam_traveler", "sophia_life", "alex_adventures"]
+    "crypto": [
+        {"username": "sol_whale_99", "country": "United States", "flag": "🇺🇸"},
+        {"username": "crypto_kid_eth", "country": "United Kingdom", "flag": "🇬🇧"},
+        {"username": "nft_collector_max", "country": "Germany", "flag": "🇩🇪"},
+        {"username": "gem_hunter_v", "country": "Singapore", "flag": "🇸🇬"},
+        {"username": "defi_explorer", "country": "Canada", "flag": "🇨🇦"}
+    ],
+    "celeb": [
+        {"username": "fan_boy_lucas", "country": "Brazil", "flag": "🇧🇷"},
+        {"username": "jack_love_reel", "country": "Australia", "flag": "🇦🇺"},
+        {"username": "emma_star_x", "country": "France", "flag": "🇫🇷"},
+        {"username": "official_tom", "country": "United States", "flag": "🇺🇸"},
+        {"username": "kate_vlog_world", "country": "Japan", "flag": "🇯🇵"}
+    ],
+    "casual": [
+        {"username": "lucas_crypto", "country": "Spain", "flag": "🇪🇸"},
+        {"username": "hannah_brooks", "country": "Canada", "flag": "🇨🇦"},
+        {"username": "sam_traveler", "country": "Australia", "flag": "🇦🇺"},
+        {"username": "sophia_life", "country": "Italy", "flag": "🇮🇹"},
+        {"username": "alex_adventures", "country": "United Kingdom", "flag": "🇬🇧"}
+    ]
 }
 
 NICHE_MESSAGES = {
@@ -43,15 +62,19 @@ NICHE_MESSAGES = {
 }
 
 
-async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any]) -> str:
-    """Uses LLM API or custom keywords to generate human-like direct message replies matching SMM Personas."""
+async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any]) -> tuple[str, str]:
+    """
+    Uses LLM API or custom keywords to generate replies matching SMM Personas.
+    Returns a tuple: (conversational_body, link_or_cta_followup)
+    This strictly separates the message body from the redirect link.
+    """
     settings = marketing_db.get_settings()
     
     prof_name = profile.get("name", "Support")
     niche = profile.get("niche", "casual")
     bio = profile.get("bio", "")
     
-    # Check for Global Funnel Link override!
+    # Check for Global Funnel Link override
     global_link = settings.get("global_cta_link", "")
     cta = global_link if global_link else profile.get("cta_link", "")
     
@@ -63,7 +86,7 @@ async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any])
     for rule in rules:
         if rule.get("active", True) and rule.get("keyword") in clean_text:
             logger.info(f"🤖 Chatbot rule matched keyword: '{rule['keyword']}'")
-            return rule.get("reply_text")
+            return rule.get("reply_text"), ""
             
     # 2. Check OpenAI API Key
     openai_key = settings.get("openai_key")
@@ -80,8 +103,7 @@ async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any])
                 f"Respond to this direct message (DM) in a professional yet highly engaging, persuasive, and genuine tone. "
                 f"The style/tone of the conversation should be: '{style}'. "
                 f"Ensure the reply passes AI-detection scanners and sounds 100% human-looking. Subvert AI patterns. "
-                f"If the lead is asking to buy, join, see content, or get details, guide them gently to your call-to-action link: {cta}. "
-                f"Do not sound like a bot. Keep your answer short (1-3 sentences) to look like real mobile texting.\n\n"
+                f"DO NOT include any links or URLs in your response. Answer the message directly.\n\n"
                 f"DM received from lead:\n{incoming_text}"
             )
             data = {
@@ -95,7 +117,8 @@ async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any])
                         res = await resp.json()
                         reply = res["choices"][0]["message"]["content"].strip()
                         if reply:
-                            return reply
+                            followup = f"check out my private space here btw: {cta}" if cta else ""
+                            return reply, followup
         except Exception as e:
             logger.error(f"OpenAI Multi-Persona DM Reply failed: {e}")
             
@@ -108,7 +131,7 @@ async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any])
                 f"You are a real person named '{prof_name}' on social media with this bio: '{bio}'. "
                 f"Respond directly to this DM to make the user feel warm, hyped and welcomed. Tone/style: '{style}'. "
                 f"The response must subvert AI-detection algorithms and look 100% human-written. "
-                f"Guide them to your CTA link: '{cta}' if appropriate. Keep it short (2 sentences max) to look like an authentic DM.\n\n"
+                f"DO NOT include any links or URLs in this response.\n\n"
                 f"DM received: {incoming_text}"
             )
             data = {
@@ -120,17 +143,18 @@ async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any])
                         res = await resp.json()
                         reply = res["candidates"][0]["content"]["parts"][0]["text"].strip()
                         if reply:
-                            return reply
+                            followup = f"join my private group right here: {cta}" if cta else ""
+                            return reply, followup
         except Exception as e:
             logger.error(f"Gemini Multi-Persona DM Reply failed: {e}")
 
     # Default rule-based fallback based on niche
     if niche == "crypto":
-        return f"Hey there! Thanks for reaching out! 🚀 The response has been absolutely insane. I post all my trade triggers and alpha calls directly in our private channel here: {cta}. Join up so you don't miss the next move!"
+        return "hey! thanks for reaching out, response has been absolutely crazy", f"i post all trade triggers and alpha calls in my private channel here: {cta}"
     elif niche == "celeb":
-        return f"Hey babe! Aw, thank you so much for the love! 😍 I chat with all my vip fans directly in my private club here: {cta}. Go join and message me there, I'll send you a special voice note!"
+        return "hey babe! thank u so much for the love 😍 i see u", f"i chat with my vip fans directly in my private club here: {cta}"
     else: # casual / normal
-        return f"Hey! Thanks for messaging, let's totally connect! 💖 You can find more of my daily thoughts and photos over at my main page: {cta} - send me a request!"
+        return "hey! thanks for messaging, let's totally connect 💖", f"u can find my daily updates and more photos here: {cta}"
 
 
 async def simulate_incoming_direct_message():
@@ -157,37 +181,48 @@ async def simulate_incoming_direct_message():
     leads_pool = NICHE_LEADS.get(niche, NICHE_LEADS["casual"])
     msgs_pool = NICHE_MESSAGES.get(niche, NICHE_MESSAGES["casual"])
     
-    username = random.choice(leads_pool)
+    lead_info = random.choice(leads_pool)
+    username = lead_info["username"]
+    country_info = f"{lead_info['flag']} {lead_info['country']}"
+    
     message_text = random.choice(msgs_pool)
     
-    logger.info(f"📥 [DM-INCOMING] Received DM from @{username} on {platform.title()} targeting Persona '{profile['name']}': '{message_text}'")
+    logger.info(f"📥 [DM-INCOMING] Received DM from @{username} ({country_info}) on {platform.title()} targeting Persona '{profile['name']}': '{message_text}'")
     
-    # 3. Add message to database
+    # 3. Add message to database with country flag metadata embedded into the handle
+    display_handle = f"@{username} ({country_info})"
     conv, new_msg = marketing_db.add_incoming_message(
         platform=platform,
-        sender_handle=f"@{username}",
+        sender_handle=display_handle,
         text=message_text,
         profile_id=profile["id"]
     )
     
     # 4. Generate response content
-    raw_reply_text = await generate_ai_or_rule_reply(message_text, profile)
+    raw_body, raw_followup = await generate_ai_or_rule_reply(message_text, profile)
     
-    # --- Humanize & Apply AI Bypass Filter! ---
-    human_reply_text = humanizer.humanize_text(raw_reply_text)
+    # --- Humanize & Apply AI Bypass Filter ---
+    human_body = humanizer.humanize_text(raw_body)
+    human_followup = humanizer.humanize_text(raw_followup) if raw_followup else ""
     
-    # --- Calculate Human typing delay distance! ---
-    delay = humanizer.calculate_typing_delay(human_reply_text)
+    # --- Calculate Human typing delay for first message ---
+    delay_body = humanizer.calculate_typing_delay(human_body)
+    logger.info(f"⏳ [TYPING - MESSAGE] '{profile['name']}' is typing body reply to @{username}... Will take {delay_body:.1f}s.")
+    await asyncio.sleep(delay_body)
     
-    logger.info(f"⏳ [TYPING...] Persona '{profile['name']}' is typing a reply to @{username}... Will take {delay:.1f} seconds to respond.")
+    # Record conversational message body first
+    marketing_db.add_outgoing_reply(conv["id"], human_body)
+    logger.info(f"📤 [DM-AUTO-REPLY] Outbound body sent: '{human_body}'")
     
-    # Wait typing delay distance safely (non-blocking)
-    await asyncio.sleep(delay)
-    
-    # 5. Record outgoing reply in database
-    marketing_db.add_outgoing_reply(conv["id"], human_reply_text)
-    
-    logger.info(f"📤 [DM-AUTO-REPLY] Auto-replied under Persona '{profile['name']}' to @{username} (Bypassed AI detectors): '{human_reply_text}'")
+    # --- Wait another short delay before sending link ---
+    if human_followup:
+        delay_link = random.uniform(3.0, 6.0)
+        logger.info(f"⏳ [TYPING - LINK] '{profile['name']}' is typing the follow-up CTA link... Will take {delay_link:.1f}s.")
+        await asyncio.sleep(delay_link)
+        
+        # Record CTA Link message second
+        marketing_db.add_outgoing_reply(conv["id"], human_followup)
+        logger.info(f"📤 [DM-AUTO-REPLY] Outbound link follow-up sent: '{human_followup}'")
 
 
 async def execute_send_custom_dm(conv_id: str, text_content: str) -> bool:
