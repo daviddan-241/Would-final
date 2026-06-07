@@ -10,6 +10,7 @@ import aiohttp
 from typing import Dict, Any, List
 
 import marketing_db
+import humanizer
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,11 @@ async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any])
     prof_name = profile.get("name", "Support")
     niche = profile.get("niche", "casual")
     bio = profile.get("bio", "")
-    cta = profile.get("cta_link", "")
+    
+    # Check for Global Funnel Link override!
+    global_link = settings.get("global_cta_link", "")
+    cta = global_link if global_link else profile.get("cta_link", "")
+    
     style = profile.get("ai_tone", "casual")
     
     # 1. Check custom auto-responder rules first
@@ -157,7 +162,7 @@ async def simulate_incoming_direct_message():
     
     logger.info(f"📥 [DM-INCOMING] Received DM from @{username} on {platform.title()} targeting Persona '{profile['name']}': '{message_text}'")
     
-    # 3. Add message to persistent database bound to specific profile
+    # 3. Add message to database
     conv, new_msg = marketing_db.add_incoming_message(
         platform=platform,
         sender_handle=f"@{username}",
@@ -165,13 +170,24 @@ async def simulate_incoming_direct_message():
         profile_id=profile["id"]
     )
     
-    # 4. Handle Auto-Responder replying automatically after 1-3 seconds
-    await asyncio.sleep(random.uniform(1.0, 3.0))
+    # 4. Generate response content
+    raw_reply_text = await generate_ai_or_rule_reply(message_text, profile)
     
-    reply_text = await generate_ai_or_rule_reply(message_text, profile)
-    marketing_db.add_outgoing_reply(conv["id"], reply_text)
+    # --- Humanize & Apply AI Bypass Filter! ---
+    human_reply_text = humanizer.humanize_text(raw_reply_text)
     
-    logger.info(f"📤 [DM-AUTO-REPLY] Auto-replied under Persona '{profile['name']}' to @{username}: '{reply_text}'")
+    # --- Calculate Human typing delay distance! ---
+    delay = humanizer.calculate_typing_delay(human_reply_text)
+    
+    logger.info(f"⏳ [TYPING...] Persona '{profile['name']}' is typing a reply to @{username}... Will take {delay:.1f} seconds to respond.")
+    
+    # Wait typing delay distance safely (non-blocking)
+    await asyncio.sleep(delay)
+    
+    # 5. Record outgoing reply in database
+    marketing_db.add_outgoing_reply(conv["id"], human_reply_text)
+    
+    logger.info(f"📤 [DM-AUTO-REPLY] Auto-replied under Persona '{profile['name']}' to @{username} (Bypassed AI detectors): '{human_reply_text}'")
 
 
 async def execute_send_custom_dm(conv_id: str, text_content: str) -> bool:

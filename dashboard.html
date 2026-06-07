@@ -125,6 +125,16 @@
                 </div>
             </div>
 
+            <!-- Simplified Global Redirect Funnel Link Configurator -->
+            <div class="ios-card p-4">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><i class="fa-solid fa-link text-blue-500"></i> Set Global Funnel Redirect Link</h3>
+                <form onsubmit="saveGlobalLink(event)" class="flex gap-2">
+                    <input type="url" id="global-cta-input" placeholder="https://t.me/your_private_channel_or_link" class="flex-1 p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white font-bold" required>
+                    <button type="submit" class="bg-[#0A84FF] text-white text-xs font-bold px-4 rounded-lg">Set Link</button>
+                </form>
+                <p class="text-[9px] text-gray-500 mt-1.5">💡 This link instantly applies to all automated direct message responses and growth hacks, driving traffic organically straight into your private page.</p>
+            </div>
+
             <!-- iOS Premium Swipeable Persona Cards Switcher -->
             <div class="space-y-2">
                 <div class="flex items-center justify-between px-1">
@@ -766,6 +776,9 @@
             document.getElementById("funnel-clicks").textContent = data.analytics.clicks.toLocaleString();
             document.getElementById("funnel-conversion").textContent = `${data.analytics.conversion_rate}%`;
 
+            // Global CTA Link Prepopulation
+            document.getElementById("global-cta-input").value = data.settings.global_cta_link || "";
+
             // Stats Update
             document.getElementById("stat-targets").textContent = data.targets.length;
             document.getElementById("stat-raids").textContent = data.raids.filter(r => r.status === "Completed").length;
@@ -811,6 +824,21 @@
                 badge.classList.remove("hidden");
             } else {
                 badge.classList.add("hidden");
+            }
+        }
+
+        // Save Global Redirect CTA Link
+        async function saveGlobalLink(e) {
+            e.preventDefault();
+            const link = document.getElementById("global-cta-input").value.trim();
+            const res = await fetchAPI("/api/settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ global_cta_link: link })
+            });
+            if (res) {
+                addLog(`Global redirect funnel link successfully updated to: ${link}`, "text-blue-400");
+                refreshData();
             }
         }
 
@@ -882,7 +910,7 @@
             filterConversationsByProfile();
         }
 
-        // Fill dropdown profile selectors with active personas
+        // Fill dropdown profile selectors with active passwords
         function populateProfileFilters(profiles) {
             const selectFilter = document.getElementById("inbox-profile-filter");
             const currentVal = selectFilter.value;

@@ -30,6 +30,7 @@ _data = {
     "settings": {
         "openai_key": "",
         "gemini_key": "",
+        "global_cta_link": "", # Quick global redirect funnel override
         "auto_raid_enabled": True,
         "auto_post_enabled": True,
         "auto_mirror_enabled": True,
@@ -200,7 +201,7 @@ def get_ads():
 
 def add_ad(platform, content, interval_min, image_url="", active=True):
     db = load_db()
-    ad_id = f"ad_{int(time.time() * 1000)}"
+    ad_id = f"ad_id_{int(time.time() * 1000)}"
     new_ad = {
         "id": ad_id,
         "platform": platform,
