@@ -110,6 +110,11 @@
         </div>
         
         <div class="flex gap-2">
+            <!-- iOS Premium A-Z Setup & Strategy Guide "?" Button -->
+            <button onclick="openHelpGuide()" class="w-10 h-10 rounded-full bg-white/5 dark:bg-white/5 light:bg-black/5 flex items-center justify-center text-blue-500 font-bold shadow-sm active:scale-95 transition-transform">
+                <i class="fa-solid fa-circle-question text-base"></i>
+            </button>
+            
             <!-- Light/Dark Mode Switcher -->
             <button onclick="toggleTheme()" class="w-10 h-10 rounded-full bg-white/5 dark:bg-white/5 light:bg-black/5 flex items-center justify-center text-white dark:text-white light:text-gray-800 font-bold shadow-sm">
                 <i class="fa-solid fa-circle-half-stroke text-base" id="theme-icon"></i>
@@ -414,6 +419,50 @@
         </div>
     </div>
 
+    <!-- Fresh Spacious Slide Up A-Z Setup & Strategy HELP Modal Sheet (iOS Native style question button) -->
+    <div id="help-modal" class="slide-up-sheet closed fixed inset-0 z-50 bg-[#000000] p-5 flex flex-col justify-between overflow-y-auto safe-bottom">
+        <div class="space-y-6 pb-20">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                <h2 class="text-lg font-bold text-gray-100 flex items-center gap-1.5"><i class="fa-solid fa-circle-question text-blue-500"></i> A-Z SMM Setup Guide</h2>
+                <button onclick="closeHelpGuide()" class="text-sm text-blue-500 font-bold">Done</button>
+            </div>
+            
+            <div class="space-y-6 text-xs text-gray-300 leading-relaxed">
+                <!-- Section 1 -->
+                <div class="space-y-2">
+                    <h3 class="text-[#0a84ff] font-extrabold text-sm uppercase tracking-wide">Phase 1: Render Deployment (Free)</h3>
+                    <p>Go to your <a href="https://render.com" target="_blank" class="text-blue-400 underline font-bold">Render Dashboard</a>, select your <b>Would-final</b> repository, and set the <b>Runtime to Docker</b>. Use the Free tier instance and deploy.</p>
+                </div>
+                
+                <!-- Section 2 -->
+                <div class="space-y-2">
+                    <h3 class="text-[#34c759] font-extrabold text-sm uppercase tracking-wide">Phase 2: Telegram Bots & Chat IDs</h3>
+                    <p>Open Telegram and message <a href="https://t.me/BotFather" target="_blank" class="text-blue-400 underline font-bold">@BotFather</a>. Create a new bot using <code>/newbot</code>. Add your bot as Admin in your group. Get your group ID using <code>@raw_data_bot</code>. Paste these under individual Personas settings to separate groups!</p>
+                </div>
+
+                <!-- Section 3 -->
+                <div class="space-y-2">
+                    <h3 class="text-[#AF52DE] font-extrabold text-sm uppercase tracking-wide">Phase 3: Free Google Gemini AI Key</h3>
+                    <p>Navigate to <a href="https://aistudio.google.com" target="_blank" class="text-blue-400 underline font-bold">Google AI Studio</a>. Click <b>"Get API Key"</b> and project-register a 100% free Gemini API key (supports 15 free requests/min). Paste this inside your AI Settings section!</p>
+                </div>
+
+                <!-- Section 4 -->
+                <div class="space-y-2">
+                    <h3 class="text-[#FF9500] font-extrabold text-sm uppercase tracking-wide">Phase 4: iOS Mobile Cookies bookmarklet</h3>
+                    <p>Since iPhones have no F12 keys, create a bookmarked URL in Safari named <b>"Get Cookies"</b> and paste this code as its URL:</p>
+                    <pre class="bg-black/80 p-3 rounded-lg border border-white/5 font-mono text-[9px] select-all overflow-x-auto text-[#FF9500]">javascript:(function(){var c=document.cookie; if(!c){alert('No cookies found. Log in!');}else{prompt('Copy your cookies below:', c);}})();</pre>
+                    <p class="text-[10px] text-gray-500">Go to Twitter/TikTok/Instagram in Safari, log in, tap your bookmarklet, and copy your session keys (e.g. <code>auth_token</code> or <code>sessionid</code>) into the SMM Fleet forms sequentially to connect unlimited accounts!</p>
+                </div>
+
+                <!-- Section 5 -->
+                <div class="space-y-2">
+                    <h3 class="text-orange-500 font-extrabold text-sm uppercase tracking-wide">Phase 5: How to Get SMM Proxies ($0)</h3>
+                    <p>Sign up on <a href="https://www.webshare.io" target="_blank" class="text-blue-400 underline font-bold">Webshare.io</a> for a 100% Free Plan containing <b>10 rotating datacenter proxies</b>. Paste your proxies formatted as <code>username:password@ip:port</code> (one per line) inside Settings -> Rotating Proxies card.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bottom Navigation Bar (Simplified to Chats & Settings Only - FIXED overlap heights) -->
     <nav class="ios-blur fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 safe-bottom">
         <div class="max-w-md mx-auto flex justify-around items-center pt-2">
@@ -505,6 +554,21 @@
         }
         function closePersonaCreator() {
             const modal = document.getElementById("persona-modal");
+            modal.classList.remove("open");
+            modal.classList.add("closed");
+            setTimeout(() => {
+                modal.classList.add("hidden");
+            }, 400);
+        }
+
+        // Open/Close iOS Premium A-Z Setup Help Guide Modal
+        function openHelpGuide() {
+            const modal = document.getElementById("help-modal");
+            modal.classList.remove("hidden", "closed");
+            modal.classList.add("open");
+        }
+        function closeHelpGuide() {
+            const modal = document.getElementById("help-modal");
             modal.classList.remove("open");
             modal.classList.add("closed");
             setTimeout(() => {
