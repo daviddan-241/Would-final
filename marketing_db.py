@@ -15,10 +15,10 @@ _data = {
     "profiles": [],          # Multiple SMM Personas: {id, name, niche, bio, cta_link, ai_tone, avatar, active}
     "targets": [],           # Influencer/Target accounts to mirror
     "ads": [],               # Scheduled promotional ads
-    "accounts": [],          # Connected social media accounts
+    "accounts": [],          # Connected SMM Accounts fleet (supports multiple accounts per platform!)
     "raids": [],             # Created raids
     "conversations": [],     # Unified Inbox: {id, profile_id, platform, sender_handle, avatar, unread, last_message_time}
-    "messages": {},          # Conversation messages
+    "messages": {},          # Conversation messages: {conv_id: [messages]}
     "auto_replies": [],      # Chatbot rules: {id, profile_id, keyword, reply_text, active}
     "growth_campaigns": [],  # Viral traffic campaigns
     "analytics": {           # Real-time traffic funnel stats
@@ -31,9 +31,9 @@ _data = {
         "openai_key": "",
         "gemini_key": "",
         "global_cta_link": "", # Quick global redirect funnel override
+        "auto_mirror_enabled": True,
         "auto_raid_enabled": True,
         "auto_post_enabled": True,
-        "auto_mirror_enabled": True,
         "auto_dm_reply_enabled": True,
         "growth_hacks_enabled": True,
         "rewrite_style": "bullish_crypto_enthusiast",
@@ -232,19 +232,24 @@ def toggle_ad(ad_id):
     save_db()
 
 
-# Accounts CRUD
+# --- Connected Accounts CRUD (Supports multiple accounts per platform) ---
 def get_accounts():
     db = load_db()
+    if "accounts" not in db:
+        db["accounts"] = []
     return db["accounts"]
 
 
 def add_account(platform, username, password="", token_session="", status="Active"):
     db = load_db()
+    if "accounts" not in db:
+        db["accounts"] = []
+    
     acc_id = f"acc_{int(time.time() * 1000)}"
     new_acc = {
         "id": acc_id,
-        "platform": platform,
-        "username": username,
+        "platform": platform,       # twitter, tiktok, instagram, facebook
+        "username": username,       # handle/profile name
         "password": password,
         "token_session": token_session,
         "status": status,
@@ -257,8 +262,9 @@ def add_account(platform, username, password="", token_session="", status="Activ
 
 def delete_account(acc_id):
     db = load_db()
-    db["accounts"] = [a for a in db["accounts"] if a["id"] != acc_id]
-    save_db()
+    if "accounts" in db:
+        db["accounts"] = [a for a in db["accounts"] if a["id"] != acc_id]
+        save_db()
 
 
 # Raids CRUD
