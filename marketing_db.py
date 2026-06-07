@@ -80,46 +80,9 @@ def save_db():
 
 def get_profiles():
     db = load_db()
-    if "profiles" not in db or not db["profiles"]:
-        # Seed default profiles if empty (Crypto, Celeb, Normal)
-        db["profiles"] = [
-            {
-                "id": "prof_default_crypto",
-                "name": "Crypto Alpha Calls",
-                "niche": "crypto",
-                "bio": "Solana Calls & Daily 100x Gems. Join my private channel for early calls.",
-                "cta_link": "https://t.me/join_alpha_calls",
-                "ai_tone": "bullish_crypto_enthusiast",
-                "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=CryptoAlpha",
-                "active": True,
-                "tg_bot_token": "",
-                "tg_chat_id": ""
-            },
-            {
-                "id": "prof_default_celeb",
-                "name": "Sophie Rain (Official)",
-                "niche": "celeb",
-                "bio": "Welcome to my official inbox! Chat with me directly here. Join my private club below.",
-                "cta_link": "https://onlyfans.com/sophie_rain",
-                "ai_tone": "hype",
-                "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Sophie",
-                "active": True,
-                "tg_bot_token": "",
-                "tg_chat_id": ""
-            },
-            {
-                "id": "prof_default_casual",
-                "name": "Sarah Miller",
-                "niche": "casual",
-                "bio": "Just a normal girl exploring Web3 & sharing life vibes. Let's be friends!",
-                "cta_link": "https://instagram.com/sarah_m",
-                "ai_tone": "casual",
-                "avatar": "https://api.dicebear.com/7.x/lorelei/svg?seed=Sarah",
-                "active": True,
-                "tg_bot_token": "",
-                "tg_chat_id": ""
-            }
-        ]
+    # No auto-seeding default profiles anymore to prevent them from showing up when you want a clean slate
+    if "profiles" not in db:
+        db["profiles"] = []
         save_db()
     return db["profiles"]
 
