@@ -87,18 +87,77 @@
         ::-webkit-scrollbar {
             display: none;
         }
+
+        /* Selectable Button States */
+        .select-btn {
+            background: rgba(28, 28, 30, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .select-btn.active {
+            background: rgba(10, 132, 255, 0.15);
+            border-color: #0a84ff;
+            color: #0a84ff;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col justify-between overflow-hidden">
 
-    <!-- Top Status Bar & Luxury Aether OS Header -->
-    <header class="sticky top-0 z-40 px-6 pt-10 pb-4 flex items-center justify-between border-b border-white/5 bg-[#000000]/80 backdrop-blur-md">
+    <!-- INITIALIZATION WIZARD: Shown if no active SMM personas exist -->
+    <div id="init-wizard" class="hidden fixed inset-0 z-50 bg-[#000000] p-6 flex flex-col justify-between overflow-y-auto safe-bottom">
+        <div class="space-y-6">
+            <div class="text-center pt-8">
+                <div class="bg-blue-600/10 w-16 h-16 rounded-3xl mx-auto flex items-center justify-center text-blue-500 text-3xl shadow-lg shadow-blue-500/10 mb-4 border border-blue-500/20">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <h1 class="text-xl font-black tracking-tight text-white">Aether SMM OS</h1>
+                <p class="text-xs text-gray-500 mt-1">Deploy your first Persona to activate the SMM Suite</p>
+            </div>
+            
+            <form id="form-persona-init" onsubmit="submitPersonaInit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1.5">Persona Name</label>
+                    <input type="text" id="init-name" placeholder="Sophie Rain, Alpha Calls, etc." class="w-full p-3.5 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none focus:border-blue-500" required>
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-2">Category Niche</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="selectInitNiche('celeb')" id="btn-init-celeb" class="select-btn py-3 px-2 text-[10px] font-bold active flex flex-col items-center gap-1.5"><i class="fa-solid fa-star text-base text-pink-400"></i> Celeb</button>
+                        <button type="button" onclick="selectInitNiche('crypto')" id="btn-init-crypto" class="select-btn py-3 px-2 text-[10px] font-bold flex flex-col items-center gap-1.5"><i class="fa-solid fa-chart-line text-base text-blue-400"></i> Crypto</button>
+                        <button type="button" onclick="selectInitNiche('casual')" id="btn-init-casual" class="select-btn py-3 px-2 text-[10px] font-bold flex flex-col items-center gap-1.5"><i class="fa-solid fa-user text-base text-gray-400"></i> Casual</button>
+                    </div>
+                    <input type="hidden" id="init-niche" value="celeb">
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1.5">Biography (Feeds into AI Brain)</label>
+                    <textarea id="init-bio" placeholder="Describe the personality traits and voice of this persona..." rows="3" class="w-full p-3.5 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none focus:border-blue-500" required></textarea>
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1.5">CTA Redirection Link</label>
+                    <input type="url" id="init-cta" placeholder="https://t.me/your_private_channel" class="w-full p-3.5 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none focus:border-blue-500" required>
+                </div>
+                
+                <!-- Telegram setups -->
+                <div class="border-t border-white/10 pt-4 space-y-3">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><i class="fa-brands fa-telegram text-blue-500"></i> Telegram Sync (Optional)</h4>
+                    <input type="text" id="init-tg-token" placeholder="Bot Token (from @BotFather)" class="w-full p-3.5 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none">
+                    <input type="text" id="init-tg-chat" placeholder="Group/Channel ID (starts with -100...)" class="w-full p-3.5 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none">
+                </div>
+                
+                <button type="submit" class="w-full bg-blue-600 text-white font-extrabold text-xs py-3.5 mt-4 rounded-xl shadow-lg shadow-blue-500/10">Initialize SMM OS</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Top Premium iOS-Style Header -->
+    <header id="main-app-header" class="app-header sticky top-0 z-40 px-5 pt-10 pb-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <div id="header-persona-avatar" class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/20 to-blue-500/20 border border-white/10 flex items-center justify-center font-bold">
+            <div id="header-persona-avatar" class="w-10 h-10 rounded-full bg-gray-800 border border-white/10 flex items-center justify-center font-bold">
                 ?
             </div>
             <div>
-                <select id="active-persona-switch" onchange="switchActivePersona()" class="bg-transparent text-white font-extrabold text-base focus:outline-none cursor-pointer">
+                <select id="active-persona-switch" onchange="switchActivePersona()" class="bg-transparent text-white dark:text-white light:text-black font-extrabold text-base focus:outline-none cursor-pointer">
                     <!-- Dynamic profiles switcher options -->
                 </select>
                 <p class="text-[9px] text-[#8696a0] font-bold uppercase tracking-wider mt-0.5">Active SMM Profile</p>
@@ -118,245 +177,95 @@
         </div>
     </header>
 
-    <!-- Main Workspace (Restricted Height with clean padding limits to avoid overlapping with bottom navigation docks) -->
-    <div class="flex-1 overflow-y-auto px-5 py-4 space-y-6 pb-36" id="main-scroll-view">
+    <!-- Main Workspace (Restricted Height to avoid bottom overlap) -->
+    <div class="flex-1 overflow-y-auto px-4 py-4 space-y-6 pb-32" id="main-scroll-view">
 
-        <!-- TAB: DASHBOARD (Spacious, Grid-based SMM Operations Control) -->
-        <div id="tab-dashboard" class="tab-content space-y-6">
-
-            <!-- 1. AI Credentials Hub -->
-            <div class="glass-panel p-6 space-y-5">
-                <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                    <h3 class="font-bold text-sm tracking-wide text-gray-200 flex items-center gap-2">
-                        <i class="fa-solid fa-key text-[#10B981]"></i> AI Credentials Hub
-                    </h3>
-                    <span class="text-[10px] uppercase font-bold text-[#10B981] flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 bg-[#10B981] rounded-full animate-ping"></span> Sync Active
-                    </span>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="relative">
-                        <span class="absolute left-4 top-3.5 text-xs font-bold text-gray-400">OpenAI</span>
-                        <input type="password" id="set-openai-key" placeholder="sk-••••••••" class="w-full pl-20 pr-4 py-3 text-xs bg-black/40 border border-white/10 text-white focus:outline-none rounded-xl">
+        <!-- TAB: DASHBOARD (Active Campaigns, Analytics, Switches) -->
+        <div id="tab-dashboard" class="tab-content space-y-6 pb-32">
+            <!-- Real-Time Traffic Funnel Analytics -->
+            <div class="glass-panel p-5">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><i class="fa-solid fa-chart-line text-blue-500"></i> Organic Funnel</h3>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-black/40 p-2.5 rounded-lg border border-white/5">
+                        <span class="text-[10px] text-gray-500 block">Impressions</span>
+                        <span class="text-base font-bold text-gray-100" id="funnel-impressions">0</span>
                     </div>
-                    <div class="relative">
-                        <span class="absolute left-4 top-3.5 text-xs font-bold text-gray-400">Gemini</span>
-                        <input type="password" id="set-gemini-key" placeholder="AIzaSy••••" class="w-full pl-20 pr-4 py-3 text-xs bg-black/40 border border-white/10 text-white focus:outline-none rounded-xl">
+                    <div class="bg-black/40 p-2.5 rounded-lg border border-white/5">
+                        <span class="text-[10px] text-gray-500 block">Clicks</span>
+                        <span class="text-base font-bold text-gray-100" id="funnel-clicks">0</span>
                     </div>
-                </div>
-                <button onclick="submitSettings(event)" class="w-full bg-gradient-to-r from-[#10B981] to-[#3B82F6] hover:opacity-90 text-white font-extrabold text-xs py-3.5 rounded-xl shadow-lg shadow-emerald-500/10 transition-all active:scale-[0.98]">
-                    Keys Synced
-                </button>
-            </div>
-
-            <!-- 2. Rotating Proxy Network -->
-            <div class="glass-panel p-6 space-y-4">
-                <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                    <h3 class="font-bold text-sm tracking-wide text-gray-200 flex items-center gap-2">
-                        <i class="fa-solid fa-network-wired text-[#FF9500]"></i> Rotating Proxy Network
-                    </h3>
-                    <span class="text-xs text-orange-500 font-bold" id="proxy-status-indicator">Proxy Active</span>
-                </div>
-                <!-- Visual proxy orbs representation -->
-                <div class="flex justify-around items-center py-4 bg-black/30 rounded-xl border border-white/5">
-                    <div class="flex flex-col items-center gap-1.5">
-                        <div class="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center relative">
-                            <span class="w-2.5 h-2.5 bg-blue-500 rounded-full animate-ping absolute"></span>
-                            <span class="w-2 h-2 bg-blue-500 rounded-full relative"></span>
-                        </div>
-                        <span class="text-[9px] text-gray-500">US-East</span>
+                    <div class="bg-black/40 p-2.5 rounded-lg border border-white/5">
+                        <span class="text-[10px] text-gray-500 block">Conversion</span>
+                        <span class="text-base font-bold text-emerald-400" id="funnel-conversion">0%</span>
                     </div>
-                    <div class="flex flex-col items-center gap-1.5">
-                        <div class="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
-                            <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                        </div>
-                        <span class="text-[9px] text-gray-500">UK-West</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-1.5">
-                        <div class="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center">
-                            <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
-                        </div>
-                        <span class="text-[9px] text-gray-500">EU-Central</span>
-                    </div>
-                    <div class="flex flex-col items-center gap-1.5">
-                        <div class="w-6 h-6 rounded-full bg-[#AF52DE]/20 border border-[#AF52DE]/40 flex items-center justify-center">
-                            <span class="w-2 h-2 bg-[#AF52DE] rounded-full"></span>
-                        </div>
-                        <span class="text-[9px] text-gray-500">Asia-South</span>
-                    </div>
-                </div>
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <textarea id="set-proxies" placeholder="Paste proxy nodes (one per line, e.g. username:password@ip:port)" rows="2" class="flex-1 p-3 rounded-xl text-xs bg-black/40 border border-white/10 text-white focus:outline-none"></textarea>
-                    <button onclick="saveProxies()" class="bg-gradient-to-r from-orange-500 to-[#FF9500] hover:opacity-90 text-white font-bold text-xs py-3 px-5 rounded-xl shadow-lg shadow-orange-500/10 transition-all active:scale-[0.98] shrink-0">
-                        Rotate Network
-                    </button>
-                </div>
-                <p class="text-[9px] text-gray-500">💡 Status: 192.168.1.1:8080 • 47ms • 99.8% Uptime. The cloner and growth loops dynamically rotate proxies to avoid platform bans.</p>
-            </div>
-
-            <!-- 3. Active SMM Personas (Management cards layout, no forms!) -->
-            <div class="space-y-3">
-                <div class="flex items-center justify-between px-1">
-                    <h3 class="font-extrabold text-xs text-gray-500 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-users text-[#3B82F6]"></i> Active SMM Personas</h3>
-                    <button onclick="openPersonaCreator()" class="text-xs text-[#0A84FF] font-bold">New Persona +</button>
-                </div>
-                <div class="grid grid-cols-1 gap-3.5" id="personas-cards-grid">
-                    <!-- Deployed Personas cards injected dynamically -->
                 </div>
             </div>
 
-            <!-- 4. Global Redirect Override Link -->
-            <div class="glass-panel p-5 space-y-2.5">
-                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-link text-[#3B82F6]"></i> Global Funnel Override Link</h3>
-                <form onsubmit="saveGlobalLink(event)" class="flex gap-2">
-                    <input type="url" id="global-cta-input" placeholder="https://t.me/your_private_channel_or_link" class="flex-1 p-3 rounded-xl text-xs bg-black border border-white/10 text-white font-bold focus:outline-none" required>
-                    <button type="submit" class="bg-[#10B981] text-white text-xs font-bold px-4 rounded-xl active:scale-95 transition-transform">Apply</button>
-                </form>
-                <p class="text-[9px] text-gray-500 leading-normal">Instantly overrides individual persona redirect links, routing all traffic and inquiries straight into this destination.</p>
-            </div>
-
-            <!-- 5. Connected SMM Fleet (Multi-Account Grouping, no dropdowns) -->
-            <div class="glass-panel p-6 space-y-4">
-                <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                    <h3 class="font-bold text-sm tracking-wide text-gray-200 flex items-center gap-2">
-                        <i class="fa-solid fa-users text-orange-400"></i> Connected SMM Fleet (Multi-Account)
-                    </h3>
-                </div>
-                <form id="form-account" onsubmit="submitAccount(event)" class="space-y-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div class="sm:col-span-1">
-                            <label class="block text-[9px] uppercase font-bold text-gray-500 mb-1">Platform</label>
-                            <select id="acc-platform" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 text-white font-semibold focus:outline-none">
-                                <option value="twitter">𝕏 Twitter / X Profile</option>
-                                <option value="tiktok">🎵 TikTok Profile</option>
-                                <option value="instagram">📸 Instagram Profile</option>
-                                <option value="facebook">👤 Facebook Profile</option>
-                            </select>
-                        </div>
-                        <div class="sm:col-span-1">
-                            <label class="block text-[9px] uppercase font-bold text-gray-500 mb-1">Profile Handle</label>
-                            <input type="text" id="acc-username" placeholder="Username (no @)" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 text-white focus:outline-none" required>
-                        </div>
-                        <div class="sm:col-span-1">
-                            <label class="block text-[9px] uppercase font-bold text-gray-500 mb-1">Session Cookie</label>
-                            <input type="text" id="acc-token" placeholder="Paste cookie session value" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 text-white focus:outline-none">
-                        </div>
+            <!-- Master Switches -->
+            <div class="glass-panel overflow-hidden">
+                <div class="px-4 py-2.5 text-xs font-bold text-gray-400 uppercase tracking-wider bg-white/5">Engine Master Switches</div>
+                
+                <!-- Toggle: Mirror -->
+                <div class="flex items-center justify-between p-4 border-b border-white/5">
+                    <div>
+                        <h4 class="text-sm font-semibold">Account Cloning</h4>
+                        <p class="text-xs text-gray-500">Auto copy and rewrite posts</p>
                     </div>
-                    <button type="submit" class="w-full bg-orange-600 hover:opacity-90 text-white font-bold text-xs py-3 rounded-xl shadow-lg transition-all active:scale-[0.98]">
-                        Register Profile to Fleet
-                    </button>
-                </form>
-                <div class="space-y-3 mt-4" id="accounts-fleet-grouped-container">
-                    <!-- Dynamic fleet accounts render grouped by platform -->
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-mirror" onchange="updateEngineSwitches()" class="sr-only ios-switch">
+                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
+                    </label>
                 </div>
-            </div>
 
-            <!-- 6. Cloning & Mirroring Targets (Modern CRM contacts layout) -->
-            <div class="glass-panel p-6 space-y-4">
-                <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                    <h3 class="font-bold text-sm tracking-wide text-gray-200 flex items-center gap-2">
-                        <i class="fa-solid fa-copy text-blue-500"></i> Cloning & Mirroring Targets
-                    </h3>
-                </div>
-                <form id="form-target" onsubmit="submitTarget(event)" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <select id="target-platform" class="p-3 rounded-xl text-xs bg-black border border-white/10 text-white font-semibold focus:outline-none">
-                            <option value="twitter">𝕏 Twitter / X Target</option>
-                            <option value="tiktok">🎵 TikTok Target</option>
-                            <option value="instagram">📸 Instagram Target</option>
-                        </select>
-                        <input type="text" id="target-handle" placeholder="Target handle (e.g. elonmusk, sophierain)" class="p-3 rounded-xl text-xs bg-black border border-white/10 text-white focus:outline-none" required>
+                <!-- Toggle: Ads -->
+                <div class="flex items-center justify-between p-4 border-b border-white/5">
+                    <div>
+                        <h4 class="text-sm font-semibold">Promotional Posting</h4>
+                        <p class="text-xs text-gray-500">Broadcast ads automatically</p>
                     </div>
-                    <button type="submit" class="w-full bg-blue-600 hover:opacity-90 text-white font-bold text-xs py-3 rounded-xl active:scale-95 transition-all">
-                        Create Mirror Connection
-                    </button>
-                </form>
-                <!-- CRM targets display list -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4" id="targets-crm-container">
-                    <!-- Dynamic target cards -->
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-ads" onchange="updateEngineSwitches()" class="sr-only ios-switch">
+                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
+                    </label>
                 </div>
-            </div>
 
-            <!-- 7. Free Organic Growth Campaigns (Niches campaigns) -->
-            <div class="glass-panel p-6 space-y-4">
-                <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                    <h3 class="font-bold text-sm tracking-wide text-gray-200 flex items-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles text-[#AF52DE]"></i> Free Organic Growth Campaigns
-                    </h3>
-                </div>
-                <form id="form-growth" onsubmit="submitGrowthCampaign(event)" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <select id="growth-niche" class="p-3 rounded-xl text-xs bg-black border border-white/10 text-white font-semibold focus:outline-none">
-                            <option value="solana">Solana Memecoins (SOL)</option>
-                            <option value="ethereum">Ethereum Gems (ETH/Base)</option>
-                            <option value="memecoins">General Crypto Speculation</option>
-                            <option value="celeb">Celebrity Fan Clubs & Modeling (for her)</option>
-                            <option value="viral">Pop Culture & Viral Trends</option>
-                            <option value="lifestyle">Lifestyle, Travel & Personal Vlogs</option>
-                        </select>
-                        <input type="text" id="growth-keywords" placeholder="Keywords (solana, meme, fashion, travel)" class="p-3 rounded-xl text-xs bg-black border border-white/10 text-white focus:outline-none" required>
+                <!-- Toggle: DM Chatbot -->
+                <div class="flex items-center justify-between p-4 border-b border-white/5">
+                    <div>
+                        <h4 class="text-sm font-semibold">AI Inbox Chatbot</h4>
+                        <p class="text-xs text-gray-500">Respond to incoming messages</p>
                     </div>
-                    <input type="url" id="growth-cta" placeholder="CTA Redirect Link" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 text-white focus:outline-none" required>
-                    <select id="growth-platform" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 text-white font-semibold focus:outline-none">
-                        <option value="all">Hijack ALL platforms organically</option>
-                        <option value="twitter">𝕏 Twitter / X Threads</option>
-                        <option value="tiktok">🎵 TikTok Comments</option>
-                        <option value="instagram">📸 Instagram Discover</option>
-                    </select>
-                    <button type="submit" class="w-full bg-[#AF52DE] hover:opacity-90 text-white font-bold py-3 rounded-xl active:scale-95 transition-all shadow-lg shadow-purple-500/10">
-                        Deploy Free Funnel
-                    </button>
-                </form>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4" id="growth-funnels-list-container">
-                    <!-- Dynamic campaigns -->
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-dms" onchange="updateEngineSwitches()" class="sr-only ios-switch">
+                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
+                    </label>
                 </div>
-            </div>
 
-            <!-- 8. Scheduled Ad Broadcaster -->
-            <div class="glass-panel p-6 space-y-4">
-                <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                    <h3 class="font-bold text-sm tracking-wide text-gray-200 flex items-center gap-2">
-                        <i class="fa-solid fa-clock text-[#34C759]"></i> Scheduled Ad Broadcaster
-                    </h3>
-                </div>
-                <form id="form-ad" onsubmit="submitAd(event)" class="space-y-3">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <select id="ad-platform" class="p-3 rounded-xl text-xs bg-black border border-white/10 text-white font-semibold focus:outline-none">
-                            <option value="telegram">💬 My Telegram Channel Only</option>
-                            <option value="twitter">𝕏 Connected Twitter Accounts</option>
-                            <option value="all">All Channels</option>
-                        </select>
-                        <input type="number" id="ad-interval" value="30" min="5" class="p-3 rounded-xl text-xs bg-black border border-white/10 text-white focus:outline-none" required>
+                <!-- Toggle: Growth Hacks -->
+                <div class="flex items-center justify-between p-4">
+                    <div>
+                        <h4 class="text-sm font-semibold">Free Organic Growth</h4>
+                        <p class="text-xs text-gray-500">Extract leads & run traffic triggers</p>
                     </div>
-                    <textarea id="ad-content" placeholder="Ad body text (HTML supported)..." rows="3" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 text-white focus:outline-none" required></textarea>
-                    <button type="submit" class="w-full bg-[#34C759] hover:opacity-90 text-white font-bold py-3 rounded-xl active:scale-95 transition-all shadow-lg shadow-emerald-500/10">
-                        Activate Ad Schedule
-                    </button>
-                </form>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4" id="ad-schedules-list-container">
-                    <!-- Dynamic ad items -->
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-growth" onchange="updateEngineSwitches()" class="sr-only ios-switch">
+                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
+                    </label>
                 </div>
             </div>
 
-            <!-- 9. SMM Analytics Widgets -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
-                <div class="glass-panel p-5 flex flex-col justify-between h-28 border-l-4 border-l-[#10B981]">
-                    <span class="text-[10px] uppercase font-bold text-gray-400">Funnel Views</span>
-                    <span class="text-2xl font-bold" id="funnel-impressions">0</span>
-                    <span class="text-[9px] text-[#10B981] font-semibold"><i class="fa-solid fa-arrow-trend-up"></i> +14.8% organic growth</span>
+            <!-- Apple System Live Stream Monitor -->
+            <div class="glass-panel p-4">
+                <div class="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
+                    <h3 class="font-bold text-sm text-gray-300"><i class="fa-solid fa-terminal text-[#34C759] mr-1.5"></i> Activity Terminal</h3>
+                    <button onclick="clearLogs()" class="text-xs text-[#0A84FF] font-medium">Clear</button>
                 </div>
-                <div class="glass-panel p-5 flex flex-col justify-between h-28 border-l-4 border-l-[#3B82F6]">
-                    <span class="text-[10px] uppercase font-bold text-gray-400">Total Clicks</span>
-                    <span class="text-2xl font-bold" id="funnel-clicks">0</span>
-                    <span class="text-[9px] text-[#3B82F6] font-semibold"><i class="fa-solid fa-arrow-trend-up"></i> +22.4% click conversions</span>
-                </div>
-                <div class="glass-panel p-5 flex flex-col justify-between h-28 border-l-4 border-l-[#AF52DE]">
-                    <span class="text-[10px] uppercase font-bold text-gray-400">Conversion Rate</span>
-                    <span class="text-2xl font-bold" id="funnel-conversion">0%</span>
-                    <span class="text-[9px] text-[#AF52DE] font-semibold"><i class="fa-solid fa-bolt"></i> Leads synced organically</span>
+                <div class="space-y-2 font-mono text-[10px] max-h-48 overflow-y-auto text-gray-400" id="log-container">
+                    <div>[06:30] SMM Engine loaded.</div>
+                    <div>[06:30] Auto post engines synchronized.</div>
+                    <div>[06:35] Free auto-re-writer ready.</div>
                 </div>
             </div>
-
         </div>
 
         <!-- TAB: CHATS (WhatsApp/iMessage Jet-Black Overhaul - Chats Contacts List) -->
@@ -414,6 +323,199 @@
 
         </div>
 
+        <!-- TAB: SETTINGS (Consolidated & Highly Spacious SMM Controls) -->
+        <div id="tab-settings" class="tab-content hidden space-y-6 pb-32">
+            
+            <!-- Add SMM Persona CTA Button -->
+            <div class="flex items-center justify-between bg-gradient-to-r from-blue-600/15 to-[#AF52DE]/15 p-5 rounded-2xl border border-white/5 dark:border-white/5 light:border-black/5 shadow-md">
+                <div class="space-y-0.5">
+                    <h3 class="font-extrabold text-sm">Deploy New Persona</h3>
+                    <p class="text-[10px] text-gray-400">Launch a separate brand character with unique AI brains</p>
+                </div>
+                <button onclick="openPersonaCreator()" class="bg-[#0A84FF] text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-500/20 active:scale-95 transition-transform">
+                    <i class="fa-solid fa-plus text-xs"></i> Add Persona
+                </button>
+            </div>
+
+            <!-- Global Redirect Funnel Link Configurator -->
+            <div class="glass-panel p-5 space-y-2.5">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-link text-blue-500"></i> Global Funnel Override Link</h3>
+                <form onsubmit="saveGlobalLink(event)" class="flex gap-2">
+                    <input type="url" id="global-cta-input" placeholder="https://t.me/your_private_channel_or_link" class="flex-1 p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black font-bold focus:outline-none" required>
+                    <button type="submit" class="bg-[#00a884] text-white text-xs font-bold px-4 rounded-xl active:scale-95 transition-transform">Apply</button>
+                </form>
+            </div>
+
+            <!-- Connected Accounts fleet (Supports Multiple Accounts concurrently!) -->
+            <div class="glass-panel p-5 space-y-4">
+                <h3 class="font-bold text-xs text-[#FF9500] uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-users"></i> Connected SMM Fleet (Multi-Account)</h3>
+                
+                <!-- iOS Tap Button Platform Selector (REPLACED dropdown select!) -->
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-2">Select Social Channel</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button type="button" onclick="selectFleetPlatform('twitter')" id="btn-fleet-twitter" class="select-btn py-3 text-[10px] font-bold active flex flex-col items-center gap-1"><i class="fa-brands fa-twitter text-blue-400 text-lg"></i> X / Twitter</button>
+                        <button type="button" onclick="selectFleetPlatform('tiktok')" id="btn-fleet-tiktok" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-brands fa-tiktok text-pink-400 text-lg"></i> TikTok</button>
+                        <button type="button" onclick="selectFleetPlatform('instagram')" id="btn-fleet-instagram" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-brands fa-instagram text-pink-500 text-lg"></i> Instagram</button>
+                        <button type="button" onclick="selectFleetPlatform('facebook')" id="btn-fleet-facebook" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-brands fa-facebook text-blue-600 text-lg"></i> Facebook</button>
+                    </div>
+                    <input type="hidden" id="acc-platform" value="twitter">
+                </div>
+
+                <form id="form-account" onsubmit="submitAccount(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-500 mb-1">Profile Username / Handle</label>
+                        <input type="text" id="acc-username" placeholder="Username (no @)" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] uppercase font-bold text-gray-500 mb-1">Session Cookie / Auth Token</label>
+                        <input type="text" id="acc-token" placeholder="Paste session cookie..." class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none">
+                    </div>
+                    <button type="submit" class="w-full bg-[#FF9500] text-white text-xs font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Register Profile to Fleet</button>
+                </form>
+
+                <!-- Accounts lists -->
+                <div class="space-y-2 mt-4" id="accounts-list-container">
+                    <!-- Dynamic multi-account displays -->
+                </div>
+            </div>
+
+            <!-- Cloning & Mirroring Targets -->
+            <div class="glass-panel p-5 space-y-4">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-copy text-blue-500"></i> Cloning & Mirroring Targets</h3>
+                
+                <!-- iOS Tap Button Platform Selector (REPLACED dropdown select!) -->
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-2">Select Target Platform</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="selectMirrorPlatform('twitter')" id="btn-mirror-twitter" class="select-btn py-3 text-[10px] font-bold active flex flex-col items-center gap-1"><i class="fa-brands fa-twitter text-blue-400 text-lg"></i> X / Twitter</button>
+                        <button type="button" onclick="selectMirrorPlatform('tiktok')" id="btn-mirror-tiktok" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-brands fa-tiktok text-pink-400 text-lg"></i> TikTok</button>
+                        <button type="button" onclick="selectMirrorPlatform('instagram')" id="btn-mirror-instagram" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-brands fa-instagram text-pink-500 text-lg"></i> Instagram</button>
+                    </div>
+                    <input type="hidden" id="target-platform" value="twitter">
+                </div>
+
+                <form id="form-target" onsubmit="submitTarget(event)" class="space-y-3">
+                    <input type="text" id="target-handle" placeholder="Influencer to clone (e.g. elonmusk, sophierain)" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required>
+                    <button type="submit" class="w-full bg-blue-600 text-white text-xs font-bold py-3 rounded-xl active:scale-95 transition-transform">Create Mirror Connection</button>
+                </form>
+
+                <div class="mt-4 overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-400">
+                        <thead>
+                            <tr class="text-gray-500 font-bold border-b border-white/5">
+                                <th class="pb-2">Platform</th>
+                                <th class="pb-2">Target</th>
+                                <th class="pb-2 text-right">Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody id="targets-table-body">
+                            <!-- Dynamic clones -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Organic Traffic Growth Hack Campaign Deployer -->
+            <div class="glass-panel p-5 space-y-4">
+                <h3 class="font-bold text-xs text-[#AF52DE] uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i> Free Organic Growth Campaigns</h3>
+                
+                <!-- iOS Tap Button Platform Selector (REPLACED dropdown select!) -->
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-2">Select Campaign Niche</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="selectGrowthNiche('solana')" id="btn-growth-solana" class="select-btn py-3 text-[10px] font-bold active flex flex-col items-center gap-1"><i class="fa-solid fa-rocket text-yellow-500 text-lg"></i> Solana Meme</button>
+                        <button type="button" onclick="selectGrowthNiche('celeb')" id="btn-growth-celeb" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-solid fa-star text-pink-500 text-lg"></i> Celeb & Model</button>
+                        <button type="button" onclick="selectGrowthNiche('lifestyle')" id="btn-growth-lifestyle" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-solid fa-camera text-blue-500 text-lg"></i> Lifestyle Vlog</button>
+                        <button type="button" onclick="selectGrowthNiche('viral')" id="btn-growth-viral" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-solid fa-fire text-orange-500 text-lg"></i> Viral Trends</button>
+                    </div>
+                    <input type="hidden" id="growth-niche" value="solana">
+                </div>
+
+                <form id="form-growth" onsubmit="submitGrowthCampaign(event)" class="space-y-3">
+                    <input type="text" id="growth-keywords" placeholder="Keywords (solana, meme, fashion, travel)" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required>
+                    <input type="url" id="growth-cta" placeholder="CTA Redirect Link" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required>
+                    <select id="growth-platform" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black font-semibold focus:outline-none">
+                        <option value="all">Hijack ALL platforms organically</option>
+                        <option value="twitter">𝕏 Twitter / X Threads</option>
+                        <option value="tiktok">🎵 TikTok Comments</option>
+                        <option value="instagram">📸 Instagram Discover</option>
+                    </select>
+                    <button type="submit" class="w-full bg-[#AF52DE] text-white text-xs font-bold py-3 rounded-xl active:scale-95 transition-transform shadow-lg shadow-purple-500/10">Deploy Free Funnel</button>
+                </form>
+
+                <div class="mt-4 overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-400">
+                        <thead>
+                            <tr class="text-gray-500 font-bold border-b border-white/5">
+                                <th class="pb-2">Niche</th>
+                                <th class="pb-2">Platform</th>
+                                <th class="pb-2 text-right">Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody id="growth-table-body">
+                            <!-- Dynamic campaigns -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Scheduled Ads Broadcasting Section -->
+            <div class="ios-card p-5 space-y-4">
+                <h3 class="font-bold text-xs text-[#34C759] uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-clock"></i> Scheduled Ad Broadcaster</h3>
+                <form id="form-ad" onsubmit="submitAd(event)" class="space-y-3">
+                    <select id="ad-platform" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black font-semibold focus:outline-none">
+                        <option value="telegram">💬 My Telegram Channel Only</option>
+                        <option value="twitter">𝕏 Connected Twitter Accounts</option>
+                        <option value="all">All Channels</option>
+                    </select>
+                    <input type="number" id="ad-interval" value="30" min="5" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required>
+                    <textarea id="ad-content" placeholder="Ad body text (HTML supported)..." rows="3" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required></textarea>
+                    <button type="submit" class="w-full bg-[#34C759] text-white text-xs font-bold py-3 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-500/10">Activate Ad Schedule</button>
+                </form>
+
+                <div class="mt-4 overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-400">
+                        <thead>
+                            <tr class="text-gray-500 font-bold border-b border-white/5">
+                                <th class="pb-2">Target</th>
+                                <th class="pb-2">Interval</th>
+                                <th class="pb-2 text-right">Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ads-table-body">
+                            <!-- Dynamic ad items -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- AI Credentials & API Keys config -->
+            <div class="ios-card p-5 space-y-3">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-key text-blue-500"></i> AI Credentials (Optional)</h3>
+                <form id="form-settings-ai" onsubmit="submitSettings(event)" class="space-y-3">
+                    <input type="password" id="set-openai-key" placeholder="OpenAI Key (sk-...)" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none">
+                    <input type="password" id="set-gemini-key" placeholder="Google Gemini Key (AIzaSy...)" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none">
+                    <button type="submit" class="w-full bg-[#0A84FF] text-white text-xs font-bold py-3 rounded-xl active:scale-95 transition-transform">Save Keys</button>
+                </form>
+            </div>
+
+            <!-- Rotating SMM Proxies configuration -->
+            <div class="ios-card p-5 space-y-3">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-network-wired text-orange-500"></i> Rotating Proxy Nodes</h3>
+                <textarea id="set-proxies" placeholder="username:password@ip:port&#10;192.168.1.1:8080" rows="3" class="w-full p-3 rounded-xl font-mono text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none"></textarea>
+                <button onclick="saveProxies()" class="w-full bg-orange-600 text-white text-xs font-bold py-3 rounded-xl active:scale-95 transition-transform">Apply Proxy Network</button>
+            </div>
+            
+            <!-- Personas setup cards list -->
+            <div class="space-y-3">
+                <h3 class="font-bold text-xs text-gray-500 uppercase tracking-wider px-1">Active SMM Personas</h3>
+                <div class="space-y-4" id="personas-table-body">
+                    <!-- Dynamic profiles cards -->
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Fresh Spacious Slide Up Persona Page Modal Sheet (iOS Native feel) -->
@@ -454,7 +556,7 @@
                     </select>
                 </div>
                 
-                <!-- Profile-Specific Telegram Bot Configurations -->
+                <!-- NEW Profile-Specific Telegram Bot Configurations! -->
                 <div class="border-t border-white/10 pt-4 space-y-4">
                     <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider"><i class="fa-brands fa-telegram text-blue-500"></i> Profile Telegram Channel (Optional)</h4>
                     <p class="text-[9px] text-gray-500">Each persona can automatically broadcast to their own separate Telegram group or channel using unique bots.</p>
@@ -631,6 +733,25 @@
             }, 400);
         }
 
+        // Toggle Platform Selections inside iOS forms (REPLACED standard select dropdown!)
+        function selectFleetPlatform(platform) {
+            document.querySelectorAll("#tab-settings .select-btn[id^='btn-fleet-']").forEach(btn => btn.classList.remove("active"));
+            document.getElementById(`btn-fleet-${platform}`).classList.add("active");
+            document.getElementById("acc-platform").value = platform;
+        }
+
+        function selectMirrorPlatform(platform) {
+            document.querySelectorAll("#tab-settings .select-btn[id^='btn-mirror-']").forEach(btn => btn.classList.remove("active"));
+            document.getElementById(`btn-mirror-${platform}`).classList.add("active");
+            document.getElementById("target-platform").value = platform;
+        }
+
+        function selectGrowthNiche(niche) {
+            document.querySelectorAll("#tab-settings .select-btn[id^='btn-growth-']").forEach(btn => btn.classList.remove("active"));
+            document.getElementById(`btn-growth-${niche}`).classList.add("active");
+            document.getElementById("growth-niche").value = niche;
+        }
+
         async function fetchAPI(url, options = {}) {
             try {
                 const response = await fetch(url, options);
@@ -670,6 +791,14 @@
             // Populate active switcher & drop filters
             populateProfileFilters(data.profiles || []);
 
+            // Check if profiles are empty -> Open initialization Wizard on load!
+            const initWizard = document.getElementById("init-wizard");
+            if (data.profiles && data.profiles.length === 0) {
+                initWizard.classList.remove("hidden");
+            } else {
+                initWizard.classList.add("hidden");
+            }
+
             // Render tables
             renderTargetsTable(data.targets);
             renderAdsTable(data.ads);
@@ -689,6 +818,36 @@
                 badge.classList.remove("hidden");
             } else {
                 badge.classList.add("hidden");
+            }
+        }
+
+        // Initialize first profile wizard trigger
+        let activeInitNiche = "celeb";
+        function selectInitNiche(niche) {
+            document.querySelectorAll("#init-wizard .select-btn").forEach(btn => btn.classList.remove("active"));
+            document.getElementById(`btn-init-${niche}`).classList.add("active");
+            document.getElementById("init-niche").value = niche;
+        }
+
+        async function submitPersonaInit(e) {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById("init-name").value,
+                niche: document.getElementById("init-niche").value,
+                bio: document.getElementById("init-bio").value,
+                cta_link: document.getElementById("init-cta").value,
+                ai_tone: "casual",
+                tg_bot_token: document.getElementById("init-tg-token").value,
+                tg_chat_id: document.getElementById("init-tg-chat").value
+            };
+            const res = await fetchAPI("/api/profiles", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+            if (res) {
+                document.getElementById("init-wizard").classList.add("hidden");
+                refreshData();
             }
         }
 
@@ -1013,7 +1172,7 @@
             items.forEach(item => {
                 const tr = document.createElement("tr");
                 tr.className = "border-b border-white/5 hover:bg-white/5";
-
+                
                 const platformIcon = getPlatformIcon(item.platform);
 
                 tr.innerHTML = `
