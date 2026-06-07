@@ -308,6 +308,13 @@ async def post_init(app: Application):
     start_all_smm_services(app.bot)
 
 
+async def start_smm_offline():
+    from engine_coordinator import start_all_smm_services
+    start_all_smm_services()
+    while True:
+        await asyncio.sleep(3600)
+
+
 def main():
     logging.basicConfig(
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -344,12 +351,9 @@ def main():
         print("⚠️ TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing!")
         print("💡 The Telegram Coin Scanner will remain inactive, but the SMM Marketing Engines, DMs Inbox, and Web Dashboard are fully operational on port 10000.")
         
-        # Start background SMM services directly since bot polling isn't running
-        from engine_coordinator import start_all_smm_services
-        loop = asyncio.get_event_loop()
-        start_all_smm_services()
+        # Start background SMM services directly in a clean active asyncio loop
         try:
-            loop.run_forever()
+            asyncio.run(start_smm_offline())
         except KeyboardInterrupt:
             pass
 
