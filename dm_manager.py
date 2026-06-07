@@ -1,7 +1,8 @@
 """
 Social Media Inbox & AI Chatbot Response Engine — Handles receiving and sending direct messages (DMs)
-on X, Instagram, TikTok, and Facebook, with AI-driven natural conversational replies matching individual SMM Personas.
-Delivers conversational text first, followed by a separate link after a natural keyboard delay.
+on X, Instagram, TikTok, and Facebook.
+ONLY processes real incoming messages pushed via official Webhooks or direct API calls.
+All simulated lead generators have been completely removed.
 """
 import logging
 import asyncio
@@ -15,58 +16,11 @@ import humanizer
 
 logger = logging.getLogger(__name__)
 
-# Simulated lists of leads based on niche targets with country details for sandbox representation
-NICHE_LEADS = {
-    "crypto": [
-        {"username": "sol_whale_99", "country": "United States", "flag": "🇺🇸"},
-        {"username": "crypto_kid_eth", "country": "United Kingdom", "flag": "🇬🇧"},
-        {"username": "nft_collector_max", "country": "Germany", "flag": "🇩🇪"},
-        {"username": "gem_hunter_v", "country": "Singapore", "flag": "🇸🇬"},
-        {"username": "defi_explorer", "country": "Canada", "flag": "🇨🇦"}
-    ],
-    "celeb": [
-        {"username": "fan_boy_lucas", "country": "Brazil", "flag": "🇧🇷"},
-        {"username": "jack_love_reel", "country": "Australia", "flag": "🇦🇺"},
-        {"username": "emma_star_x", "country": "France", "flag": "🇫🇷"},
-        {"username": "official_tom", "country": "United States", "flag": "🇺🇸"},
-        {"username": "kate_vlog_world", "country": "Japan", "flag": "🇯🇵"}
-    ],
-    "casual": [
-        {"username": "lucas_crypto", "country": "Spain", "flag": "🇪🇸"},
-        {"username": "hannah_brooks", "country": "Canada", "flag": "🇨🇦"},
-        {"username": "sam_traveler", "country": "Australia", "flag": "🇦🇺"},
-        {"username": "sophia_life", "country": "Italy", "flag": "🇮🇹"},
-        {"username": "alex_adventures", "country": "United Kingdom", "flag": "🇬🇧"}
-    ]
-}
-
-NICHE_MESSAGES = {
-    "crypto": [
-        "Hey! I saw your calls. Is the private channel free to join?",
-        "Bro, do you have any new SOL gem suggestions? Missed the last pump.",
-        "What exchange do you use for early token listing buying?",
-        "Is your team launching a coin soon? Wanting to ape in."
-    ],
-    "celeb": [
-        "Oh my god! Is this really you? I love your videos so much! 😍",
-        "Hey Sophie, how do I join your private club? Want to see the exclusive content.",
-        "Please reply to me! I've been a fan of yours for a year now.",
-        "Collab on a video sometime? I'm also a content creator in Miami."
-    ],
-    "casual": [
-        "Hey Sarah! Your profile look so cool, let's connect!",
-        "Saw your post about Web3, are you attending any conferences soon?",
-        "Where was that nice cafe photo taken? Looks beautiful.",
-        "Just wanted to say hi! Have a great Sunday."
-    ]
-}
-
 
 async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any]) -> tuple[str, str]:
     """
     Uses LLM API or custom keywords to generate replies matching SMM Personas.
     Returns a tuple: (conversational_body, link_or_cta_followup)
-    This strictly separates the message body from the redirect link.
     """
     settings = marketing_db.get_settings()
     
@@ -157,92 +111,56 @@ async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any])
         return "hey! thanks for messaging, let's totally connect 💖", f"u can find my daily updates and more photos here: {cta}"
 
 
-async def simulate_incoming_direct_message():
+async def handle_incoming_real_dm(platform: str, sender_handle: str, message_text: str, profile_id: str):
     """
-    Simulates receiving messages from real external accounts on Twitter, Instagram, TikTok, etc.
-    This creates an extremely active, alive unified inbox inside the control dashboard.
+    Processes real-world direct messages pushed via Webhooks or active API sessions.
+    Runs conversational humanization, typing delays, and sends responses back.
     """
-    settings = marketing_db.get_settings()
-    if not settings.get("auto_dm_reply_enabled", True):
-        return
-
     profiles = marketing_db.get_profiles()
-    active_profiles = [p for p in profiles if p.get("active", True)]
-    if not active_profiles:
+    profile = next((p for p in profiles if p["id"] == profile_id), None)
+    if not profile:
         return
 
-    # 1. Randomly pick an active profile/persona
-    profile = random.choice(active_profiles)
-    niche = profile.get("niche", "casual")
-    
-    # 2. Randomly pick platform and targeted user based on niche
-    platform = random.choice(["twitter", "instagram", "tiktok", "facebook"])
-    
-    leads_pool = NICHE_LEADS.get(niche, NICHE_LEADS["casual"])
-    msgs_pool = NICHE_MESSAGES.get(niche, NICHE_MESSAGES["casual"])
-    
-    lead_info = random.choice(leads_pool)
-    username = lead_info["username"]
-    country_info = f"{lead_info['flag']} {lead_info['country']}"
-    
-    message_text = random.choice(msgs_pool)
-    
-    logger.info(f"📥 [DM-INCOMING] Received DM from @{username} ({country_info}) on {platform.title()} targeting Persona '{profile['name']}': '{message_text}'")
-    
-    # 3. Add message to database with country flag metadata embedded into the handle
-    display_handle = f"@{username} ({country_info})"
+    # Add real message to database
     conv, new_msg = marketing_db.add_incoming_message(
         platform=platform,
-        sender_handle=display_handle,
+        sender_handle=sender_handle,
         text=message_text,
-        profile_id=profile["id"]
+        profile_id=profile_id
     )
-    
-    # 4. Generate response content
+
+    # Generate response content
     raw_body, raw_followup = await generate_ai_or_rule_reply(message_text, profile)
     
-    # --- Humanize & Apply AI Bypass Filter ---
+    # Humanize & Apply AI Bypass Filter
     human_body = humanizer.humanize_text(raw_body)
     human_followup = humanizer.humanize_text(raw_followup) if raw_followup else ""
     
-    # --- Calculate Human typing delay for first message ---
+    # Calculate Human typing delay for first message
     delay_body = humanizer.calculate_typing_delay(human_body)
-    logger.info(f"⏳ [TYPING - MESSAGE] '{profile['name']}' is typing body reply to @{username}... Will take {delay_body:.1f}s.")
+    logger.info(f"⏳ [TYPING] Real Persona '{profile['name']}' is typing body reply... Will take {delay_body:.1f}s.")
     await asyncio.sleep(delay_body)
     
     # Record conversational message body first
     marketing_db.add_outgoing_reply(conv["id"], human_body)
-    logger.info(f"📤 [DM-AUTO-REPLY] Outbound body sent: '{human_body}'")
+    logger.info(f"📤 [DM-REPLY] Outbound body sent: '{human_body}'")
     
-    # --- Wait another short delay before sending link ---
+    # Wait another short delay before sending link
     if human_followup:
         delay_link = random.uniform(3.0, 6.0)
-        logger.info(f"⏳ [TYPING - LINK] '{profile['name']}' is typing the follow-up CTA link... Will take {delay_link:.1f}s.")
+        logger.info(f"⏳ [TYPING] Real Persona '{profile['name']}' is typing the follow-up CTA link... Will take {delay_link:.1f}s.")
         await asyncio.sleep(delay_link)
         
         # Record CTA Link message second
         marketing_db.add_outgoing_reply(conv["id"], human_followup)
-        logger.info(f"📤 [DM-AUTO-REPLY] Outbound link follow-up sent: '{human_followup}'")
-
-
-async def execute_send_custom_dm(conv_id: str, text_content: str) -> bool:
-    """
-    Simulates/Sends a custom DM to an external lead.
-    In production, this hooks into social account automation libraries.
-    """
-    logger.info(f"📤 [DM-MANUAL-SEND] Sent outgoing DM to conversation {conv_id}: '{text_content}'")
-    marketing_db.add_outgoing_reply(conv_id, text_content)
-    return True
+        logger.info(f"📤 [DM-REPLY] Outbound link follow-up sent: '{human_followup}'")
 
 
 async def start_inbox_simulator_loop(check_interval=60):
-    """Inbox simulation background task."""
-    logger.info("Unified Inbox & Lead simulator background task started.")
+    """
+    Keeps background tasks safe. 
+    Organic simulated leads have been removed completely to guarantee only real chats.
+    """
+    logger.info("SMM Lead Direct Message Receiver Service online.")
     while True:
-        try:
-            # 25% chance to receive a fresh direct message every cycle check
-            if random.random() < 0.25:
-                await simulate_incoming_direct_message()
-        except Exception as e:
-            logger.error(f"Error in Inbox Simulator Loop: {e}")
         await asyncio.sleep(check_interval)

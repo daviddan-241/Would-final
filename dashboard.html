@@ -1,49 +1,73 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="dark" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SMM iOS Command Center</title>
+    <title>WhatsApp Multi-Persona SMM</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Apple SF Pro Display Style Fonts */
         body {
-            background-color: #000000;
-            color: #FFFFFF;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
+            transition: background-color 0.3s, color 0.3s;
         }
         
-        /* iOS Glassmorphism Translucency */
-        .ios-blur {
-            background: rgba(28, 28, 30, 0.75);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+        /* Dark Theme Variables */
+        .dark body {
+            background-color: #0b141a;
+            color: #ffffff;
+        }
+        .dark .chat-header {
+            background-color: #1f2c34;
+        }
+        .dark .chat-input-bar {
+            background-[#1f2c34];
+        }
+        .dark .bubble-incoming {
+            background-color: #202c33;
+            color: #e9edef;
+        }
+        .dark .bubble-outgoing {
+            background-color: #005c4b;
+            color: #e9edef;
+        }
+        .dark .sidebar-bg {
+            background-color: #111b21;
+        }
+        .dark .card-bg {
+            background-color: #1c1c1e;
         }
 
-        .ios-card {
-            background-color: #1C1C1E;
-            border-radius: 12px;
-            border: 0.5px solid rgba(255, 255, 255, 0.05);
+        /* Light Theme Variables */
+        .light body {
+            background-color: #efeae2;
+            color: #111b21;
         }
-
-        .ios-list-item {
-            border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+        .light .chat-header {
+            background-color: #f0f2f5;
         }
-        .ios-list-item:last-child {
-            border-bottom: none;
+        .light .chat-input-bar {
+            background-[#f0f2f5];
         }
-
-        /* iOS Cupertino Switches */
-        .ios-switch:checked ~ .ios-switch-bg {
-            background-color: #34C759; /* Apple Green */
+        .light .bubble-incoming {
+            background-color: #ffffff;
+            color: #111b21;
         }
-        .ios-switch:checked ~ .ios-switch-bg::after {
-            transform: translateX(20px);
+        .light .bubble-outgoing {
+            background-color: #d9fdd3;
+            color: #111b21;
+        }
+        .light .sidebar-bg {
+            background-color: #ffffff;
+            border-right: 1px solid #e9edef;
+        }
+        .light .card-bg {
+            background-color: #ffffff;
+            border: 1px solid rgba(0,0,0,0.05);
         }
 
         /* Prevent elastic scrolling but keep standard overflow */
@@ -61,560 +85,178 @@
         ::-webkit-scrollbar {
             display: none;
         }
-
-        /* iOS Horizontal Card Swiper / Carousel Styles */
-        .swiper-container {
-            display: flex;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-        }
-        .swiper-slide {
-            flex: 0 0 100%;
-            scroll-snap-align: start;
-            transition: all 0.3s ease;
-        }
-        .swiper-slide.active {
-            transform: scale(1);
-            opacity: 1;
-        }
-        .swiper-slide.inactive {
-            transform: scale(0.95);
-            opacity: 0.5;
-        }
     </style>
 </head>
 <body class="h-screen flex flex-col justify-between overflow-hidden">
 
-    <!-- Top iOS-Style Header -->
-    <header class="ios-blur sticky top-0 z-40 px-5 pt-10 pb-4 border-b border-white/10 flex items-center justify-between">
-        <div>
-            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest block mb-0.5">SMM Console</span>
-            <h1 class="text-xl font-bold tracking-tight" id="header-title">Overview</h1>
+    <!-- Active Persona Header Selector -->
+    <header class="ios-blur sticky top-0 z-40 px-5 pt-10 pb-4 border-b border-white/10 dark:border-white/10 light:border-black/5 flex items-center justify-between bg-[#1f2c34] dark:bg-[#1f2c34] light:bg-[#f0f2f5]">
+        <div class="flex items-center gap-3">
+            <div id="header-persona-avatar" class="w-10 h-10 rounded-full bg-gray-700 border border-white/15 flex items-center justify-center font-bold">
+                ?
+            </div>
+            <div>
+                <select id="active-persona-switch" onchange="switchActivePersona()" class="bg-transparent text-white dark:text-white light:text-[#111b21] font-bold text-base focus:outline-none cursor-pointer">
+                    <!-- Dynamic profiles switcher options -->
+                </select>
+                <p class="text-[9px] text-[#8696a0] dark:text-[#8696a0] light:text-gray-500 font-bold uppercase tracking-wider mt-0.5">Active SMM Profile</p>
+            </div>
         </div>
-        <!-- iOS Status pill -->
-        <div class="flex items-center gap-1.5 bg-[#1C1C1E] py-1.5 px-3 rounded-full border border-white/5 text-xs text-[#30D158] font-semibold">
-            <span class="w-2 h-2 rounded-full bg-[#30D158] animate-pulse"></span>
-            <span>Live Sync</span>
-        </div>
+        
+        <!-- Light / Dark Theme Button Switch -->
+        <button onclick="toggleTheme()" class="w-10 h-10 rounded-full bg-white/5 dark:bg-white/5 light:bg-black/5 flex items-center justify-center text-white dark:text-white light:text-gray-800 font-bold shadow-sm">
+            <i class="fa-solid fa-circle-half-stroke text-base" id="theme-icon"></i>
+        </button>
     </header>
 
-    <!-- Main Dynamic iOS Containers -->
-    <div class="flex-1 ios-scrollable p-4 pb-28 space-y-5" id="main-scroll-view">
+    <!-- Main Dynamic Area: SPACIOUS Layout -->
+    <div class="flex-1 ios-scrollable p-4 pb-28 space-y-6" id="main-scroll-view">
 
-        <!-- TAB: DASHBOARD -->
-        <div id="tab-dashboard" class="tab-content space-y-4">
+        <!-- TAB: CHATS (Pure WhatsApp Layout) -->
+        <div id="tab-chats" class="tab-content space-y-4">
             
-            <!-- Real-Time Traffic Funnel Analytics -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><i class="fa-solid fa-chart-line text-blue-500"></i> Organic Viral Funnel</h3>
-                <div class="grid grid-cols-3 gap-2 text-center">
-                    <div class="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                        <span class="text-[10px] text-gray-500 block">Impressions</span>
-                        <span class="text-base font-bold text-gray-100" id="funnel-impressions">0</span>
-                    </div>
-                    <div class="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                        <span class="text-[10px] text-gray-500 block">Clicks</span>
-                        <span class="text-base font-bold text-gray-100" id="funnel-clicks">0</span>
-                    </div>
-                    <div class="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                        <span class="text-[10px] text-gray-500 block">Conversion</span>
-                        <span class="text-base font-bold text-emerald-400" id="funnel-conversion">0%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Simplified Global Redirect Funnel Link Configurator -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><i class="fa-solid fa-link text-blue-500"></i> Set Global Funnel Redirect Link</h3>
-                <form onsubmit="saveGlobalLink(event)" class="flex gap-2">
-                    <input type="url" id="global-cta-input" placeholder="https://t.me/your_private_channel_or_link" class="flex-1 p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white font-bold" required>
-                    <button type="submit" class="bg-[#0A84FF] text-white text-xs font-bold px-4 rounded-lg">Set Link</button>
-                </form>
-                <p class="text-[9px] text-gray-500 mt-1.5">💡 This link instantly applies to all automated direct message responses and growth hacks, driving traffic organically straight into your private page.</p>
-            </div>
-
-            <!-- iOS Premium Swipeable Persona Cards Switcher -->
-            <div class="space-y-2">
-                <div class="flex items-center justify-between px-1">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-users text-blue-500"></i> Active SMM Personas (Swipe)</span>
-                    <div class="flex gap-2">
-                        <button onclick="slidePersona('prev')" class="w-6 h-6 bg-white/5 rounded-full flex items-center justify-center text-xs text-gray-400 hover:text-white"><i class="fa-solid fa-chevron-left"></i></button>
-                        <button onclick="slidePersona('next')" class="w-6 h-6 bg-white/5 rounded-full flex items-center justify-center text-xs text-gray-400 hover:text-white"><i class="fa-solid fa-chevron-right"></i></button>
-                    </div>
-                </div>
-                
-                <!-- Swiper Wrapper -->
-                <div class="swiper-container w-full gap-3 py-1" id="personas-swiper-container">
-                    <!-- Dynamic swiper slides injected here -->
-                </div>
-            </div>
-
-            <!-- iOS Segmented Statistics Grid -->
-            <div class="grid grid-cols-2 gap-3">
-                <div class="ios-card p-4 flex flex-col justify-between h-24">
-                    <span class="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-crosshairs text-[#0A84FF]"></i> Targets
-                    </span>
-                    <span class="text-2xl font-bold" id="stat-targets">0</span>
-                </div>
-                <div class="ios-card p-4 flex flex-col justify-between h-24">
-                    <span class="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-trophy text-[#AF52DE]"></i> Raids
-                    </span>
-                    <span class="text-2xl font-bold" id="stat-raids">0</span>
-                </div>
-                <div class="ios-card p-4 flex flex-col justify-between h-24">
-                    <span class="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-rectangle-ad text-[#34C759]"></i> Promo Ads
-                    </span>
-                    <span class="text-2xl font-bold" id="stat-ads">0</span>
-                </div>
-                <div class="ios-card p-4 flex flex-col justify-between h-24">
-                    <span class="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-users text-[#FF9500]"></i> Accounts
-                    </span>
-                    <span class="text-2xl font-bold" id="stat-accounts">0</span>
-                </div>
-            </div>
-
-            <!-- Apple System Live Stream Monitor -->
-            <div class="ios-card p-4">
-                <div class="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
-                    <h3 class="font-bold text-sm text-gray-300"><i class="fa-solid fa-terminal text-[#34C759] mr-1.5"></i> Activity Terminal</h3>
-                    <button onclick="clearLogs()" class="text-xs text-[#0A84FF] font-medium">Clear</button>
-                </div>
-                <div class="space-y-2 font-mono text-[10px] max-h-48 overflow-y-auto text-gray-400" id="log-container">
-                    <div>[06:30] SMM Engine loaded.</div>
-                    <div>[06:30] Auto post engines synchronized.</div>
-                    <div>[06:35] Free auto-re-writer ready.</div>
-                </div>
-            </div>
-
-            <!-- iOS List Group Toggle Switches -->
-            <div class="ios-card overflow-hidden">
-                <div class="px-4 py-2.5 text-xs font-bold text-gray-400 uppercase tracking-wider bg-white/5">Engine Master Switches</div>
-                
-                <!-- Toggle: Mirror -->
-                <div class="flex items-center justify-between p-4 ios-list-item">
-                    <div>
-                        <h4 class="text-sm font-semibold">Account Cloning</h4>
-                        <p class="text-xs text-gray-500">Auto copy and rewrite posts</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-mirror" onchange="updateEngineSwitches()" class="sr-only ios-switch">
-                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
-                    </label>
-                </div>
-
-                <!-- Toggle: Raids -->
-                <div class="flex items-center justify-between p-4 ios-list-item">
-                    <div>
-                        <h4 class="text-sm font-semibold">Auto-Raid Engine</h4>
-                        <p class="text-xs text-gray-500">Fleet engagements automatically</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-raid" onchange="updateEngineSwitches()" class="sr-only ios-switch">
-                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
-                    </label>
-                </div>
-
-                <!-- Toggle: Ads -->
-                <div class="flex items-center justify-between p-4 ios-list-item">
-                    <div>
-                        <h4 class="text-sm font-semibold">Promotional Posting</h4>
-                        <p class="text-xs text-gray-500">Broadcast marketing ads on time</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-ads" onchange="updateEngineSwitches()" class="sr-only ios-switch">
-                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
-                    </label>
-                </div>
-
-                <!-- Toggle: DM Chatbot -->
-                <div class="flex items-center justify-between p-4 ios-list-item">
-                    <div>
-                        <h4 class="text-sm font-semibold">AI Inbox Chatbot</h4>
-                        <p class="text-xs text-gray-500">Respond to incoming direct messages</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-dms" onchange="updateEngineSwitches()" class="sr-only ios-switch">
-                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
-                    </label>
-                </div>
-
-                <!-- Toggle: Growth Hacks -->
-                <div class="flex items-center justify-between p-4 ios-list-item">
-                    <div>
-                        <h4 class="text-sm font-semibold">Free Organic Growth</h4>
-                        <p class="text-xs text-gray-500">Extract leads & run traffic triggers</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-growth" onchange="updateEngineSwitches()" class="sr-only ios-switch">
-                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Apple Safety Alert info -->
-            <div class="ios-card p-4 flex gap-3 text-xs text-gray-400 bg-blue-600/5 border-blue-500/10">
-                <i class="fa-solid fa-circle-info text-[#0A84FF] text-base"></i>
-                <p><b>100% Free Campaign Manager:</b> All scraping, scheduling, raids, and auto-posting algorithms are free to operate forever. You do not need paid tokens to run this server.</p>
-            </div>
-        </div>
-
-        <!-- TAB: UNIFIED DM INBOX -->
-        <div id="tab-inbox" class="tab-content hidden space-y-4">
-            
-            <!-- Conversation Split Screen Optimized for iOS Mobile -->
             <div class="flex flex-col gap-4">
-                
-                <!-- Active Leads Section -->
-                <div class="ios-card p-4">
+                <!-- Active Leads lists -->
+                <div class="sidebar-bg p-4 rounded-xl">
                     <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-bold text-sm text-gray-300">Active Direct Messages</h3>
-                        <span class="text-xs text-[#0A84FF]" id="inbox-count-badge">0 Leads</span>
+                        <h3 class="font-bold text-xs uppercase tracking-wider text-gray-400">Direct Conversations</h3>
+                        <span class="text-xs text-[#00a884] font-bold" id="inbox-count-badge">0 Chats</span>
                     </div>
-
-                    <!-- Profile Switcher Dropdown Filter (Multi-Persona integration!) -->
-                    <div class="mb-3">
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Filter Conversations By Persona</label>
-                        <select id="inbox-profile-filter" onchange="filterConversationsByProfile()" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white font-bold">
-                            <option value="all">🌐 Show All Chats (All Personas)</option>
-                            <!-- Dynamic profiles dropdown options filled by JS -->
-                        </select>
-                    </div>
-
                     <!-- Apple Search Bar -->
                     <div class="relative mb-3">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-gray-500 text-xs"></i>
-                        <input type="text" placeholder="Search contacts..." id="conv-search" oninput="filterConversations()" class="w-full pl-9 pr-4 py-2 text-xs bg-black rounded-lg border border-white/10">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3.5 text-gray-500 text-xs"></i>
+                        <input type="text" placeholder="Search contacts..." id="conv-search" oninput="filterConversations()" class="w-full pl-9 pr-4 py-2.5 text-xs bg-black dark:bg-black light:bg-gray-100 rounded-lg border border-white/10 dark:border-white/10 light:border-black/10 focus:outline-none">
                     </div>
                     <!-- Leads lists -->
-                    <div class="space-y-2 max-h-40 overflow-y-auto pr-1" id="conversations-list-container">
-                        <!-- Dynamic contacts list -->
+                    <div class="space-y-3 max-h-48 overflow-y-auto pr-1" id="conversations-list-container">
+                        <!-- Dynamic active conversations list -->
                     </div>
                 </div>
 
-                <!-- Chat Dialog Room (WhatsApp Style Overhaul!) -->
-                <div class="ios-card flex flex-col h-[400px] justify-between overflow-hidden" style="background-color: #0b141a;">
+                <!-- Chat Dialog Room (WhatsApp Web Overhaul) -->
+                <div class="ios-card flex flex-col h-[400px] justify-between overflow-hidden shadow-xl" style="background-color: #0b141a;">
                     <!-- Chat Header -->
-                    <div class="p-3 flex items-center justify-between bg-[#1f2c34] border-b border-white/5">
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs text-gray-300 font-bold" id="chat-avatar-placeholder">?</div>
+                    <div class="p-4 flex items-center justify-between bg-[#1f2c34] dark:bg-[#1f2c34] light:bg-[#f0f2f5] border-b border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center text-xs text-gray-300 font-bold" id="chat-avatar-placeholder">?</div>
                             <div>
-                                <h4 class="text-xs font-bold text-white leading-tight" id="chat-title-handle">Select a thread</h4>
-                                <p class="text-[9px] text-[#8696a0]" id="chat-subtitle-platform">Waiting for chat...</p>
+                                <h4 class="text-xs font-bold text-white dark:text-white light:text-[#111b21] leading-tight" id="chat-title-handle">Select a contact</h4>
+                                <p class="text-[9px] text-[#8696a0]" id="chat-subtitle-platform">Waiting to connect...</p>
                             </div>
                         </div>
-                        <span class="text-[9px] px-2 py-0.5 bg-[#00a884]/20 text-[#00a884] font-bold rounded-full">Secure DM</span>
+                        <span class="text-[9px] px-2 py-0.5 bg-[#00a884]/20 text-[#00a884] font-bold rounded-full">WhatsApp Secure</span>
                     </div>
 
-                    <!-- Conversation Window with beautiful WhatsApp spacing -->
-                    <div class="flex-1 p-4 overflow-y-auto space-y-4 flex flex-col bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat" id="chat-messages-container">
-                        <div class="m-auto text-center text-[#8696a0] text-xs max-w-[200px] bg-[#1f2c34]/80 p-4 rounded-xl border border-white/5">
-                            <i class="fa-solid fa-comments text-2xl mb-1.5 block text-[#00a884]"></i>
-                            Tap a lead from your inbox list above to read and respond to messages in real-time.
+                    <!-- Conversation Window with beautiful spacing -->
+                    <div class="flex-1 p-5 overflow-y-auto space-y-4 flex flex-col bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat" id="chat-messages-container">
+                        <div class="m-auto text-center text-[#8696a0] text-xs max-w-[240px] bg-[#1f2c34]/90 dark:bg-[#1f2c34]/90 light:bg-white/90 p-5 rounded-2xl border border-white/5 dark:border-white/5 light:border-black/5 shadow-lg">
+                            <i class="fa-solid fa-comments text-3xl mb-2 block text-[#00a884]"></i>
+                            <p class="font-bold text-white dark:text-white light:text-gray-800 mb-1">Live Inbox Sandbox</p>
+                            <p class="text-[10px] leading-relaxed">Incoming real-world messages from webhooks or session cookies will appear here instantly. Swipe cards or create accounts to set up.</p>
                         </div>
                     </div>
 
                     <!-- Text input bar (WhatsApp Style) -->
-                    <form onsubmit="sendCustomReply(event)" class="p-2.5 flex gap-2 bg-[#1f2c34]">
+                    <form onsubmit="sendCustomReply(event)" class="p-3 flex gap-2 bg-[#1f2c34] dark:bg-[#1f2c34] light:bg-[#f0f2f5] border-t border-white/5">
                         <input type="hidden" id="active-conv-id" value="">
-                        <input type="text" id="chat-reply-input" placeholder="Type a message..." class="flex-1 px-4 py-2.5 rounded-full text-xs bg-[#2a3942] border-none text-white focus:outline-none focus:ring-0" disabled>
-                        <button type="submit" id="chat-send-btn" class="bg-[#00a884] text-white p-2.5 rounded-full text-xs font-bold disabled:opacity-40 flex items-center justify-center w-9 h-9 shrink-0 shadow-lg shadow-black/20" disabled>
+                        <input type="text" id="chat-reply-input" placeholder="Type a message..." class="flex-1 px-4 py-3 rounded-full text-xs bg-[#2a3942] dark:bg-[#2a3942] light:bg-white border-none text-white dark:text-white light:text-black focus:outline-none focus:ring-0 shadow-inner" disabled>
+                        <button type="submit" id="chat-send-btn" class="bg-[#00a884] text-white p-3 rounded-full text-xs font-bold disabled:opacity-40 flex items-center justify-center w-10 h-10 shrink-0 shadow-lg shadow-black/20" disabled>
                             <i class="fa-solid fa-paper-plane text-xs"></i>
                         </button>
                     </form>
                 </div>
             </div>
-
-            <!-- Custom Auto replies keyword tools -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-gray-300 mb-3">Custom Keyword Auto-Repliers</h3>
-                <form id="form-auto-reply" onsubmit="submitAutoReply(event)" class="space-y-3">
-                    <input type="text" id="rule-keyword" placeholder="Keyword (e.g., launch)" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required>
-                    <textarea id="rule-reply" placeholder="Automated Chatbot Answer..." rows="2" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required></textarea>
-                    <button type="submit" class="w-full bg-[#AF52DE] text-white text-xs font-bold py-2 px-4 rounded-lg">Register Keyword Responder</button>
-                </form>
-                <!-- Existing Rules table -->
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-left text-xs text-gray-400">
-                        <thead>
-                            <tr class="text-gray-500 font-bold">
-                                <th class="pb-2">Trigger</th>
-                                <th class="pb-2">Reply</th>
-                                <th class="pb-2 text-right">Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody id="auto-replies-table-body">
-                            <!-- Dynamic rule items -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
 
-        <!-- TAB: PERSONAS (SMM Multi-Profile Manager) -->
-        <div id="tab-personas" class="tab-content hidden space-y-4">
-            <!-- Add Persona Form -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-gray-300 mb-3"><i class="fa-solid fa-user-plus text-[#0A84FF] mr-1"></i> Create SMM Profile / Persona</h3>
-                <form id="form-persona" onsubmit="submitPersona(event)" class="space-y-3">
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Persona Name / Handle</label>
-                        <input type="text" id="persona-name" placeholder="Sophie Rain, Crypto Analyst, etc." class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white" required>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Niche Category</label>
-                        <select id="persona-niche" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                            <option value="celeb">⭐ Celebrity / Influencer (for her)</option>
-                            <option value="crypto">📈 Crypto / Calls / Trading Analyst</option>
-                            <option value="casual">👤 Casual / Friend / Random Person</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Biography / Role Details (Feeds into AI bot)</label>
-                        <textarea id="persona-bio" placeholder="Bio description detailing persona traits and roles..." rows="2" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white" required></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Target Direct CTA Link (Redirect funnels)</label>
-                        <input type="url" id="persona-cta" placeholder="https://t.me/your_private_channel" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white" required>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">AI Conversation Tone</label>
-                        <select id="persona-tone" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                            <option value="hype">🚨 High-Energy Sweet Hype (Best for Celebs)</option>
-                            <option value="bullish_crypto_enthusiast">🚀 Bullish & Enthusiastic (Best for Crypto)</option>
-                            <option value="casual">🤙 Friendly & Casual (Best for Randoms)</option>
-                            <option value="professional">📊 Professional & Analytical</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="w-full bg-[#0A84FF] text-white text-xs font-bold py-2.5 rounded-lg">Deploy SMM Persona</button>
-                </form>
+        <!-- TAB: SETTINGS (All SMM & Persona configurations consolidated) -->
+        <div id="tab-settings" class="tab-content hidden space-y-6">
+            
+            <!-- Add SMM Persona CTA Button at Top (Creates fresh persona details) -->
+            <div class="flex items-center justify-between bg-gradient-to-r from-blue-600/10 to-[#AF52DE]/10 p-4 rounded-2xl border border-white/5">
+                <div>
+                    <h3 class="font-bold text-sm">Deploy New Persona</h3>
+                    <p class="text-[10px] text-gray-400">Launch a completely separate brand persona</p>
+                </div>
+                <button onclick="openPersonaCreator()" class="bg-[#0A84FF] text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-plus"></i> Add Persona
+                </button>
             </div>
 
-            <!-- Active Personas Lists -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-gray-300 mb-3">Deployed SMM Personas</h3>
+            <!-- Spacious Add Persona Overlay Modal (Fresh page view) -->
+            <div id="persona-modal" class="hidden fixed inset-0 z-50 bg-black/90 p-5 flex flex-col justify-between overflow-y-auto safe-bottom">
+                <div class="space-y-5">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                        <h2 class="text-lg font-bold text-gray-100 flex items-center gap-1.5"><i class="fa-solid fa-user-plus text-blue-500"></i> Fresh SMM Profile</h2>
+                        <button onclick="closePersonaCreator()" class="text-sm text-gray-500 font-bold">Cancel</button>
+                    </div>
+                    <form id="form-persona" onsubmit="submitPersona(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Persona Name / Handle</label>
+                            <input type="text" id="persona-name" placeholder="Sophie Rain, Alpha Calls, Elon, etc." class="w-full p-3 rounded-xl text-xs bg-[#1C1C1E] border border-white/10 text-white" required>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Niche Category</label>
+                            <select id="persona-niche" class="w-full p-3 rounded-xl text-xs bg-[#1C1C1E] border border-white/10 text-white">
+                                <option value="celeb">⭐ Celebrity / Influencer (Sophie Rain / for her)</option>
+                                <option value="crypto">📈 Crypto / Calls / Trading Analyst</option>
+                                <option value="casual">👤 Casual / Friend / Random Person</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Biography / Role Details (Feeds into AI chatbot)</label>
+                            <textarea id="persona-bio" placeholder="Role characteristics used to craft natural AI dialogues..." rows="3" class="w-full p-3 rounded-xl text-xs bg-[#1C1C1E] border border-white/10 text-white" required></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Target Direct CTA Link (Funnels redirects)</label>
+                            <input type="url" id="persona-cta" placeholder="https://t.me/your_private_channel" class="w-full p-3 rounded-xl text-xs bg-[#1C1C1E] border border-white/10 text-white" required>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">AI Conversation Tone</label>
+                            <select id="persona-tone" class="w-full p-3 rounded-xl text-xs bg-[#1C1C1E] border border-white/10 text-white">
+                                <option value="hype">🚨 High-Energy Sweet Hype (Best for Celebs)</option>
+                                <option value="bullish_crypto_enthusiast">🚀 Bullish & Enthusiastic (Best for Crypto)</option>
+                                <option value="casual">🤙 Friendly & Casual (Best for Randoms)</option>
+                                <option value="professional">📊 Professional & Analytical</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white text-xs font-bold py-3 rounded-xl shadow-lg">Deploy SMM Persona</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Global Redirect Funnel Link Configurator (Prominent & Spacious) -->
+            <div class="ios-card p-4 space-y-2">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-link text-blue-500"></i> Global Funnel Override Link</h3>
+                <form onsubmit="saveGlobalLink(event)" class="flex gap-2">
+                    <input type="url" id="global-cta-input" placeholder="https://t.me/your_private_channel" class="flex-1 p-3 rounded-xl text-xs bg-black border border-white/10 text-white font-bold" required>
+                    <button type="submit" class="bg-[#00a884] text-white text-xs font-bold px-4 rounded-xl">Set Link</button>
+                </form>
+                <p class="text-[9px] text-gray-500 leading-normal">Overrides individual persona target links. All DMs and ads automatically use this redirect link to funnel leads.</p>
+            </div>
+
+            <!-- Deployed Personas List -->
+            <div class="ios-card p-4 space-y-3">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider">Active Personas</h3>
                 <div class="space-y-3" id="personas-table-body">
                     <!-- Dynamic profiles cards -->
                 </div>
             </div>
-        </div>
-
-        <!-- TAB: MIRRORING -->
-        <div id="tab-mirroring" class="tab-content hidden space-y-4">
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-gray-300 mb-3"><i class="fa-solid fa-plus text-[#0A84FF] mr-1"></i> Setup Mirror Account</h3>
-                <form id="form-target" onsubmit="submitTarget(event)" class="space-y-3">
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Source Platform</label>
-                        <select id="target-platform" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                            <option value="twitter">𝕏 Twitter / X</option>
-                            <option value="tiktok">🎵 TikTok</option>
-                            <option value="instagram">📸 Instagram</option>
-                            <option value="facebook">👤 Facebook</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Target Account Handle</label>
-                        <input type="text" id="target-handle" placeholder="@elonmusk" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Cloning Target</label>
-                        <select id="target-destination" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                            <option value="TG_GROUP">Broadcast to my Telegram Channel</option>
-                            <option value="AUTO_ACCOUNTS">Auto post to my Connected Accounts</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="w-full bg-[#0A84FF] text-white text-xs font-bold py-2.5 rounded-lg">Register Cloner Stream</button>
-                </form>
-            </div>
-
-            <!-- Mirror Streams list -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-gray-300 mb-3">Linked Cloner Pipelines</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-gray-400">
-                        <thead>
-                            <tr class="text-gray-500 font-bold border-b border-white/5">
-                                <th class="pb-2">Platform</th>
-                                <th class="pb-2">Target</th>
-                                <th class="pb-2 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="targets-table-body">
-                            <!-- Dynamic clone list -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB: RAIDS -->
-        <div id="tab-raids" class="tab-content hidden space-y-4">
-            <!-- Organic Free Traffic & Lead Extraction Campaigns Controller -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-[#0A84FF] mb-3"><i class="fa-solid fa-wand-magic-sparkles"></i> Free Viral Traffic Campaign</h3>
-                <form id="form-growth" onsubmit="submitGrowthCampaign(event)" class="space-y-3">
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Niche Category</label>
-                        <select id="growth-niche" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                            <option value="solana">Solana Memecoins (SOL)</option>
-                            <option value="ethereum">Ethereum Gems (ETH/Base)</option>
-                            <option value="memecoins">General Crypto Speculation</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Target Keywords (comma separated)</label>
-                        <input type="text" id="growth-keywords" placeholder="solana, meme, moonshot" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Traffic Redirect CTA Link</label>
-                        <input type="url" id="growth-cta" placeholder="https://t.me/your_telegram" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Social Channel to Hijack</label>
-                        <select id="growth-platform" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                            <option value="all">Hijack ALL platforms organically</option>
-                            <option value="twitter">𝕏 Twitter / X Threads</option>
-                            <option value="tiktok">🎵 TikTok Comments</option>
-                            <option value="instagram">📸 Instagram Discover</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="w-full bg-[#0A84FF] text-white text-xs font-bold py-2.5 rounded-lg">Deploy Free Organic Funnel</button>
-                </form>
-            </div>
-
-            <!-- Active Traffic Funnels -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-gray-300 mb-3">Live Growth Funnels</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-gray-400">
-                        <thead>
-                            <tr class="text-gray-500 font-bold border-b border-white/5">
-                                <th class="pb-2">Niche</th>
-                                <th class="pb-2">Platform</th>
-                                <th class="pb-2">Organic Reach</th>
-                                <th class="pb-2 text-right">Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody id="growth-table-body">
-                            <!-- Dynamic growth list -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-gray-300 mb-3"><i class="fa-solid fa-radiation text-[#AF52DE] mr-1"></i> Deploy Raid Campaign</h3>
-                <form id="form-raid" onsubmit="submitRaid(event)" class="space-y-3">
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Post Platform</label>
-                        <select id="raid-platform" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                            <option value="twitter">𝕏 Twitter / X</option>
-                            <option value="tiktok">🎵 TikTok</option>
-                            <option value="instagram">📸 Instagram</option>
-                            <option value="facebook">👤 Facebook</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Target Post URL</label>
-                        <input type="url" id="raid-url" placeholder="https://..." class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Call To Action Text</label>
-                        <input type="text" id="raid-caption" placeholder="Like, Retweet, Reply NOW! 🚀" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10">
-                    </div>
-                    <button type="submit" class="w-full bg-[#AF52DE] text-white text-xs font-bold py-2.5 rounded-lg">Detonate Campaign</button>
-                </form>
-            </div>
-
-            <!-- Active Raid Lists -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-gray-300 mb-3">Raid History & Status</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-gray-400">
-                        <thead>
-                            <tr class="text-gray-500 font-bold border-b border-white/5">
-                                <th class="pb-2">Target</th>
-                                <th class="pb-2">Engagement</th>
-                                <th class="pb-2">Status</th>
-                                <th class="pb-2 text-right">Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody id="raids-table-body">
-                            <!-- Dynamic raids history list -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB: SETTINGS -->
-        <div id="tab-settings" class="tab-content hidden space-y-4">
-            <!-- Scheduled Ads Scheduling Section (Included inside iOS settings to save space) -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-[#34C759] mb-3"><i class="fa-solid fa-clock"></i> Scheduled Ad Broadcaster</h3>
-                <form id="form-ad" onsubmit="submitAd(event)" class="space-y-3">
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Broadcast Channel</label>
-                        <select id="ad-platform" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                            <option value="telegram">💬 My Telegram Channel Only</option>
-                            <option value="twitter">𝕏 My Connected Twitter Accounts</option>
-                            <option value="all">🌟 Broadcast All Channels</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Posting Interval (Minutes)</label>
-                        <input type="number" id="ad-interval" value="30" min="5" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Ad Banner Image URL (Optional)</label>
-                        <input type="url" id="ad-image" placeholder="https://..." class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Ad Content Text (HTML Supported)</label>
-                        <textarea id="ad-content" placeholder="E.g. Buy now! 🚀" rows="3" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required></textarea>
-                    </div>
-                    <button type="submit" class="w-full bg-[#34C759] text-white text-xs font-bold py-2.5 rounded-lg">Launch Automated Ad Schedule</button>
-                </form>
-
-                <!-- Scheduled list -->
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-left text-xs text-gray-400">
-                        <thead>
-                            <tr class="text-gray-500 font-bold border-b border-white/5">
-                                <th class="pb-1">Target</th>
-                                <th class="pb-1">Interval</th>
-                                <th class="pb-1 text-right">Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ads-table-body">
-                            <!-- Dynamic scheduled list -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
             <!-- Connected Accounts fleet -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-[#FF9500] mb-3"><i class="fa-solid fa-users"></i> Linked Account Fleet</h3>
+            <div class="ios-card p-4 space-y-3">
+                <h3 class="font-bold text-xs text-[#FF9500] uppercase tracking-wider"><i class="fa-solid fa-users"></i> Connected Social Account Fleet</h3>
                 <form id="form-account" onsubmit="submitAccount(event)" class="space-y-3">
                     <select id="acc-platform" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                        <option value="twitter">𝕏 Twitter / X</option>
-                        <option value="tiktok">🎵 TikTok</option>
-                        <option value="instagram">📸 Instagram</option>
-                        <option value="facebook">👤 Facebook</option>
+                        <option value="twitter">𝕏 Twitter / X (Real Username)</option>
+                        <option value="tiktok">🎵 TikTok (Real Username)</option>
+                        <option value="instagram">📸 Instagram (Real Username)</option>
+                        <option value="facebook">👤 Facebook (Real Username)</option>
                     </select>
-                    <input type="text" id="acc-username" placeholder="Username (@...)" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required>
-                    <input type="text" id="acc-token" placeholder="Auth Token/Cookie" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10">
-                    <button type="submit" class="w-full bg-[#FF9500] text-white text-xs font-bold py-2 rounded-lg">Register Automated Member</button>
+                    <input type="text" id="acc-username" placeholder="Username (e.g. elonmusk, sophierain)" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required>
+                    <input type="text" id="acc-token" placeholder="Session Cookie / Auth Token" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10">
+                    <button type="submit" class="w-full bg-[#FF9500] text-white text-xs font-bold py-2.5 rounded-lg">Register Account</button>
                 </form>
 
-                <!-- Accounts lists -->
                 <div class="mt-4 overflow-x-auto">
                     <table class="w-full text-left text-xs text-gray-400">
                         <thead>
@@ -630,76 +272,134 @@
                     </table>
                 </div>
             </div>
-            
-            <!-- AI Parameters config -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-gray-300 mb-3"><i class="fa-solid fa-key text-[#0A84FF] mr-1"></i> AI Credentials (Optional)</h3>
+
+            <!-- Cloning & Mirroring Targets (Real Scrapers Setup) -->
+            <div class="ios-card p-4 space-y-3">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-copy text-blue-500"></i> Cloning & Mirroring Targets</h3>
+                <form id="form-target" onsubmit="submitTarget(event)" class="space-y-3">
+                    <select id="target-platform" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
+                        <option value="twitter">𝕏 Twitter / X Target</option>
+                        <option value="tiktok">🎵 TikTok Target</option>
+                        <option value="instagram">📸 Instagram Target</option>
+                    </select>
+                    <input type="text" id="target-handle" placeholder="Target username to clone (e.g. elonmusk, sophierain)" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required>
+                    <button type="submit" class="w-full bg-blue-600 text-white text-xs font-bold py-2.5 rounded-lg">Add Cloning Target</button>
+                </form>
+
+                <div class="mt-4 overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-400">
+                        <thead>
+                            <tr class="text-gray-500 font-bold border-b border-white/5">
+                                <th class="pb-1">Platform</th>
+                                <th class="pb-1">Target</th>
+                                <th class="pb-1 text-right">Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody id="targets-table-body">
+                            <!-- Dynamic clones -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Organic Traffic Growth Hack Campaign Deployer -->
+            <div class="ios-card p-4 space-y-3">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-wand-magic-sparkles text-[#AF52DE]"></i> Free Organic Growth Hacks</h3>
+                <form id="form-growth" onsubmit="submitGrowthCampaign(event)" class="space-y-3">
+                    <select id="growth-niche" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
+                        <option value="solana">Solana Memecoins (SOL)</option>
+                        <option value="ethereum">Ethereum Gems (ETH/Base)</option>
+                        <option value="memecoins">General Crypto Speculation</option>
+                    </select>
+                    <input type="text" id="growth-keywords" placeholder="Keywords (solana, meme, moonshot)" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required>
+                    <input type="url" id="growth-cta" placeholder="CTA Redirect link" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required>
+                    <select id="growth-platform" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
+                        <option value="all">Hijack ALL platforms organically</option>
+                        <option value="twitter">𝕏 Twitter / X Threads</option>
+                        <option value="tiktok">🎵 TikTok Comments</option>
+                        <option value="instagram">📸 Instagram Discover</option>
+                    </select>
+                    <button type="submit" class="w-full bg-[#AF52DE] text-white text-xs font-bold py-2.5 rounded-lg">Deploy Funnel</button>
+                </form>
+
+                <div class="mt-4 overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-400">
+                        <thead>
+                            <tr class="text-gray-500 font-bold border-b border-white/5">
+                                <th class="pb-1">Niche</th>
+                                <th class="pb-1">Platform</th>
+                                <th class="pb-1 text-right">Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody id="growth-table-body">
+                            <!-- Dynamic campaigns -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Scheduled Ads Broadcasting Section -->
+            <div class="ios-card p-4 space-y-3">
+                <h3 class="font-bold text-xs text-[#34C759] uppercase tracking-wider"><i class="fa-solid fa-clock"></i> Scheduled Promo Broadcaster</h3>
+                <form id="form-ad" onsubmit="submitAd(event)" class="space-y-3">
+                    <select id="ad-platform" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
+                        <option value="telegram">💬 My Telegram Channel Only</option>
+                        <option value="twitter">𝕏 Connected Twitter Accounts</option>
+                        <option value="all">All Channels</option>
+                    </select>
+                    <input type="number" id="ad-interval" value="30" min="5" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white" required>
+                    <textarea id="ad-content" placeholder="Ad body text (HTML supported)..." rows="3" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10" required></textarea>
+                    <button type="submit" class="w-full bg-[#34C759] text-white text-xs font-bold py-2.5 rounded-lg">Activate Ad Schedule</button>
+                </form>
+
+                <div class="mt-4 overflow-x-auto">
+                    <table class="w-full text-left text-xs text-gray-400">
+                        <thead>
+                            <tr class="text-gray-500 font-bold border-b border-white/5">
+                                <th class="pb-1">Target</th>
+                                <th class="pb-1">Interval</th>
+                                <th class="pb-1 text-right">Delete</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ads-table-body">
+                            <!-- Dynamic ad items -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- AI Credentials & API Keys config -->
+            <div class="ios-card p-4 space-y-3">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-key text-blue-500"></i> AI Credentials (Optional)</h3>
                 <form id="form-settings-ai" onsubmit="submitSettings(event)" class="space-y-3">
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">OpenAI API Key</label>
-                        <input type="password" id="set-openai-key" placeholder="sk-..." class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Google Gemini API Key (Offers Free Tier)</label>
-                        <input type="password" id="set-gemini-key" placeholder="AIzaSy..." class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                        <span class="block text-[10px] text-gray-500 mt-1">💡 Register on Google AI Studio for a 100% free API key to power AI direct messaging.</span>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">AI Dialog Tone</label>
-                        <select id="set-rewrite-style" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10 text-white">
-                            <option value="bullish_crypto_enthusiast">🚀 Bullish Crypto Enthusiast</option>
-                            <option value="hype">🚨 High-Energy Hype-beast</option>
-                            <option value="professional">📊 Professional & Analytical</option>
-                            <option value="casual">🤙 Casual & Gen-Z Slang</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="w-full bg-[#0A84FF] text-white text-xs font-bold py-2 px-5 rounded-lg">Save AI Settings</button>
+                    <input type="password" id="set-openai-key" placeholder="OpenAI Key (sk-...)" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10">
+                    <input type="password" id="set-gemini-key" placeholder="Google Gemini Key (AIzaSy...)" class="w-full p-2.5 rounded-lg text-xs bg-black border border-white/10">
+                    <button type="submit" class="w-full bg-[#0A84FF] text-white text-xs font-bold py-2 rounded-lg">Save AI Settings</button>
                 </form>
             </div>
 
-            <!-- Free Rules Rewriter Info -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-[#34C759] mb-2"><i class="fa-solid fa-circle-check"></i> Free Re-Writer Mode Activated</h3>
-                <p class="text-xs text-gray-400 leading-relaxed">If API credentials are blank, the engine automatically uses our integrated rules-based rewriter. This maps crypto synonyms, modifies structures, and attaches high-conversion calls to action. It is 100% free and requires no developer accounts.</p>
-            </div>
-
             <!-- Rotating SMM Proxies configuration -->
-            <div class="ios-card p-4">
-                <h3 class="font-bold text-sm text-gray-300 mb-3"><i class="fa-solid fa-network-wired text-[#FF9500] mr-1"></i> Rotating Proxy Nodes</h3>
-                <textarea id="set-proxies" placeholder="username:password@ip:port&#10;192.168.1.1:8080" rows="4" class="w-full p-2.5 rounded-lg font-mono text-xs bg-black border border-white/10 text-white"></textarea>
-                <button onclick="saveProxies()" class="w-full mt-3 bg-[#FF9500] text-white text-xs font-bold py-2 px-5 rounded-lg">Apply Proxy Network</button>
+            <div class="ios-card p-4 space-y-3">
+                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-network-wired text-orange-500"></i> Rotating Proxy Nodes</h3>
+                <textarea id="set-proxies" placeholder="username:password@ip:port&#10;192.168.1.1:8080" rows="3" class="w-full p-2.5 rounded-lg font-mono text-xs bg-black border border-white/10 text-white"></textarea>
+                <button onclick="saveProxies()" class="w-full bg-orange-600 text-white text-xs font-bold py-2 rounded-lg">Apply Proxy Network</button>
             </div>
         </div>
 
     </div>
 
-    <!-- Bottom Native iOS App Bar (Mobile Tab Navigation) -->
+    <!-- Bottom Navigation Bar (Simplified to Chats & Settings Only!) -->
     <nav class="ios-blur fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 safe-bottom">
         <div class="max-w-md mx-auto flex justify-around items-center pt-2">
             
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active flex flex-col items-center gap-1 text-blue-500 font-medium transition-colors">
-                <i class="fa-solid fa-chart-pie text-lg"></i>
-                <span class="text-[9px]">Overview</span>
-            </button>
-            
-            <button onclick="switchTab('inbox')" id="nav-inbox" class="nav-btn flex flex-col items-center gap-1 text-gray-500 font-medium relative transition-colors">
+            <button onclick="switchTab('chats')" id="nav-chats" class="nav-btn active flex flex-col items-center gap-1 text-[#00a884] font-medium transition-colors">
                 <i class="fa-solid fa-comment-dots text-lg"></i>
-                <span class="text-[9px]">DMs</span>
-                <span class="absolute -top-1 -right-2 bg-[#FF3B30] text-white font-bold text-[8px] w-4 h-4 flex items-center justify-center rounded-full hidden" id="inbox-unread-count">0</span>
-            </button>
-
-            <button onclick="switchTab('personas')" id="nav-personas" class="nav-btn flex flex-col items-center gap-1 text-gray-500 font-medium transition-colors">
-                <i class="fa-solid fa-users-viewfinder text-lg"></i>
-                <span class="text-[9px]">Personas</span>
-            </button>
-
-            <button onclick="switchTab('raids')" id="nav-raids" class="nav-btn flex flex-col items-center gap-1 text-gray-500 font-medium transition-colors">
-                <i class="fa-solid fa-radiation text-lg"></i>
-                <span class="text-[9px]">Growth</span>
+                <span class="text-[9px]">Chats</span>
+                <span class="absolute top-1 right-24 bg-[#FF3B30] text-white font-bold text-[8px] w-4 h-4 flex items-center justify-center rounded-full hidden" id="inbox-unread-count">0</span>
             </button>
 
             <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center gap-1 text-gray-500 font-medium transition-colors">
-                <i class="fa-solid fa-sliders text-lg"></i>
+                <i class="fa-solid fa-gear text-lg"></i>
                 <span class="text-[9px]">Settings</span>
             </button>
 
@@ -711,7 +411,7 @@
         let dbData = {};
         let activeConversationId = null;
         let selectedInboxProfileId = "all";
-        let activePersonaSlideIndex = 0;
+        let isDarkMode = true;
 
         function addLog(message, colorClass = "text-gray-400") {
             const container = document.getElementById("log-container");
@@ -719,44 +419,61 @@
             const logDiv = document.createElement("div");
             logDiv.className = colorClass;
             logDiv.innerHTML = `[${timeStr}] ${message}`;
-            container.appendChild(logDiv);
-            container.scrollTop = container.scrollHeight;
+            if (container) {
+                container.appendChild(logDiv);
+                container.scrollTop = container.scrollHeight;
+            }
         }
 
         function clearLogs() {
             document.getElementById("log-container").innerHTML = "<div class='text-gray-500'>Logs cleared. Waiting for active streams...</div>";
         }
 
+        // WhatsApp Theme Switcher (White / Dark Switch)
+        function toggleTheme() {
+            const root = document.getElementById("html-root");
+            const icon = document.getElementById("theme-icon");
+            
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                root.classList.add("dark");
+                root.classList.remove("light");
+                icon.className = "fa-solid fa-circle-half-stroke text-base";
+            } else {
+                root.classList.remove("dark");
+                root.classList.add("light");
+                icon.className = "fa-solid fa-sun text-base text-gray-800";
+            }
+        }
+
         function switchTab(tabId) {
             document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
             
-            // Re-style bottom buttons like iOS tabs (Apple Blue active, Gray inactive)
+            // Re-style bottom buttons like iOS tabs
             document.querySelectorAll(".nav-btn").forEach(el => {
-                el.classList.remove("text-blue-500");
+                el.classList.remove("text-[#00a884]");
                 el.classList.add("text-gray-500");
             });
             
             document.getElementById(`tab-${tabId}`).classList.remove("hidden");
-            document.getElementById(`nav-${tabId}`).classList.add("text-blue-500");
+            document.getElementById(`nav-${tabId}`).classList.add("text-[#00a884]");
             document.getElementById(`nav-${tabId}`).classList.remove("text-gray-500");
 
-            // Update titles
             const titleMap = {
-                dashboard: "Overview",
-                inbox: "Unified DMs",
-                personas: "SMM Personas",
-                raids: "Free Organic Growth",
+                chats: "Unified DMs",
                 settings: "Console Settings"
             };
             
             document.getElementById("header-title").textContent = titleMap[tabId];
-            
-            // Scroll back to top on switch to match mobile navigation behavior
             document.getElementById("main-scroll-view").scrollTop = 0;
+        }
 
-            if (tabId === "inbox") {
-                refreshInbox();
-            }
+        // Open/Close Persona Creator Fresh Page Overlay
+        function openPersonaCreator() {
+            document.getElementById("persona-modal").classList.remove("hidden");
+        }
+        function closePersonaCreator() {
+            document.getElementById("persona-modal").classList.add("hidden");
         }
 
         async function fetchAPI(url, options = {}) {
@@ -782,12 +499,6 @@
             // Global CTA Link Prepopulation
             document.getElementById("global-cta-input").value = data.settings.global_cta_link || "";
 
-            // Stats Update
-            document.getElementById("stat-targets").textContent = data.targets.length;
-            document.getElementById("stat-raids").textContent = data.raids.filter(r => r.status === "Completed").length;
-            document.getElementById("stat-ads").textContent = data.ads.length;
-            document.getElementById("stat-accounts").textContent = data.accounts.length;
-
             // Switch Toggles state
             document.getElementById("toggle-mirror").checked = data.settings.auto_mirror_enabled;
             document.getElementById("toggle-raid").checked = data.settings.auto_raid_enabled;
@@ -798,22 +509,18 @@
             // Form Prepopulation
             document.getElementById("set-openai-key").value = data.settings.openai_key || "";
             document.getElementById("set-gemini-key").value = data.settings.gemini_key || "";
-            document.getElementById("set-rewrite-style").value = data.settings.rewrite_style || "bullish_crypto_enthUST";
+            document.getElementById("set-rewrite-style").value = data.settings.rewrite_style || "bullish_crypto_enthusiast";
             document.getElementById("set-proxies").value = (data.settings.proxy_list || []).join("\n");
 
-            // Populate filters
+            // Populate active switcher & drop filters
             populateProfileFilters(data.profiles || []);
 
             // Render tables
             renderTargetsTable(data.targets);
-            renderRaidsTable(data.raids);
             renderAdsTable(data.ads);
             renderAccountsTable(data.accounts);
             renderGrowthCampaignsTable(data.growth_campaigns || []);
             renderPersonasCards(data.profiles || []);
-            
-            // Render iOS Horizontal Swipe Slides!
-            renderPersonasSwiper(data.profiles || []);
             
             // Render Inbox list (filtered by selected profile)
             renderConversationsList(data.conversations || []);
@@ -830,106 +537,50 @@
             }
         }
 
-        // Save Global Redirect CTA Link
-        async function saveGlobalLink(e) {
-            e.preventDefault();
-            const link = document.getElementById("global-cta-input").value.trim();
-            const res = await fetchAPI("/api/settings", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ global_cta_link: link })
-            });
-            if (res) {
-                addLog(`Global redirect funnel link successfully updated to: ${link}`, "text-blue-400");
-                refreshData();
-            }
-        }
-
-        // Horizontal Persona Swiper Slides Render (Premium iOS look & feel!)
-        function renderPersonasSwiper(profiles) {
-            const container = document.getElementById("personas-swiper-container");
-            const oldSlideIndex = activePersonaSlideIndex;
-            
-            container.innerHTML = profiles.length === 0 ? `<div class="p-6 text-center text-gray-500 text-xs w-full">No active SMM personas deployed. Go to Personas tab to deploy!</div>` : "";
-            
-            profiles.forEach((p, idx) => {
-                const slide = document.createElement("div");
-                const isActive = idx === activePersonaSlideIndex;
-                slide.className = `swiper-slide ${isActive ? 'active' : 'inactive'} shrink-0 w-full p-4 ios-card select-none flex flex-col justify-between min-h-[120px] bg-gradient-to-br from-[#1C1C1E] to-[#2C2C2E]/60`;
-                
-                const tagColor = p.niche === 'crypto' ? 'text-blue-400 bg-blue-500/10' : p.niche === 'celeb' ? 'text-pink-400 bg-pink-500/10' : 'text-gray-400 bg-white/5';
-                
-                // Get DM counts for this persona
-                const pConversations = (dbData.conversations || []).filter(c => c.profile_id === p.id);
-                const unreadCount = pConversations.reduce((acc, curr) => acc + (curr.unread || 0), 0);
-                const unreadPill = unreadCount > 0 ? `<span class="bg-red-500 text-white font-bold text-[9px] px-1.5 py-0.5 rounded-full animate-pulse">${unreadCount} Unread</span>` : "";
-
-                slide.innerHTML = `
-                    <div class="flex items-center justify-between border-b border-white/5 pb-2">
-                        <div class="flex items-center gap-2">
-                            <img src="${p.avatar}" alt="Persona" class="w-8 h-8 rounded-full bg-black/40 border border-white/5">
-                            <div>
-                                <h4 class="text-xs font-bold text-gray-200">${p.name}</h4>
-                                <span class="text-[8px] uppercase tracking-wider font-semibold ${tagColor} px-1.5 py-0.5 rounded">${p.niche}</span>
-                            </div>
-                        </div>
-                        ${unreadPill}
-                    </div>
-                    <p class="text-[10px] text-gray-400 italic mt-2 line-clamp-2 leading-relaxed">"${p.bio}"</p>
-                    <div class="flex items-center justify-between mt-3 text-[9px] border-t border-white/5 pt-2">
-                        <span class="text-gray-500"><i class="fa-solid fa-link text-blue-500"></i> CTA: ${p.cta_link}</span>
-                        <button onclick="switchTabAndFilterInbox('${p.id}')" class="text-blue-500 font-bold hover:underline">Manage Chats <i class="fa-solid fa-angle-right"></i></button>
-                    </div>
-                `;
-                container.appendChild(slide);
-            });
-            
-            // Adjust container scroll position to match active index
-            if (profiles.length > 0) {
-                const slides = container.querySelectorAll(".swiper-slide");
-                if (slides[activePersonaSlideIndex]) {
-                    container.scrollLeft = slides[activePersonaSlideIndex].offsetLeft - container.offsetLeft;
-                }
-            }
-        }
-
-        // Sliding persona card
-        function slidePersona(direction) {
-            const profiles = dbData.profiles || [];
-            if (profiles.length === 0) return;
-
-            if (direction === "next") {
-                activePersonaSlideIndex = (activePersonaSlideIndex + 1) % profiles.length;
-            } else {
-                activePersonaSlideIndex = (activePersonaSlideIndex - 1 + profiles.length) % profiles.length;
-            }
-            refreshData();
-        }
-
-        // Clicking "Manage Chats" switches tab to DM and automatically filters to that persona!
-        function switchTabAndFilterInbox(profileId) {
-            switchTab("inbox");
-            document.getElementById("inbox-profile-filter").value = profileId;
-            filterConversationsByProfile();
-        }
-
         // Fill dropdown profile selectors with active passwords
         function populateProfileFilters(profiles) {
             const selectFilter = document.getElementById("inbox-profile-filter");
-            const currentVal = selectFilter.value;
+            const selectSwitcher = document.getElementById("active-persona-switch");
+            const currentFilterVal = selectFilter.value;
+            const currentSwitcherVal = selectSwitcher.value;
             
-            // Keep first option
+            // 1. Inbox Filter dropdown
             selectFilter.innerHTML = '<option value="all">🌐 Show All Chats (All Personas)</option>';
+            // 2. Active switcher header
+            selectSwitcher.innerHTML = '';
             
             profiles.forEach(p => {
                 const opt = document.createElement("option");
                 opt.value = p.id;
                 opt.textContent = `${p.niche === 'crypto' ? '📈' : p.niche === 'celeb' ? '⭐' : '👤'} ${p.name}`;
-                selectFilter.appendChild(opt);
+                
+                selectFilter.appendChild(opt.cloneNode(true));
+                selectSwitcher.appendChild(opt.cloneNode(true));
             });
             
-            // Restore previous selection
-            selectFilter.value = currentVal || "all";
+            // Restore selections
+            selectFilter.value = currentFilterVal || "all";
+            selectSwitcher.value = currentSwitcherVal || (profiles[0] ? profiles[0].id : "");
+            
+            // Set header avatar
+            const activeProfile = profiles.find(p => p.id === selectSwitcher.value);
+            if (activeProfile) {
+                document.getElementById("header-persona-avatar").innerHTML = `<img src="${activeProfile.avatar}" class="w-full h-full rounded-full border border-white/10">`;
+            }
+        }
+
+        function switchActivePersona() {
+            const val = document.getElementById("active-persona-switch").value;
+            selectedInboxProfileId = val;
+            document.getElementById("inbox-profile-filter").value = val;
+            
+            // Update Avatar
+            const activeProfile = (dbData.profiles || []).find(p => p.id === val);
+            if (activeProfile) {
+                document.getElementById("header-persona-avatar").innerHTML = `<img src="${activeProfile.avatar}" class="w-full h-full rounded-full border border-white/10">`;
+            }
+            
+            filterConversationsByProfile();
         }
 
         function filterConversationsByProfile() {
@@ -939,7 +590,7 @@
             }
         }
 
-        // Render Conversation Contacts list (Multi-Persona Filter integrated!)
+        // Render Conversation Contacts list
         function renderConversationsList(conversations) {
             const container = document.getElementById("conversations-list-container");
             const searchVal = document.getElementById("conv-search").value.toLowerCase();
@@ -952,12 +603,12 @@
             filtered = filtered.filter(c => c.sender_handle.toLowerCase().includes(searchVal));
 
             document.getElementById("inbox-count-badge").textContent = `${filtered.length} Leads`;
-            container.innerHTML = filtered.length === 0 ? `<div class="text-center text-gray-500 py-4 text-xs">No active direct messages found.</div>` : "";
+            container.innerHTML = filtered.length === 0 ? `<div class="text-center text-gray-500 py-6 text-xs text-white">No active real-world chats yet.</div>` : "";
 
             filtered.forEach(c => {
                 const isSelected = activeConversationId === c.id;
                 const div = document.createElement("div");
-                div.className = `p-3 rounded-xl flex items-center justify-between cursor-pointer transition-all ${isSelected ? 'bg-[#0A84FF]/20 border border-[#0A84FF]/30' : 'bg-[#1C1C1E] border border-transparent'}`;
+                div.className = `p-3.5 rounded-xl flex items-center justify-between cursor-pointer transition-all ${isSelected ? 'bg-[#00a884]/20 border border-[#00a884]/30' : 'bg-white/5 border border-transparent'}`;
                 div.setAttribute("onclick", `selectConversation('${c.id}', '${c.sender_handle}', '${c.platform}')`);
 
                 const platformIcon = getPlatformIcon(c.platform);
@@ -969,14 +620,14 @@
 
                 div.innerHTML = `
                     <div class="flex items-center gap-3 min-w-0">
-                        <img src="${c.avatar}" alt="Lead" class="w-8 h-8 rounded-full bg-[#1C1C1E] border border-white/5">
+                        <img src="${c.avatar}" alt="Lead" class="w-9 h-9 rounded-full bg-[#1C1C1E] border border-white/5">
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1 font-bold text-xs text-gray-200 justify-between">
-                                <span class="truncate max-w-[130px]">${c.sender_handle}</span>
+                                <span class="truncate max-w-[130px] text-[13px]">${c.sender_handle}</span>
                                 ${platformIcon}
                             </div>
                             <span class="text-[8px] bg-white/10 px-1 py-0.5 rounded text-gray-400 font-semibold inline-block truncate max-w-[120px] mt-0.5">${personaName}</span>
-                            <p class="text-[10px] text-gray-500 truncate mt-1 max-w-[140px]">${c.last_message_text}</p>
+                            <p class="text-[11px] text-gray-400 truncate mt-1 max-w-[140px]">${c.last_message_text}</p>
                         </div>
                     </div>
                     ${unreadDot}
@@ -1031,8 +682,8 @@
                     const bubbleBg = m.is_incoming ? 'bg-[#202c33] text-white rounded-tl-none border border-white/5' : 'bg-[#005c4b] text-white rounded-tr-none shadow-md shadow-black/10';
 
                     div.innerHTML = `
-                        <div class="max-w-[75%] px-3 py-2 rounded-xl text-xs ${bubbleBg}">
-                            <p class="leading-relaxed break-words text-[12px]">${m.text}</p>
+                        <div class="max-w-[75%] px-3 py-2.5 rounded-xl text-xs ${bubbleBg}">
+                            <p class="leading-relaxed break-words text-[13px]">${m.text}</p>
                             <div class="flex items-center justify-end gap-1 mt-1 opacity-50">
                                 <span class="block text-[8px]">${timeStr}</span>
                                 ${!m.is_incoming ? '<i class="fa-solid fa-check-double text-[8px] text-[#53bdeb]"></i>' : ''}
@@ -1062,6 +713,21 @@
             if (res && res.success) {
                 textInput.value = "";
                 await loadMessages(conv_id);
+                refreshData();
+            }
+        }
+
+        // Save Global Redirect CTA Link
+        async function saveGlobalLink(e) {
+            e.preventDefault();
+            const link = document.getElementById("global-cta-input").value.trim();
+            const res = await fetchAPI("/api/settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ global_cta_link: link })
+            });
+            if (res) {
+                addLog(`Global redirect link updated: ${link}`, "text-blue-400");
                 refreshData();
             }
         }
@@ -1116,6 +782,7 @@
             if (res) {
                 addLog(`Registered and deployed Persona profile: '${data.name}'!`, "text-emerald-400");
                 document.getElementById("form-persona").reset();
+                closePersonaCreator();
                 refreshData();
             }
         }
@@ -1186,30 +853,6 @@
             });
         }
 
-        function renderRaidsTable(items) {
-            const tbody = document.getElementById("raids-table-body");
-            tbody.innerHTML = items.length === 0 ? `<tr><td colspan="4" class="py-4 text-center text-gray-600">No raid campaigns recorded.</td></tr>` : "";
-
-            items.forEach(item => {
-                const tr = document.createElement("tr");
-                tr.className = "border-b border-white/5 hover:bg-white/5";
-
-                const progressPercent = item.target_likes > 0 ? Math.min(100, Math.round((item.current_likes / item.target_likes) * 100)) : 100;
-                
-                tr.innerHTML = `
-                    <td class="py-2.5 text-[11px] font-mono"><a href="${item.url}" target="_blank" class="text-blue-400 hover:underline inline-block max-w-[100px] truncate">${item.url}</a></td>
-                    <td class="py-2.5">
-                        <span class="text-[10px] text-[#AF52DE] font-bold">${item.current_likes}/${item.target_likes} Actions</span>
-                    </td>
-                    <td class="py-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-600/20 text-emerald-400">${item.status}</span></td>
-                    <td class="py-2.5 text-right">
-                        <button onclick="deleteRaid('${item.id}')" class="text-xs text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
         function renderAdsTable(items) {
             const tbody = document.getElementById("ads-table-body");
             tbody.innerHTML = items.length === 0 ? `<tr><td colspan="4" class="py-4 text-center text-gray-600">No active promotional schedules.</td></tr>` : "";
@@ -1223,7 +866,6 @@
                 tr.innerHTML = `
                     <td class="py-2.5 font-semibold text-[10px] text-[#34C759]">${item.platform.toUpperCase()}</td>
                     <td class="py-2.5 text-[11px] font-bold">${item.interval_min} Mins</td>
-                    <td class="py-2.5 text-[10px] text-gray-500">${lastPostedStr}</td>
                     <td class="py-2.5 text-right">
                         <button onclick="deleteAd('${item.id}')" class="text-xs text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
                     </td>
@@ -1265,7 +907,6 @@
                 tr.innerHTML = `
                     <td class="py-2.5 font-semibold text-xs text-gray-200 capitalize">${item.niche}</td>
                     <td class="py-2.5 text-[10px] font-mono text-gray-400">${item.platform.toUpperCase()}</td>
-                    <td class="py-2.5 text-[11px] font-bold text-blue-400">${item.impressions_generated.toLocaleString()} views</td>
                     <td class="py-2.5 text-right">
                         <button onclick="deleteGrowthCampaign('${item.id}')" class="text-xs text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
                     </td>
@@ -1309,11 +950,11 @@
 
         function getPlatformIcon(platform) {
             switch (platform.toLowerCase()) {
-                case "twitter": return `<i class="fa-brands fa-twitter text-blue-400 text-xs"></i>`;
-                case "tiktok": return `<i class="fa-brands fa-tiktok text-pink-400 text-xs"></i>`;
-                case "instagram": return `<i class="fa-brands fa-instagram text-pink-500 text-xs"></i>`;
-                case "facebook": return `<i class="fa-brands fa-facebook text-blue-600 text-xs"></i>`;
-                default: return `<i class="fa-solid fa-share-nodes text-xs"></i>`;
+                case "twitter": return `<i class="fa-brands fa-twitter text-blue-400 text-sm"></i>`;
+                case "tiktok": return `<i class="fa-brands fa-tiktok text-pink-400 text-sm"></i>`;
+                case "instagram": return `<i class="fa-brands fa-instagram text-pink-500 text-sm"></i>`;
+                case "facebook": return `<i class="fa-brands fa-facebook text-blue-600 text-sm"></i>`;
+                default: return `<i class="fa-solid fa-share-nodes text-sm"></i>`;
             }
         }
 
@@ -1342,7 +983,7 @@
             const data = {
                 platform: document.getElementById("target-platform").value,
                 handle: document.getElementById("target-handle").value,
-                destination: document.getElementById("target-destination").value
+                destination: "AUTO_ACCOUNTS"
             };
             const res = await fetchAPI("/api/targets", {
                 method: "POST",
@@ -1368,44 +1009,13 @@
             }
         }
 
-        async function submitRaid(e) {
-            e.preventDefault();
-            const data = {
-                platform: document.getElementById("raid-platform").value,
-                url: document.getElementById("raid-url").value,
-                caption: document.getElementById("raid-caption").value
-            };
-            const res = await fetchAPI("/api/raids", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-            if (res) {
-                addLog(`🔥 Automated raid initiated successfully!`, "text-[#AF52DE]");
-                document.getElementById("form-raid").reset();
-                refreshData();
-            }
-        }
-
-        async function deleteRaid(id) {
-            const res = await fetchAPI("/api/raids/delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id })
-            });
-            if (res) {
-                addLog("Raid campaign removed.", "text-red-400");
-                refreshData();
-            }
-        }
-
         async function submitAd(e) {
             e.preventDefault();
             const data = {
                 platform: document.getElementById("ad-platform").value,
                 interval_min: document.getElementById("ad-interval").value,
                 content: document.getElementById("ad-content").value,
-                image_url: document.getElementById("ad-image").value
+                image_url: ""
             };
             const res = await fetchAPI("/api/ads", {
                 method: "POST",
@@ -1505,7 +1115,6 @@
         // Init
         document.addEventListener("DOMContentLoaded", () => {
             refreshData();
-            // Poll for DB updates every 5 seconds to match backend activity
             setInterval(refreshData, 5000);
             setInterval(runMessagingTick, 3000);
         });
