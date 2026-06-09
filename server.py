@@ -4,15 +4,42 @@ interactive Admin Web Dashboard, REST APIs, Live DMs messaging, and official Met
 """
 import os
 import json
-from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.parse
+import urllib.request
 import threading
 import logging
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 import marketing_db
 import dm_manager
 
+
 logger = logging.getLogger(__name__)
+
+
+def _resolve_meta_sender(sender_id: str, platform: str) -> str:
+    """
+    Try to resolve a real display name for a Meta (Facebook/Instagram) sender
+    using the Graph API with any stored page access token.
+    Falls back to a clean platform-prefixed ID if no token is available.
+    """
+    accounts = marketing_db.get_accounts()
+    token = next(
+        (a.get("token_session", "") for a in accounts if a.get("platform") == platform and a.get("token_session")),
+        ""
+    )
+    if token:
+        try:
+            url = f"https://graph.facebook.com/v18.0/{sender_id}?fields=name&access_token={token}"
+            req = urllib.request.Request(url, headers={"User-Agent": "VerizonSuite/2.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read())
+                name = data.get("name", "").strip()
+                if name:
+                    return name
+        except Exception as e:
+            logger.debug(f"Graph API name lookup failed for {sender_id}: {e}")
+    return f"{platform}_{sender_id}"
 
 PORT = int(os.getenv("PORT", "5000"))
 
@@ -88,7 +115,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             token = query_params.get("hub.verify_token", [None])[0]
             challenge = query_params.get("hub.challenge", [None])[0]
             
-            if mode == "subscribe" and token == VERIFY_TOKEN:
+            if mode == "subscribe" and VERIFY_TOKEN and token == VERIFY_TOKEN:
                 logger.info("✅ Meta Webhook successfully verified and linked!")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/plain")
@@ -132,22 +159,22 @@ class HealthHandler(BaseHTTPRequestHandler):
                             message_text = message_data.get("text", "")
                             
                             if sender_id and message_text:
-                                # Trigger SMM response loop for this real-world user
-                                logger.info(f"📬 [LIVE-WEBHOOK] Real DM received from ID {sender_id}: '{message_text}'")
-                                
-                                # Fetch profiles to choose correct responder
+                                platform_name = "instagram" if params.get("object") == "instagram" else "facebook"
+                                logger.info(f"📬 [META-WEBHOOK] Real {platform_name} DM from {sender_id}: '{message_text[:80]}'")
+
+                                # Try to resolve real sender name from Meta Graph API
+                                sender_handle = _resolve_meta_sender(sender_id, platform_name)
+
                                 profiles = marketing_db.get_profiles()
                                 active_profiles = [p for p in profiles if p.get("active", True)]
                                 target_profile = active_profiles[0] if active_profiles else None
-                                
+
                                 if target_profile:
-                                    platform_name = "instagram" if params.get("object") == "instagram" else "facebook"
-                                    # Trigger real AI response handler
                                     import asyncio
                                     loop = asyncio.get_event_loop()
                                     loop.create_task(dm_manager.handle_incoming_real_dm(
                                         platform=platform_name,
-                                        sender_handle=f"User_{sender_id}",
+                                        sender_handle=sender_handle,
                                         message_text=message_text,
                                         profile_id=target_profile["id"]
                                     ))

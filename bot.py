@@ -7,7 +7,7 @@ import asyncio
 import aiohttp
 from telegram import Update, Bot
 from telegram.constants import ParseMode
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 import config
 from server import start_health_server
@@ -18,11 +18,87 @@ from scanners.geckoterminal import scan_geckoterminal
 from scanners.pumpfun import scan_pumpfun
 from scanners.birdeye import scan_extra_sources
 import seen_db
+import marketing_db
+import dm_manager
+import humanizer
 
 logger = logging.getLogger(__name__)
 
 scan_count = 0
 total_posted = 0
+
+
+# --- Real Telegram Private DM Handler ---
+
+async def handle_private_dm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles real private DMs sent directly to the bot.
+    Stores in the unified inbox, generates an AI reply, and sends it back to the user.
+    """
+    if not update.message or not update.effective_user:
+        return
+
+    user = update.effective_user
+    sender_handle = f"@{user.username}" if user.username else f"{user.first_name or 'User'}_{user.id}"
+    message_text = update.message.text or ""
+
+    if not message_text:
+        return
+
+    logger.info(f"📬 [REAL-TG-DM] Incoming private DM from {sender_handle}: '{message_text}'")
+
+    # Get active persona to reply as
+    profiles = marketing_db.get_profiles()
+    active_profiles = [p for p in profiles if p.get("active", True)]
+    profile = active_profiles[0] if active_profiles else None
+
+    # Store in inbox regardless of whether a persona exists
+    profile_id = profile["id"] if profile else None
+    conv, _ = marketing_db.add_incoming_message(
+        platform="telegram",
+        sender_handle=sender_handle,
+        text=message_text,
+        avatar=f"https://api.dicebear.com/7.x/bottts/svg?seed={sender_handle}",
+        profile_id=profile_id
+    )
+
+    if not profile:
+        # No persona configured — send a holding reply and stop
+        await update.message.reply_text("hey! give me a sec 👀")
+        return
+
+    # Show typing indicator
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+
+    # Generate AI or rule-based reply
+    raw_body, raw_followup = await dm_manager.generate_ai_or_rule_reply(message_text, profile)
+
+    # Humanize the reply text
+    human_body = humanizer.humanize_text(raw_body)
+    human_followup = humanizer.humanize_text(raw_followup) if raw_followup else ""
+
+    # Realistic typing delay for first message
+    delay = humanizer.calculate_typing_delay(human_body)
+    await asyncio.sleep(delay)
+
+    # Send body reply back to the Telegram user
+    await update.message.reply_text(human_body)
+
+    # Store in outgoing DB
+    marketing_db.add_outgoing_reply(conv["id"], human_body)
+    logger.info(f"📤 [TG-REPLY] Sent reply to {sender_handle}: '{human_body}'")
+
+    # Send CTA follow-up if present
+    if human_followup:
+        await asyncio.sleep(3.5)
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+        await asyncio.sleep(2.5)
+        await update.message.reply_text(human_followup)
+        marketing_db.add_outgoing_reply(conv["id"], human_followup)
+        logger.info(f"📤 [TG-CTA] Sent CTA follow-up to {sender_handle}: '{human_followup}'")
+
+    # Count as a lead in analytics
+    marketing_db.increment_analytics(leads=1)
 
 
 # --- SMM Telegram Handlers ---
@@ -124,7 +200,7 @@ async def accounts_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not accs:
         await update.message.reply_text(
             "⚠️ No automated SMM accounts linked yet.\n"
-            "Open the Web Dashboard at port 10000 to add credentials and tokens!",
+            "Open the Web Dashboard at port 5000 to add credentials and API tokens!",
             parse_mode=ParseMode.HTML
         )
         return
@@ -344,12 +420,15 @@ def main():
         app.add_handler(CommandHandler("raid", raid_command))
         app.add_handler(CommandHandler("schedule_ad", schedule_ad_command))
         app.add_handler(CommandHandler("accounts", accounts_command))
-        
+
+        # Real private DM handler — catches any text message sent directly to the bot
+        app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND, handle_private_dm))
+
         app.post_init = post_init
         app.run_polling(drop_pending_updates=True)
     else:
         print("⚠️ TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing!")
-        print("💡 The Telegram Coin Scanner will remain inactive, but the SMM Marketing Engines, DMs Inbox, and Web Dashboard are fully operational on port 10000.")
+        print("💡 The Telegram Coin Scanner will remain inactive, but the SMM Marketing Engines, DMs Inbox, and Web Dashboard are fully operational on port 5000.")
         
         # Start background SMM services directly in a clean active asyncio loop
         try:
