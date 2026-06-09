@@ -14,7 +14,7 @@ import dm_manager
 
 logger = logging.getLogger(__name__)
 
-PORT = int(os.getenv("PORT", "10000"))
+PORT = int(os.getenv("PORT", "5000"))
 
 # Meta Webhook Verification Token (Configure in Meta Developer App)
 VERIFY_TOKEN = os.getenv("META_VERIFY_TOKEN", "my_smm_verify_token_123")
@@ -40,7 +40,23 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f"Error loading dashboard: {e}".encode("utf-8"))
             return
 
-        # 2. REST API: GET Data
+        # 2. REST API: GET Agent Company Status
+        if self.path == "/api/agents":
+            try:
+                from agents.director import get_company_status
+                status = get_company_status()
+                self.send_json_response(200, {"success": True, **status})
+            except Exception as e:
+                self.send_json_response(200, {"success": False, "error": str(e), "agents": []})
+            return
+
+        # 2b. REST API: GET Conversations
+        if self.path == "/api/conversations":
+            convs = marketing_db.get_conversations()
+            self.send_json_response(200, {"success": True, "conversations": convs})
+            return
+
+        # 3b. REST API: GET Data
         if self.path == "/api/data":
             data = marketing_db.load_db()
             data["profiles"] = marketing_db.get_profiles()
@@ -125,17 +141,16 @@ class HealthHandler(BaseHTTPRequestHandler):
                                 target_profile = active_profiles[0] if active_profiles else None
                                 
                                 if target_profile:
-                                    # Parse sender details & write into the unified dashboard
-                                    conv, new_msg = marketing_db.add_incoming_message(
-                                        platform="instagram" if params.get("object") == "instagram" else "facebook",
-                                        sender_handle=f"User_{sender_id}",
-                                        text=message_text,
-                                        profile_id=target_profile["id"]
-                                    )
-                                    # Trigger asynchronous AI response typing loop
+                                    platform_name = "instagram" if params.get("object") == "instagram" else "facebook"
+                                    # Trigger real AI response handler
                                     import asyncio
                                     loop = asyncio.get_event_loop()
-                                    loop.create_task(dm_manager.simulate_incoming_direct_message())
+                                    loop.create_task(dm_manager.handle_incoming_real_dm(
+                                        platform=platform_name,
+                                        sender_handle=f"User_{sender_id}",
+                                        message_text=message_text,
+                                        profile_id=target_profile["id"]
+                                    ))
                                     
                     self.send_response(200)
                     self.end_headers()
@@ -320,6 +335,33 @@ class HealthHandler(BaseHTTPRequestHandler):
             camp_id = params.get("id")
             marketing_db.delete_growth_campaign(camp_id)
             self.send_json_response(200, {"success": True})
+            return
+
+        # --- Test DM Injection (for dashboard testing without needing Telegram) ---
+        elif self.path == "/api/inject_dm":
+            platform = params.get("platform", "telegram")
+            sender = params.get("sender", "TestUser")
+            text = params.get("text", "")
+            if not text:
+                self.send_json_response(400, {"success": False, "error": "Missing text"})
+                return
+
+            profiles = marketing_db.get_profiles()
+            active = [p for p in profiles if p.get("active", True)]
+            profile = active[0] if active else None
+            if not profile:
+                self.send_json_response(400, {"success": False, "error": "No active persona. Create a Persona first."})
+                return
+
+            import asyncio
+            loop = asyncio.get_event_loop()
+            loop.create_task(dm_manager.handle_incoming_real_dm(
+                platform=platform,
+                sender_handle=sender,
+                message_text=text,
+                profile_id=profile["id"]
+            ))
+            self.send_json_response(200, {"success": True, "message": "DM injected and AI reply scheduled."})
             return
 
         self.send_json_response(404, {"success": False, "error": "Not Found"})

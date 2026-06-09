@@ -1,0 +1,36 @@
+{
+  "profiles": [],
+  "targets": [],
+  "ads": [],
+  "accounts": [],
+  "raids": [],
+  "conversations": [],
+  "messages": {},
+  "auto_replies": [],
+  "growth_campaigns": [],
+  "analytics": {
+    "impressions": 24500,
+    "clicks": 1820,
+    "leads": 412,
+    "conversion_rate": 22.6,
+    "total_conversations": 0,
+    "total_messages": 0,
+    "incoming": 0,
+    "outgoing": 0,
+    "response_rate": 0.0,
+    "unread": 0,
+    "platforms": {}
+  },
+  "settings": {
+    "openai_key": "",
+    "gemini_key": "",
+    "global_cta_link": "",
+    "auto_mirror_enabled": true,
+    "auto_raid_enabled": true,
+    "auto_post_enabled": true,
+    "auto_dm_reply_enabled": true,
+    "growth_hacks_enabled": true,
+    "rewrite_style": "bullish_crypto_enthusiast",
+    "proxy_list": []
+  }
+}

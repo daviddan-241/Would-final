@@ -323,6 +323,57 @@
 
         </div>
 
+        <!-- TAB: AGENTS (Company Worker Roster) -->
+        <div id="tab-agents" class="tab-content hidden space-y-4 pb-32">
+
+            <!-- Company Header -->
+            <div class="glass-panel p-5 bg-gradient-to-br from-[#1a1a2e]/80 to-[#16213e]/80 border border-[#0f3460]/30">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl">🏢</div>
+                    <div>
+                        <h2 class="font-extrabold text-base text-white" id="company-name">Verizon Suite Operations</h2>
+                        <p class="text-[10px] text-gray-400">Real-time agent company status</p>
+                    </div>
+                    <div class="ml-auto text-right">
+                        <div class="text-[10px] text-gray-400">Uptime</div>
+                        <div class="text-sm font-bold text-[#00a884]" id="company-uptime">--</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mt-4">
+                    <div class="bg-white/5 rounded-xl p-3 text-center">
+                        <div class="text-xl font-extrabold text-white" id="stat-total-agents">--</div>
+                        <div class="text-[9px] text-gray-400 mt-0.5">Total Agents</div>
+                    </div>
+                    <div class="bg-white/5 rounded-xl p-3 text-center">
+                        <div class="text-xl font-extrabold text-[#00a884]" id="stat-active-agents">--</div>
+                        <div class="text-[9px] text-gray-400 mt-0.5">Active Now</div>
+                    </div>
+                    <div class="bg-white/5 rounded-xl p-3 text-center">
+                        <div class="text-xl font-extrabold text-blue-400" id="stat-tasks-done">--</div>
+                        <div class="text-[9px] text-gray-400 mt-0.5">Tasks Done</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Cards -->
+            <div id="agents-list" class="space-y-3">
+                <div class="text-center text-gray-500 text-sm py-8">Loading agents...</div>
+            </div>
+
+            <!-- Test DM Panel -->
+            <div class="glass-panel p-5 space-y-3">
+                <h3 class="font-bold text-sm flex items-center gap-2">💬 Test DM Inbox</h3>
+                <p class="text-[10px] text-gray-400">Fire a real DM at your active persona and watch the AI reply appear in the Chats tab.</p>
+                <input type="text" id="test-dm-sender" placeholder="Sender name (e.g. @john)" class="glass-input w-full px-4 py-3 text-sm" value="@TestUser">
+                <textarea id="test-dm-text" placeholder="Type a message..." class="glass-input w-full px-4 py-3 text-sm resize-none" rows="3"></textarea>
+                <button onclick="fireTestDM()" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-2xl text-sm">
+                    🚀 Fire Test DM
+                </button>
+                <div id="test-dm-result" class="hidden text-xs text-[#00a884] font-semibold text-center mt-1"></div>
+            </div>
+
+        </div>
+
         <!-- TAB: SETTINGS (Consolidated & Highly Spacious SMM Controls) -->
         <div id="tab-settings" class="tab-content hidden space-y-6 pb-32">
             
@@ -627,6 +678,11 @@
                 <i class="fa-solid fa-comment-dots text-lg"></i>
                 <span class="text-[9px]">DMs</span>
                 <span class="absolute top-0 right-2 bg-[#FF3B30] text-white font-bold text-[8px] w-4 h-4 flex items-center justify-center rounded-full hidden" id="inbox-unread-count">0</span>
+            </button>
+
+            <button onclick="switchTab('agents')" id="nav-agents" class="nav-btn flex flex-col items-center gap-1 text-gray-500 font-medium transition-colors">
+                <i class="fa-solid fa-users-gear text-lg"></i>
+                <span class="text-[9px]">Agents</span>
             </button>
 
             <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center gap-1 text-gray-500 font-medium transition-colors">
@@ -1459,11 +1515,106 @@
             }
         }
 
+        // ─── AGENTS TAB ───────────────────────────────────────────
+
+        async function loadAgents() {
+            try {
+                const data = await fetchAPI("/api/agents");
+                if (!data || !data.success) return;
+
+                document.getElementById("company-uptime").textContent = data.uptime_human || "--";
+                document.getElementById("stat-total-agents").textContent = data.total_agents || 0;
+                document.getElementById("stat-active-agents").textContent = data.active_agents || 0;
+                document.getElementById("stat-tasks-done").textContent = (data.total_tasks_completed || 0).toLocaleString();
+
+                const statusColors = {
+                    "running":   "text-[#00a884]",
+                    "idle":      "text-blue-400",
+                    "scanning":  "text-yellow-400",
+                    "computing": "text-purple-400",
+                    "executing": "text-orange-400",
+                    "monitoring":"text-cyan-400",
+                    "checking":  "text-indigo-400",
+                    "watching":  "text-pink-400",
+                    "error":     "text-red-400",
+                    "stopped":   "text-gray-500"
+                };
+
+                const list = document.getElementById("agents-list");
+                if (!data.agents || data.agents.length === 0) {
+                    list.innerHTML = `<div class="text-center text-gray-500 text-sm py-8">No agents running yet. Start the bot to activate.</div>`;
+                    return;
+                }
+
+                list.innerHTML = data.agents.map(agent => {
+                    const statusColor = statusColors[agent.status] || "text-gray-400";
+                    const uptime = agent.uptime_s < 60 ? `${agent.uptime_s}s` :
+                                   agent.uptime_s < 3600 ? `${Math.floor(agent.uptime_s/60)}m` :
+                                   `${Math.floor(agent.uptime_s/3600)}h ${Math.floor((agent.uptime_s%3600)/60)}m`;
+                    const lastLog = agent.recent_logs && agent.recent_logs.length > 0
+                        ? agent.recent_logs[agent.recent_logs.length - 1].msg
+                        : "Waiting for activity...";
+                    return `
+                    <div class="glass-panel p-4 space-y-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-lg flex-shrink-0">${agent.emoji}</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-sm text-white">${agent.name}</span>
+                                    <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 ${statusColor} font-semibold uppercase">${agent.status}</span>
+                                </div>
+                                <p class="text-[10px] text-gray-400 leading-tight mt-0.5 truncate">${agent.role}</p>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <div class="text-sm font-extrabold text-white">${(agent.tasks_completed || 0).toLocaleString()}</div>
+                                <div class="text-[9px] text-gray-500">tasks</div>
+                            </div>
+                        </div>
+                        <div class="bg-black/30 rounded-lg px-3 py-2">
+                            <p class="text-[10px] text-gray-400 font-mono leading-relaxed truncate">💬 ${lastLog}</p>
+                        </div>
+                        <div class="flex gap-4 text-[9px] text-gray-500">
+                            <span>⏱ Up ${uptime}</span>
+                            <span class="text-red-400">${agent.error_count > 0 ? `⚠️ ${agent.error_count} errors` : '✅ No errors'}</span>
+                        </div>
+                    </div>`;
+                }).join("");
+            } catch (e) {
+                console.error("Agent load error:", e);
+            }
+        }
+
+        async function fireTestDM() {
+            const sender = document.getElementById("test-dm-sender").value.trim() || "@TestUser";
+            const text = document.getElementById("test-dm-text").value.trim();
+            if (!text) { alert("Please type a message to send."); return; }
+
+            const res = await fetchAPI("/api/inject_dm", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ platform: "telegram", sender, text })
+            });
+
+            const resultEl = document.getElementById("test-dm-result");
+            if (res && res.success) {
+                resultEl.textContent = "✅ DM fired! Check the Chats tab for the AI reply in a few seconds.";
+                resultEl.classList.remove("hidden");
+                document.getElementById("test-dm-text").value = "";
+                setTimeout(() => resultEl.classList.add("hidden"), 6000);
+            } else {
+                resultEl.textContent = res?.error || "❌ Failed — make sure you have an active Persona first.";
+                resultEl.classList.remove("hidden");
+                resultEl.classList.add("text-red-400");
+            }
+        }
+
         // Init
         document.addEventListener("DOMContentLoaded", () => {
             refreshData();
+            loadAgents();
             setInterval(refreshData, 5000);
             setInterval(runMessagingTick, 3000);
+            setInterval(loadAgents, 8000);
         });
     </script>
 </body>
