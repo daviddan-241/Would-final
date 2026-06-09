@@ -1,33 +1,22 @@
 """
 Raid Commander Agent — Coordinates community raids.
-For Telegram: sends real raid alert posts with action buttons.
-Tracks real participation via conversation/click events.
+For Telegram: sends real raid alert posts with action buttons (the primary real action).
+For connected Twitter accounts with bearer tokens: executes real likes/retweets via API v2.
+For other platforms: logs that credentials are needed — no fake interactions, ever.
 """
 import asyncio
 import time
-import random
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from agents.base_agent import BaseAgent
 import marketing_db
 
 
-AUTOMATED_COMMENTS = [
-    "This is absolutely bullish! Let's go! 🚀🚀",
-    "Secured my bag. Ready for the moon! 💎🙌",
-    "Best community in Web3, hands down. Ticker is solid! 🔥",
-    "Apeing in. The chart looks too good! 📈🦁",
-    "Don't miss this opportunity. Next 100x gem! 🌟💎",
-    "Parabolic expansion is imminent. Send it! ✈️📈",
-    "Clean dev team, strong liquidity, massive hype. Bullish!",
-]
-
-
 class RaidAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="Raid Commander",
-            role="Coordinates real community raids. Posts alerts to Telegram with action buttons.",
+            role="Posts real Telegram raid alerts; executes real Twitter likes/retweets for connected accounts",
             emoji="⚔️"
         )
         self.raids_executed = 0
@@ -61,9 +50,9 @@ class RaidAgent(BaseAgent):
         url = raid["url"]
         caption = raid.get("caption", "")
 
-        self.log(f"⚡ Executing raid on {platform}: {url[:50]}")
+        self.log(f"⚡ Processing raid on {platform}: {url[:50]}")
 
-        # Build real Telegram raid post with action buttons
+        # Step 1: Send real Telegram raid alert (this IS the primary real action)
         if bot_instance and config.TELEGRAM_CHAT_ID:
             try:
                 msg = self._build_raid_message(platform, url, caption)
@@ -74,31 +63,121 @@ class RaidAgent(BaseAgent):
                     parse_mode="HTML",
                     reply_markup=keyboard
                 )
-                self.log(f"✅ Raid post sent to Telegram!")
+                self.log(f"✅ Real raid alert posted to Telegram!")
             except Exception as e:
                 self.log(f"Telegram raid post failed: {e}", "warning")
 
-        # Simulate raid tracking with realistic delays
+        # Step 2: Execute real interactions for connected accounts with API tokens
         accounts = marketing_db.get_accounts()
-        platform_accounts = [a for a in accounts if a["platform"] == platform]
+        platform_accounts = [
+            a for a in accounts
+            if a.get("platform") == platform and a.get("token_session", "").strip()
+        ]
+
         if not platform_accounts:
-            platform_accounts = [{"username": f"raider_{i}"} for i in range(random.randint(3, 8))]
+            self.log(
+                f"No {platform} accounts with API tokens configured. "
+                f"The Telegram alert is the real community action. "
+                f"Add {platform} accounts with tokens in Fleet Accounts for automated interactions."
+            )
+            marketing_db.update_raid_stats(raid_id, 0, 0, status="Alert Sent — Awaiting Community")
+            self.raids_executed += 1
+            return
 
         likes = 0
-        comments = 0
-        for acc in platform_accounts:
-            likes += 1
-            if random.random() < 0.6:
-                comments += 1
-            await asyncio.sleep(random.uniform(1.5, 3.5))
+        interactions = 0
 
-        marketing_db.update_raid_stats(raid_id, likes, comments, status="Completed")
+        if platform in ("twitter", "x"):
+            tweet_id = url.split("/status/")[-1].split("?")[0] if "/status/" in url else ""
+            if not tweet_id:
+                self.log(f"Cannot extract tweet ID from URL: {url}", "warning")
+                marketing_db.update_raid_stats(raid_id, 0, 0, status="Error — Invalid Tweet URL")
+                return
+
+            for acc in platform_accounts:
+                token = acc["token_session"].strip()
+                username = acc.get("username", "")
+                user_id = await self._get_twitter_user_id(token, username)
+                if not user_id:
+                    self.log(f"Could not resolve Twitter ID for @{username} — token may be expired.", "warning")
+                    continue
+
+                liked = await self._twitter_like(tweet_id, user_id, token)
+                if liked:
+                    likes += 1
+                    interactions += 1
+                    self.log(f"✅ @{username} liked tweet {tweet_id}")
+
+                retweeted = await self._twitter_retweet(tweet_id, user_id, token)
+                if retweeted:
+                    interactions += 1
+                    self.log(f"✅ @{username} retweeted tweet {tweet_id}")
+
+                await asyncio.sleep(2.0)
+        else:
+            self.log(
+                f"Automated {platform} interactions require OAuth integration. "
+                f"Add {platform} session tokens in Fleet Accounts."
+            )
+
+        final_status = "Completed" if interactions > 0 else "Alert Sent — Awaiting Community"
+        marketing_db.update_raid_stats(raid_id, likes, interactions - likes, status=final_status)
+        marketing_db.increment_analytics(clicks=interactions)
         self.raids_executed += 1
-        marketing_db.increment_analytics(clicks=likes + comments)
-        self.log(f"✅ Raid {raid_id} done: {likes} likes + {comments} comments tracked")
+        self.log(f"✅ Raid {raid_id} done: {likes} likes + {interactions - likes} retweets → {final_status}")
+
+    async def _get_twitter_user_id(self, bearer_token: str, username: str) -> str | None:
+        import aiohttp
+        username = username.lstrip("@")
+        url = f"https://api.twitter.com/2/users/by/username/{username}"
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=8)) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return data.get("data", {}).get("id")
+                    self.log(f"Twitter user lookup returned {resp.status} for @{username}", "warning")
+        except Exception as e:
+            self.log(f"Twitter user ID lookup error: {e}", "warning")
+        return None
+
+    async def _twitter_like(self, tweet_id: str, user_id: str, bearer_token: str) -> bool:
+        import aiohttp
+        url = f"https://api.twitter.com/2/users/{user_id}/likes"
+        headers = {"Authorization": f"Bearer {bearer_token}", "Content-Type": "application/json"}
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json={"tweet_id": tweet_id}, headers=headers,
+                                        timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    if resp.status in (200, 201):
+                        data = await resp.json()
+                        return data.get("data", {}).get("liked", False)
+                    body = await resp.text()
+                    self.log(f"Twitter like failed ({resp.status}): {body[:150]}", "warning")
+        except Exception as e:
+            self.log(f"Twitter like error: {e}", "warning")
+        return False
+
+    async def _twitter_retweet(self, tweet_id: str, user_id: str, bearer_token: str) -> bool:
+        import aiohttp
+        url = f"https://api.twitter.com/2/users/{user_id}/retweets"
+        headers = {"Authorization": f"Bearer {bearer_token}", "Content-Type": "application/json"}
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json={"tweet_id": tweet_id}, headers=headers,
+                                        timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    if resp.status in (200, 201):
+                        data = await resp.json()
+                        return data.get("data", {}).get("retweeted", False)
+                    body = await resp.text()
+                    self.log(f"Twitter retweet failed ({resp.status}): {body[:150]}", "warning")
+        except Exception as e:
+            self.log(f"Twitter retweet error: {e}", "warning")
+        return False
 
     def _build_raid_message(self, platform: str, url: str, caption: str) -> str:
-        icons = {"twitter": "𝕏", "tiktok": "🎵", "instagram": "📸", "facebook": "👤"}
+        icons = {"twitter": "𝕏", "x": "𝕏", "tiktok": "🎵", "instagram": "📸", "facebook": "👤"}
         icon = icons.get(platform, "🌐")
         cap_line = f"\n📝 <b>Message:</b> {caption}\n" if caption else ""
         return (

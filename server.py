@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 PORT = int(os.getenv("PORT", "5000"))
 
-# Meta Webhook Verification Token (Configure in Meta Developer App)
-VERIFY_TOKEN = os.getenv("META_VERIFY_TOKEN", "my_smm_verify_token_123")
+# Meta Webhook Verification Token — set META_VERIFY_TOKEN env var in your Replit Secrets
+VERIFY_TOKEN = os.getenv("META_VERIFY_TOKEN", "")
 
 
 class HealthHandler(BaseHTTPRequestHandler):
