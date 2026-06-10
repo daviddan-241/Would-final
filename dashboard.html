@@ -179,6 +179,11 @@
                 <i class="fa-solid fa-circle-question text-base"></i>
             </button>
             
+            <!-- Push Notifications Bell -->
+            <button id="push-enable-btn" onclick="enablePushNotifications()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 font-bold shadow-sm active:scale-95 transition-transform" title="Enable push alerts for new Discord coins">
+                <i class="fa-solid fa-bell text-base"></i>
+            </button>
+
             <!-- Light/Dark Mode Switcher -->
             <button onclick="toggleTheme()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white font-bold shadow-sm">
                 <i class="fa-solid fa-circle-half-stroke text-base" id="theme-icon"></i>
@@ -1952,5 +1957,36 @@
             setInterval(refreshDiscordCoins, 15000);
         });
     </script>
+
+    <!-- Push Notification Bootstrap -->
+    <script>
+    const VAPID_PUBLIC_KEY = 'BKxxrJ2iB226pSmFEDKat4PGs7r3XlUCW6mipcVnssJLDJ7ib7rSZ_T45yf-AMBlRebPfOqJHy1yAp7MsOvvoyQ';
+    async function registerPushNotifications() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) return existing;
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+        await fetch('/api/push/subscribe', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(sub) });
+        console.log('[Push] subscribed');
+        return sub;
+      } catch(e) { console.warn('[Push] error:', e); }
+    }
+    function urlBase64ToUint8Array(b) {
+      const p = '='.repeat((4 - b.length % 4) % 4);
+      const s = atob((b + p).replace(/-/g,'+').replace(/_/g,'/'));
+      return Uint8Array.from([...s].map(c=>c.charCodeAt(0)));
+    }
+    async function enablePushNotifications() {
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        const sub = await registerPushNotifications();
+        if (sub) { const btn = document.getElementById('push-enable-btn'); if(btn){btn.textContent='Notifications On ✓';btn.classList.add('text-green-400');} }
+      }
+    }
+    if (Notification.permission === 'granted') registerPushNotifications();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
