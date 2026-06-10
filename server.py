@@ -169,6 +169,14 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self.send_json_response(200, {"success": True, "coins": []})
             return
 
+        # ── Push notification VAPID key ─────────────────────────────────
+        elif self.path == '/api/push/vapid-key':
+            self.send_json_response(200, {
+                'publicKey': os.getenv('VAPID_PUBLIC_KEY', 'BKxxrJ2iB226pSmFEDKat4PGs7r3XlUCW6mipcVnssJLDJ7ib7rSZ_T45yf-AMBlRebPfOqJHy1yAp7MsOvvoyQ')
+            })
+            return
+
+        
         elif self.path.startswith("/api/webhooks/incoming"):
             parsed_url = urllib.parse.urlparse(self.path)
             query_params = urllib.parse.parse_qs(parsed_url.query)
@@ -367,6 +375,32 @@ class HealthHandler(BaseHTTPRequestHandler):
             new_acc = marketing_db.add_account(platform, username, token_session=token_session)
             self.send_json_response(200, {"success": True, "account": new_acc})
             return
+
+        if self.path == '/api/push/subscribe':
+            endpoint = params.get('endpoint', '')
+            keys = params.get('keys', {})
+            p256dh = keys.get('p256dh', '')
+            auth = keys.get('auth', '')
+            if endpoint and p256dh and auth:
+                marketing_db.add_push_subscription(endpoint, p256dh, auth)
+                self.send_json_response(200, {'success': True})
+            else:
+                self.send_json_response(400, {'success': False, 'error': 'Missing subscription fields'})
+            return
+
+        if self.path == '/api/push/unsubscribe':
+            endpoint = params.get('endpoint', '')
+            if endpoint:
+                marketing_db.remove_push_subscription(endpoint)
+            self.send_json_response(200, {'success': True})
+            return
+
+        if self.path == '/api/push/test':
+            from push_notifications import send_push_to_all
+            result = send_push_to_all('🛰 Aether SMM OS', 'Push notifications are working!', '/', 'test')
+            self.send_json_response(200, {'success': True, **result})
+            return
+
 
         elif self.path == "/api/accounts/delete":
             marketing_db.delete_account(params.get("id"))

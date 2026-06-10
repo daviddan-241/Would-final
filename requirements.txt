@@ -5,3 +5,5 @@ beautifulsoup4
 feedparser
 lxml
 python-socketio[asyncio]==5.11.2
+pywebpush==2.0.0
+cryptography>=41.0.0

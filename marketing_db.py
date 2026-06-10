@@ -8,6 +8,23 @@ import json
 import time
 import logging
 
+
+def add_push_subscription(endpoint: str, p256dh: str, auth: str) -> None:
+    db = load_db()
+    db['push_subscriptions'] = [s for s in db.get('push_subscriptions', []) if s.get('endpoint') != endpoint]
+    db['push_subscriptions'].append({'endpoint': endpoint, 'p256dh': p256dh, 'auth': auth})
+    save_db()
+
+
+def get_push_subscriptions() -> list:
+    return load_db().get('push_subscriptions', [])
+
+
+def remove_push_subscription(endpoint: str) -> None:
+    db = load_db()
+    db['push_subscriptions'] = [s for s in db.get('push_subscriptions', []) if s.get('endpoint') != endpoint]
+    save_db()
+
 logger = logging.getLogger(__name__)
 
 DB_FILE = os.getenv("MARKETING_DB_FILE", os.path.join(os.path.dirname(os.path.abspath(__file__)), "marketing_data.json"))
@@ -23,6 +40,7 @@ _data = {
     "auto_replies": [],      # Chatbot rules: {id, profile_id, keyword, reply_text, active}
     "growth_campaigns": [],  # Viral traffic campaigns
     "discord_coins": [],       # Pump.fun coins with Discord links found
+    "push_subscriptions": [],  # Web Push subscriber objects {endpoint, p256dh, auth}
     "analytics": {           # Real-time traffic funnel stats
         "impressions": 24500,
         "clicks": 1820,

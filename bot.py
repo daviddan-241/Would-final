@@ -19,6 +19,7 @@ from scanners.pumpfun import scan_pumpfun
 from scanners.birdeye import scan_extra_sources
 import seen_db
 import marketing_db
+from push_notifications import send_discord_coin_push
 import dm_manager
 import humanizer
 
@@ -296,6 +297,10 @@ async def run_scan_cycle(bot: Bot) -> int:
         if token.discord_link:
             marketing_db.add_discord_coin(token.name, token.symbol, token.contract_address, token.chain, token.discord_link, token.telegram_link or "", token.twitter or "", token.website or "", token.image_url or "", token.pair_url or "", token.source)
             discord_new += 1
+            try:
+                send_discord_coin_push(token.name, token.symbol, token.discord_link)
+            except Exception as _pe:
+                pass
 
     if discord_new:
         logger.info(f"Discord coins found this cycle: {discord_new}")
