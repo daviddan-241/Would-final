@@ -18,3 +18,12 @@
 //   export type Post = typeof postsTable.$inferSelect;
 
 export * from "./push-subscriptions";
+export * from "./profiles";
+export * from "./targets";
+export * from "./ads";
+export * from "./accounts";
+export * from "./discord-coins";
+export * from "./settings";
+export * from "./analytics";
+export * from "./campaigns";
+export * from "./conversations";
