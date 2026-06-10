@@ -7,7 +7,7 @@ import logging
 import time
 import aiohttp
 from typing import List
-from .base import TokenInfo, extract_telegram_links
+from .base import TokenInfo, extract_telegram_links, extract_discord_links, find_discord_in_socials
 
 logger = logging.getLogger(__name__)
 

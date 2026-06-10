@@ -1,6 +1,6 @@
 """
 Telegram Coin Scanner & SMM Raid Engine Bot
-Fresh coins only + Multi-Platform Auto-Post, Mirroring, Ad Scheduling & Auto-Raid Engine.
+Fresh coins + Discord link scanner + Multi-Platform Auto-Post.
 """
 import logging
 import asyncio
@@ -28,235 +28,157 @@ scan_count = 0
 total_posted = 0
 
 
-# --- Real Telegram Private DM Handler ---
-
 async def handle_private_dm(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Handles real private DMs sent directly to the bot.
-    Stores in the unified inbox, generates an AI reply, and sends it back to the user.
-    """
     if not update.message or not update.effective_user:
         return
-
     user = update.effective_user
     sender_handle = f"@{user.username}" if user.username else f"{user.first_name or 'User'}_{user.id}"
     message_text = update.message.text or ""
-
     if not message_text:
         return
-
-    logger.info(f"📬 [REAL-TG-DM] Incoming private DM from {sender_handle}: '{message_text}'")
-
-    # Get active persona to reply as
+    logger.info(f"📬 [REAL-TG-DM] Incoming DM from {sender_handle}: '{message_text}'")
     profiles = marketing_db.get_profiles()
     active_profiles = [p for p in profiles if p.get("active", True)]
     profile = active_profiles[0] if active_profiles else None
-
-    # Store in inbox regardless of whether a persona exists
     profile_id = profile["id"] if profile else None
     conv, _ = marketing_db.add_incoming_message(
-        platform="telegram",
-        sender_handle=sender_handle,
-        text=message_text,
-        avatar=f"https://api.dicebear.com/7.x/bottts/svg?seed={sender_handle}",
+        platform="telegram", sender_handle=sender_handle,
+        text=message_text, avatar=f"https://api.dicebear.com/7.x/bottts/svg?seed={sender_handle}",
         profile_id=profile_id
     )
-
     if not profile:
-        # No persona configured — send a holding reply and stop
         await update.message.reply_text("hey! give me a sec 👀")
         return
-
-    # Show typing indicator
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
-
-    # Generate AI or rule-based reply
     raw_body, raw_followup = await dm_manager.generate_ai_or_rule_reply(message_text, profile)
-
-    # Humanize the reply text
     human_body = humanizer.humanize_text(raw_body)
     human_followup = humanizer.humanize_text(raw_followup) if raw_followup else ""
-
-    # Realistic typing delay for first message
     delay = humanizer.calculate_typing_delay(human_body)
     await asyncio.sleep(delay)
-
-    # Send body reply back to the Telegram user
     await update.message.reply_text(human_body)
-
-    # Store in outgoing DB
     marketing_db.add_outgoing_reply(conv["id"], human_body)
-    logger.info(f"📤 [TG-REPLY] Sent reply to {sender_handle}: '{human_body}'")
-
-    # Send CTA follow-up if present
     if human_followup:
         await asyncio.sleep(3.5)
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
         await asyncio.sleep(2.5)
         await update.message.reply_text(human_followup)
         marketing_db.add_outgoing_reply(conv["id"], human_followup)
-        logger.info(f"📤 [TG-CTA] Sent CTA follow-up to {sender_handle}: '{human_followup}'")
-
-    # Count as a lead in analytics
     marketing_db.increment_analytics(leads=1)
 
 
-# --- SMM Telegram Handlers ---
-
 async def mirror_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Sets up a target account to clone, rewrite and post content."""
     args = context.args
     if len(args) < 2:
         await update.message.reply_text(
             "❌ Usage: <code>/mirror [platform] [handle]</code>\n"
-            "Example: <code>/mirror twitter @elonmusk</code>\n"
-            "Platforms: twitter, tiktok, instagram, facebook",
+            "Example: <code>/mirror twitter @elonmusk</code>",
             parse_mode=ParseMode.HTML
         )
         return
-        
     platform = args[0].lower()
     handle = args[1]
-    
     if platform not in ["twitter", "tiktok", "instagram", "facebook"]:
         await update.message.reply_text("❌ Invalid platform. Supported: twitter, tiktok, instagram, facebook.")
         return
-        
-    import marketing_db
     marketing_db.add_target(platform, handle, "TG_GROUP")
     await update.message.reply_text(
-        f"✅ Registered <b>{platform.title()}</b> mirror stream for <code>{handle}</code>!\n"
-        f"New posts will be copied, rewritten by AI, and automatically posted.",
+        f"✅ Mirror started for <b>{platform.title()}</b>: <code>{handle}</code>",
         parse_mode=ParseMode.HTML
     )
 
 
 async def raid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Launches a multi-platform community raid with deep action links and executes auto-raiding."""
     args = context.args
     if not args:
         await update.message.reply_text(
-            "❌ Usage: <code>/raid [url] [optional_caption]</code>\n"
-            "Example: <code>/raid https://x.com/elonmusk/status/... Bullish!</code>",
+            "❌ Usage: <code>/raid [url] [optional_caption]</code>",
             parse_mode=ParseMode.HTML
         )
         return
-        
     url = args[0]
     caption = " ".join(args[1:]) if len(args) > 1 else ""
-    
     platform = "twitter"
-    if "tiktok.com" in url:
-        platform = "tiktok"
-    elif "instagram.com" in url:
-        platform = "instagram"
-    elif "facebook.com" in url:
-        platform = "facebook"
-        
-    import marketing_db
+    if "tiktok.com" in url: platform = "tiktok"
+    elif "instagram.com" in url: platform = "instagram"
+    elif "facebook.com" in url: platform = "facebook"
     import raid_engine
-    
-    # 1. Register active raid in DB (triggers automated self-bots fleet)
     marketing_db.add_raid(platform, url, caption)
-    
-    # 2. Build community interactive post
     msg = raid_engine.build_raid_message(platform, url, caption)
     kbd = raid_engine.generate_raid_keyboard(platform, url)
-    
     await update.message.reply_text(msg, parse_mode=ParseMode.HTML, reply_markup=kbd)
 
 
 async def schedule_ad_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Schedules recurrent ads at regular intervals (in minutes)."""
     args = context.args
     if len(args) < 2:
         await update.message.reply_text(
-            "❌ Usage: <code>/schedule_ad [interval_min] [text_content]</code>\n"
-            "Example: <code>/schedule_ad 30 🚀 Secure your entry!</code>",
+            "❌ Usage: <code>/schedule_ad [interval_min] [text]</code>",
             parse_mode=ParseMode.HTML
         )
         return
-        
     try:
         interval = int(args[0])
     except ValueError:
-        await update.message.reply_text("❌ Interval must be a number representing minutes.")
+        await update.message.reply_text("❌ Interval must be a number.")
         return
-        
     content = " ".join(args[1:])
-    
-    import marketing_db
     marketing_db.add_ad("telegram", content, interval)
     await update.message.reply_text(
-        f"✅ Scheduled recurring promotional ad! Running every <b>{interval}</b> minutes.",
+        f"✅ Ad scheduled every <b>{interval}</b> minutes.",
         parse_mode=ParseMode.HTML
     )
 
 
 async def accounts_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Lists connected automated self-bots."""
-    import marketing_db
     accs = marketing_db.get_accounts()
     if not accs:
-        await update.message.reply_text(
-            "⚠️ No automated SMM accounts linked yet.\n"
-            "Open the Web Dashboard at port 5000 to add credentials and API tokens!",
-            parse_mode=ParseMode.HTML
-        )
+        await update.message.reply_text("⚠️ No accounts linked. Open the dashboard at port 5000.")
         return
-        
-    text = "👤 <b>SMM Automated Account Fleet:</b>\n\n"
+    text = "👤 <b>SMM Account Fleet:</b>\n\n"
     for acc in accs:
         text += f"• <b>{acc['platform'].title()}</b>: <code>{acc['username']}</code> ({acc['status']})\n"
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
 
-# --- Core Scanner Handlers ---
-
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cid = update.effective_chat.id
     await update.message.reply_text(
-        f"🤖 <b>Coin Scanner & SMM Master Bot</b>\n\n"
+        f"🤖 <b>Coin Scanner + Discord Hunter + SMM Bot</b>\n\n"
         f"Group/Chat ID: <code>{cid}</code>\n\n"
         "🟢 <b>Scanner Commands:</b>\n"
-        "/status — View system health\n"
-        "/scan — Perform manual coin check\n"
-        "/stats — View scan counters\n"
-        "/clear — Empty coin database cache\n\n"
-        "🔥 <b>SMM & Marketing Commands:</b>\n"
-        "/raid <code>[url] [caption]</code> — Detonate multi-platform raid\n"
-        "/mirror <code>[platform] [handle]</code> — Clone & rewrite content\n"
-        "/schedule_ad <code>[minutes] [text]</code> — Run recurrent ads\n"
-        "/accounts — Show automated account fleet",
+        "/status — System health\n"
+        "/scan — Manual coin scan\n"
+        "/stats — Scan counters\n"
+        "/clear — Clear cache\n\n"
+        "🎮 <b>Discord Scanner:</b>\n"
+        "Auto-scans all new pump.fun coins for Discord links\n\n"
+        "🔥 <b>SMM Commands:</b>\n"
+        "/raid <code>[url]</code> — Multi-platform raid\n"
+        "/mirror <code>[platform] [handle]</code> — Clone content\n"
+        "/schedule_ad <code>[min] [text]</code> — Recurring ads",
         parse_mode=ParseMode.HTML,
     )
 
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    import marketing_db
     db = marketing_db.load_db()
-    targets_count = len(db.get("targets", []))
-    completed_raids = len([r for r in db.get("raids", []) if r.get("status") == "Completed"])
-    ads_count = len(db.get("ads", []))
-    accounts_count = len(db.get("accounts", []))
-
+    discord_count = len(db.get("discord_coins", []))
     await update.message.reply_text(
-        f"📊 <b>System status report:</b>\n\n"
-        f"⏱ <b>Coin Scan Interval:</b> {config.SCAN_INTERVAL}s\n"
-        f"📁 <b>Cached Tokens:</b> {seen_db.seen_count()}\n"
-        f"📈 <b>Token Scans:</b> {scan_count} | Posted: {total_posted}\n\n"
-        f"🎯 <b>SMM Marketing Engine:</b>\n"
-        f"• Clone targets: <b>{targets_count}</b>\n"
-        f"• Connected automated accounts: <b>{accounts_count}</b>\n"
-        f"• Active ad rotations: <b>{ads_count}</b>\n"
-        f"• Automated raids executed: <b>{completed_raids}</b>",
+        f"📊 <b>System Status:</b>\n\n"
+        f"⏱ Scan interval: {config.SCAN_INTERVAL}s\n"
+        f"📁 Cached tokens: {seen_db.seen_count()}\n"
+        f"📈 Total scans: {scan_count} | Posted: {total_posted}\n"
+        f"🎮 Discord coins found: <b>{discord_count}</b>",
         parse_mode=ParseMode.HTML
     )
 
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    db = marketing_db.load_db()
+    discord_count = len(db.get("discord_coins", []))
     await update.message.reply_text(
-        f"📈 Scans: {scan_count} | Posted: {total_posted} | Cached: {seen_db.seen_count()}")
+        f"📈 Scans: {scan_count} | Posted: {total_posted} | Cached: {seen_db.seen_count()} | Discord: {discord_count}"
+    )
 
 
 async def clear_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -276,7 +198,6 @@ async def send_token(bot: Bot, token: TokenInfo) -> bool:
     caption = format_caption(token)
     keyboard = build_keyboard(token)
 
-    # Try photo
     if token.image_url:
         try:
             await bot.send_photo(
@@ -288,7 +209,6 @@ async def send_token(bot: Bot, token: TokenInfo) -> bool:
         except:
             pass
 
-    # Fallback: text
     try:
         await bot.send_message(
             chat_id=config.TELEGRAM_CHAT_ID,
@@ -299,6 +219,39 @@ async def send_token(bot: Bot, token: TokenInfo) -> bool:
     except Exception as e:
         logger.error(f"Send failed for {token.name}: {e}")
         return False
+
+
+def _save_discord_coin_UNUSED(token: TokenInfo):
+    """Persist Discord-link coins to the marketing DB for the dashboard."""
+    try:
+        db = marketing_db.load_db()
+        if "discord_coins" not in db:
+            db["discord_coins"] = []
+        import time as _time
+        entry = {
+            "name": token.name,
+            "symbol": token.symbol,
+            "mint": token.contract_address,
+            "chain": token.chain,
+            "discord_link": token.discord_link,
+            "telegram_link": token.telegram_link or "",
+            "twitter": token.twitter or "",
+            "website": token.website or "",
+            "image_url": token.image_url or "",
+            "pair_url": token.pair_url or "",
+            "source": token.source,
+            "found_at": _time.time(),
+        }
+        # Avoid duplicates
+        existing_mints = {c.get("mint", "") for c in db["discord_coins"]}
+        if token.contract_address not in existing_mints:
+            db["discord_coins"].append(entry)
+            # Keep last 500
+            if len(db["discord_coins"]) > 500:
+                db["discord_coins"] = db["discord_coins"][-500:]
+            marketing_db.save_db(db)
+    except Exception as e:
+        logger.debug(f"Failed to save discord coin: {e}")
 
 
 async def run_scan_cycle(bot: Bot) -> int:
@@ -324,28 +277,44 @@ async def run_scan_cycle(bot: Bot) -> int:
             elif isinstance(r, Exception):
                 logger.error(f"Scanner error: {r}")
 
-    # Dedup by contract address within this cycle
+    # Dedup by contract address
     unique: dict[str, TokenInfo] = {}
     for token in all_tokens:
         addr = token.contract_address.lower()
         if addr not in unique:
             unique[addr] = token
 
-    # Filter already-posted (by address, TG link, AND name+symbol)
+    # Filter already-posted
     new_tokens = []
     for addr, token in unique.items():
         if not seen_db.is_seen(addr, token.telegram_link, token.name, token.symbol):
             new_tokens.append(token)
 
-    # Post
+    # Save Discord coins to DB (for dashboard display) - even if not posting to TG
+    discord_new = 0
+    for token in new_tokens:
+        if token.discord_link:
+            marketing_db.add_discord_coin(token.name, token.symbol, token.contract_address, token.chain, token.discord_link, token.telegram_link or "", token.twitter or "", token.website or "", token.image_url or "", token.pair_url or "", token.source)
+            discord_new += 1
+
+    if discord_new:
+        logger.info(f"Discord coins found this cycle: {discord_new}")
+
+    # Post tokens that have Telegram links (existing behavior)
+    # Also post Discord-only coins with a special format
     posted = 0
     for token in new_tokens:
+        # Only send to Telegram if it has a TG link (or if it's Discord-only, still send it)
+        if not token.telegram_link and not token.discord_link:
+            continue
+
         ok = await send_token(bot, token)
         if ok:
             seen_db.mark_seen(token.contract_address, token.telegram_link, token.name, token.symbol)
             posted += 1
             total_posted += 1
-            logger.info(f"✅ {token.name} (${token.symbol}) [{token.chain}] {token.telegram_link}")
+            social_info = f"TG:{bool(token.telegram_link)} Discord:{bool(token.discord_link)}"
+            logger.info(f"✅ {token.name} (${token.symbol}) [{token.chain}] {social_info}")
         await asyncio.sleep(2)
 
     return posted
@@ -356,10 +325,11 @@ async def periodic_scan(bot: Bot):
     try:
         await bot.send_message(
             chat_id=config.TELEGRAM_CHAT_ID,
-            text="🤖 <b>Coin Scanner Started</b>\n\n"
+            text="🤖 <b>Coin Scanner + Discord Hunter Started</b>\n\n"
                  f"⏱ Every {config.SCAN_INTERVAL}s\n"
                  "📡 Pump.fun + DexScreener + GeckoTerminal\n"
-                 "🔗 Fresh coins with Telegram links only",
+                 "🔗 Fresh coins with TG or Discord links\n"
+                 "🎮 Discord links tracked in dashboard",
             parse_mode=ParseMode.HTML,
         )
     except Exception as e:
@@ -376,10 +346,7 @@ async def periodic_scan(bot: Bot):
 
 
 async def post_init(app: Application):
-    # Start the core token scanner loop
     asyncio.create_task(periodic_scan(app.bot))
-    
-    # Start the SMM automated marketing & cloning engine
     from engine_coordinator import start_all_smm_services
     start_all_smm_services(app.bot)
 
@@ -399,43 +366,31 @@ def main():
     for noisy in ("httpx", "httpcore", "aiohttp"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
-    # Start Health check & fully interactive Admin Dashboard Server
     start_health_server()
-    print("🚀 Starting SMM-Upgraded Coin Scanner Bot...")
+    print("🚀 Starting Coin Scanner + Discord Hunter + SMM Bot...")
 
-    # Start Telegram bot polling ONLY if tokens are provided
     if config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID:
-        print("🤖 Initializing Telegram Coin Scanner...")
+        print("🤖 Initializing Telegram Bot...")
         app = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
-        
-        # Core commands
         app.add_handler(CommandHandler("start", start_command))
         app.add_handler(CommandHandler("status", status_command))
         app.add_handler(CommandHandler("scan", manual_scan_command))
         app.add_handler(CommandHandler("stats", stats_command))
         app.add_handler(CommandHandler("clear", clear_command))
-        
-        # SMM commands
         app.add_handler(CommandHandler("mirror", mirror_command))
         app.add_handler(CommandHandler("raid", raid_command))
         app.add_handler(CommandHandler("schedule_ad", schedule_ad_command))
         app.add_handler(CommandHandler("accounts", accounts_command))
-
-        # Real private DM handler — catches any text message sent directly to the bot
         app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND, handle_private_dm))
-
         app.post_init = post_init
         app.run_polling(drop_pending_updates=True)
     else:
-        print("⚠️ TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing!")
-        print("💡 The Telegram Coin Scanner will remain inactive, but the SMM Marketing Engines, DMs Inbox, and Web Dashboard are fully operational on port 5000.")
-        
-        # Start background SMM services directly in a clean active asyncio loop
+        print("⚠️  TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID missing.")
+        print("💡 Dashboard is live on port 5000. Discord scanner still runs.")
         try:
             asyncio.run(start_smm_offline())
         except KeyboardInterrupt:
             pass
-
 
 
 if __name__ == "__main__":

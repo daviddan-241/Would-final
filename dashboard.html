@@ -569,6 +569,100 @@
 
     </div>
 
+
+        <!-- TAB: LIVE CHAT + DISCORD SCANNER -->
+        <div id="tab-live" class="tab-content hidden space-y-4 pb-32">
+
+            <!-- Pump.fun Livestream Chat -->
+            <div class="glass-panel p-4 space-y-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-[#f97316]/15 flex items-center justify-center">
+                        <i class="fa-solid fa-satellite-dish text-[#f97316] text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">Pump.fun Live Chat</h3>
+                        <p class="text-[10px] text-gray-400">Proxy real-time comments from any livestream to your site</p>
+                    </div>
+                    <div class="ml-auto">
+                        <span id="chat-status-dot" class="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-gray-800 text-gray-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500 inline-block"></span> Idle
+                        </span>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <input type="text" id="chat-mint-input"
+                        placeholder="Mint address (e.g. pump.fun/xxxx or paste contract)"
+                        class="w-full p-3 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none focus:border-orange-500 font-mono">
+                    <input type="text" id="chat-jwt-input"
+                        placeholder="pump.fun JWT (optional — get from browser DevTools > Network > Authorization header)"
+                        class="w-full p-3 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none focus:border-orange-500">
+                    <div class="flex gap-2">
+                        <button onclick="startLiveChat()" class="flex-1 bg-[#f97316] text-white text-xs font-bold py-3 rounded-xl">
+                            <i class="fa-solid fa-play mr-1"></i> Connect
+                        </button>
+                        <button onclick="stopLiveChat()" class="px-4 bg-[#1c1c1e] text-gray-400 text-xs font-bold py-3 rounded-xl border border-white/10">
+                            <i class="fa-solid fa-stop mr-1"></i> Stop
+                        </button>
+                        <button onclick="clearLiveChat()" class="px-4 bg-[#1c1c1e] text-gray-400 text-xs font-bold py-3 rounded-xl border border-white/10">
+                            <i class="fa-solid fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- JWT How-to -->
+                <details class="text-[10px] text-gray-500">
+                    <summary class="cursor-pointer text-blue-400 font-semibold">How to get your pump.fun JWT token</summary>
+                    <div class="mt-2 space-y-1 text-gray-400 leading-relaxed">
+                        <p>1. Open <b>pump.fun</b> in Chrome/Safari and log in with your wallet</p>
+                        <p>2. Open DevTools (F12) → Network tab</p>
+                        <p>3. Visit any live coin page and look for a request to <code>frontend-api-v3.pump.fun</code></p>
+                        <p>4. In the request headers, find <code>Authorization: Bearer xxxx</code></p>
+                        <p>5. Copy everything after "Bearer " and paste above</p>
+                        <p class="text-yellow-500">⚠️ Without a JWT, only public read-only access is attempted</p>
+                    </div>
+                </details>
+            </div>
+
+            <!-- Live Chat Messages -->
+            <div class="glass-panel overflow-hidden">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                    <span class="text-xs font-bold text-white">Live Messages</span>
+                    <span id="chat-message-count" class="text-[10px] text-gray-500">0 messages</span>
+                </div>
+                <div id="live-chat-messages"
+                    class="space-y-0 max-h-96 overflow-y-auto p-3 font-mono text-xs"
+                    style="background: rgba(0,0,0,0.4);">
+                    <div class="text-gray-600 text-center py-8 text-[10px]">
+                        Enter a mint address above and click Connect to see live chat
+                    </div>
+                </div>
+            </div>
+
+            <!-- Discord Scanner Feed -->
+            <div class="glass-panel overflow-hidden">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-brands fa-discord text-[#5865F2] text-base"></i>
+                        <span class="text-xs font-bold text-white">Discord Coins Scanner</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="discord-coins-count" class="text-[10px] text-gray-500">Scanning...</span>
+                        <button onclick="refreshDiscordCoins()" class="text-[10px] text-blue-400 font-semibold">Refresh</button>
+                    </div>
+                </div>
+                <div class="px-3 py-2 border-b border-white/5">
+                    <p class="text-[10px] text-gray-500">All newly created pump.fun + DexScreener coins with Discord links — found in real time</p>
+                </div>
+                <div id="discord-coins-list" class="max-h-96 overflow-y-auto p-3 space-y-2">
+                    <div class="text-gray-600 text-center py-6 text-[10px]">
+                        Waiting for scanner to find Discord coins...
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
     <!-- Fresh Spacious Slide Up Persona Page Modal Sheet (iOS Native feel) -->
     <div id="persona-modal" class="slide-up-sheet closed fixed inset-0 z-50 bg-[#000000] p-5 flex flex-col justify-between overflow-y-auto safe-bottom">
         <div class="space-y-5">
@@ -690,6 +784,11 @@
                 <span class="text-[9px]">Settings</span>
             </button>
 
+            <button onclick="switchTab('live')" id="nav-live" class="nav-btn flex flex-col items-center gap-1 text-gray-500 font-medium transition-colors relative">
+                <i class="fa-solid fa-satellite-dish text-lg"></i>
+                <span class="text-[9px]">Live</span>
+            </button>
+
         </div>
     </nav>
 
@@ -749,7 +848,9 @@
             const titleMap = {
                 dashboard: "Overview",
                 chats: "Unified DMs",
-                settings: "Console Settings"
+                agents: "AI Agent Company",
+                settings: "Console Settings",
+                live: "Live Chat & Discord Scanner"
             };
             
             document.getElementById("header-title").textContent = titleMap[tabId];
@@ -1608,6 +1709,229 @@
             }
         }
 
+        // ═══════════════════════════════════════════════════════════
+        // LIVE CHAT + DISCORD SCANNER
+        // ═══════════════════════════════════════════════════════════
+
+        let liveChatMint = "";
+        let liveChatPollInterval = null;
+        let liveChatLastTs = 0;
+
+        function extractMintFromInput(raw) {
+            raw = raw.trim();
+            // pump.fun URL: https://pump.fun/coin/MINT or https://pump.fun/MINT
+            let m = raw.match(/pump\.fun\/(?:coin\/)?([1-9A-HJ-NP-Za-km-z]{32,44})/);
+            if (m) return m[1];
+            // raw address (base58, 32-44 chars)
+            if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(raw)) return raw;
+            return raw;
+        }
+
+        function setLiveChatStatus(status, label) {
+            const dot = document.getElementById("chat-status-dot");
+            const colors = {
+                idle: "bg-gray-800 text-gray-400",
+                connecting: "bg-yellow-900/40 text-yellow-400",
+                live: "bg-green-900/40 text-[#00a884]",
+                polling: "bg-blue-900/40 text-blue-400",
+                error: "bg-red-900/40 text-red-400",
+                auth_required: "bg-orange-900/40 text-orange-400",
+                no_stream: "bg-gray-800 text-gray-500",
+            };
+            const dotColors = {
+                idle: "bg-gray-500", connecting: "bg-yellow-400 animate-pulse",
+                live: "bg-[#00a884] animate-pulse", polling: "bg-blue-400 animate-pulse",
+                error: "bg-red-500", auth_required: "bg-orange-400", no_stream: "bg-gray-500",
+            };
+            dot.className = `inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full ${colors[status] || colors.idle}`;
+            dot.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${dotColors[status] || dotColors.idle} inline-block"></span> ${label}`;
+        }
+
+        async function startLiveChat() {
+            const mintRaw = document.getElementById("chat-mint-input").value.trim();
+            const jwt = document.getElementById("chat-jwt-input").value.trim();
+            if (!mintRaw) { alert("Enter a mint address or pump.fun URL first."); return; }
+
+            const mint = extractMintFromInput(mintRaw);
+            liveChatMint = mint;
+            liveChatLastTs = 0;
+
+            setLiveChatStatus("connecting", "Connecting...");
+            appendChatSystemMessage(`Connecting to ${mint.slice(0, 8)}...`);
+
+            try {
+                const res = await fetchAPI("/api/chat/start", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({mint, jwt})
+                });
+
+                if (res && res.success) {
+                    setLiveChatStatus("connecting", "Starting...");
+                    if (liveChatPollInterval) clearInterval(liveChatPollInterval);
+                    liveChatPollInterval = setInterval(() => pollLiveChat(mint), 2000);
+                } else {
+                    setLiveChatStatus("error", "Failed");
+                    appendChatSystemMessage("Error: " + (res?.error || "Failed to start"));
+                }
+            } catch (e) {
+                setLiveChatStatus("error", "Error");
+                appendChatSystemMessage("Connection error: " + e.message);
+            }
+        }
+
+        async function pollLiveChat(mint) {
+            if (!mint) return;
+            try {
+                const res = await fetchAPI(`/api/chat/messages?mint=${encodeURIComponent(mint)}&since=${liveChatLastTs}`);
+                if (!res) return;
+
+                const statusMap = {
+                    live: ["live", "Live"],
+                    connecting: ["connecting", "Connecting..."],
+                    polling: ["polling", "Polling"],
+                    error: ["error", "Error"],
+                    auth_required: ["auth_required", "Auth required"],
+                    no_stream: ["no_stream", "No stream"],
+                    idle: ["idle", "Idle"],
+                };
+                const [s, l] = statusMap[res.status] || ["idle", "Idle"];
+                setLiveChatStatus(s, l);
+
+                if (res.messages && res.messages.length > 0) {
+                    res.messages.forEach(msg => {
+                        if (msg.ts && msg.ts > liveChatLastTs) {
+                            liveChatLastTs = msg.ts;
+                        }
+                        renderChatMessage(msg);
+                    });
+                    const count = document.querySelectorAll("#live-chat-messages .chat-msg").length;
+                    document.getElementById("chat-message-count").textContent = count + " messages";
+                }
+            } catch (e) {
+                // ignore polling errors
+            }
+        }
+
+        function renderChatMessage(msg) {
+            const container = document.getElementById("live-chat-messages");
+            // Remove empty state
+            const empty = container.querySelector(".text-gray-600");
+            if (empty) empty.remove();
+
+            const div = document.createElement("div");
+            div.className = "chat-msg flex items-start gap-2 py-1.5 border-b border-white/5";
+
+            if (msg.type === "system" || msg.type === "error") {
+                div.innerHTML = `<span class="text-[10px] text-gray-500 italic w-full block py-0.5">[${msg.type}] ${escHtml(msg.text)}</span>`;
+            } else {
+                const avatar = msg.avatar
+                    ? `<img src="${escHtml(msg.avatar)}" class="w-6 h-6 rounded-full object-cover flex-shrink-0" onerror="this.style.display='none'">`
+                    : `<div class="w-6 h-6 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center text-[9px] text-gray-400">${escHtml((msg.user||"?")[0].toUpperCase())}</div>`;
+                const wallet = msg.wallet ? `<span class="text-gray-600 font-mono text-[8px] ml-1">${msg.wallet.slice(0,6)}...</span>` : "";
+                div.innerHTML = `
+                    ${avatar}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1">
+                            <span class="text-[10px] font-bold text-[#f97316]">${escHtml(msg.user || "anon")}</span>${wallet}
+                        </div>
+                        <p class="text-[11px] text-gray-200 leading-snug break-words">${escHtml(msg.text)}</p>
+                    </div>`;
+            }
+
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendChatSystemMessage(text) {
+            renderChatMessage({type: "system", text});
+        }
+
+        async function stopLiveChat() {
+            if (liveChatPollInterval) { clearInterval(liveChatPollInterval); liveChatPollInterval = null; }
+            if (liveChatMint) {
+                await fetchAPI("/api/chat/stop", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({mint: liveChatMint})
+                });
+            }
+            liveChatMint = "";
+            liveChatLastTs = 0;
+            setLiveChatStatus("idle", "Idle");
+        }
+
+        function clearLiveChat() {
+            const container = document.getElementById("live-chat-messages");
+            container.innerHTML = `<div class="text-gray-600 text-center py-8 text-[10px]">Enter a mint address above and click Connect to see live chat</div>`;
+            document.getElementById("chat-message-count").textContent = "0 messages";
+            liveChatLastTs = 0;
+        }
+
+        function escHtml(str) {
+            return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+        }
+
+        // ── Discord Coins Scanner ────────────────────────────────────
+        async function refreshDiscordCoins() {
+            try {
+                const res = await fetchAPI("/api/discord_coins");
+                if (!res || !res.success) return;
+                const coins = res.coins || [];
+                const container = document.getElementById("discord-coins-list");
+                const countEl = document.getElementById("discord-coins-count");
+                countEl.textContent = `${coins.length} coins found`;
+
+                if (coins.length === 0) {
+                    container.innerHTML = `<div class="text-gray-600 text-center py-6 text-[10px]">No Discord coins found yet — scanner is running...</div>`;
+                    return;
+                }
+
+                container.innerHTML = coins.map(coin => {
+                    const age = coin.found_at ? _formatAge(coin.found_at) : "";
+                    const tgBtn = coin.telegram_link ? `<a href="${escHtml(coin.telegram_link)}" target="_blank" class="text-[9px] px-2 py-1 rounded-lg bg-blue-900/30 text-blue-400 font-bold">TG</a>` : "";
+                    const dcBtn = coin.discord_link ? `<a href="${escHtml(coin.discord_link)}" target="_blank" class="text-[9px] px-2 py-1 rounded-lg bg-[#5865F2]/20 text-[#7289DA] font-bold"><i class="fa-brands fa-discord mr-0.5"></i>Discord</a>` : "";
+                    const chart = coin.pair_url ? `<a href="${escHtml(coin.pair_url)}" target="_blank" class="text-[9px] px-2 py-1 rounded-lg bg-white/5 text-gray-400 font-bold">Chart</a>` : "";
+                    const img = coin.image_url ? `<img src="${escHtml(coin.image_url)}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0" onerror="this.src='https://api.dicebear.com/7.x/shapes/svg?seed=${coin.symbol}'">` : `<div class="w-8 h-8 rounded-lg bg-[#5865F2]/20 flex items-center justify-center text-[#7289DA] text-[10px] font-bold flex-shrink-0">${escHtml((coin.symbol||"?")[0])}</div>`;
+                    return `
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-[#5865F2]/5 border border-[#5865F2]/15 hover:border-[#5865F2]/30 transition-colors">
+                        ${img}
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-xs font-bold text-white">${escHtml(coin.name)}</span>
+                                <span class="text-[10px] text-gray-500">$${escHtml(coin.symbol)}</span>
+                                <span class="text-[9px] text-gray-600">${age}</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-gray-500">${escHtml(coin.chain || "Solana")}</span>
+                            </div>
+                            <p class="text-[9px] font-mono text-gray-600 mt-0.5 truncate">${escHtml(coin.mint)}</p>
+                            <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                ${dcBtn}${tgBtn}${chart}
+                                <button onclick="startLiveChatForMint('${escHtml(coin.mint)}')" class="text-[9px] px-2 py-1 rounded-lg bg-[#f97316]/10 text-[#f97316] font-bold border border-[#f97316]/20">
+                                    <i class="fa-solid fa-satellite-dish mr-0.5 text-[8px]"></i>Watch Chat
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join("");
+            } catch (e) {
+                console.error("Discord coins error:", e);
+            }
+        }
+
+        function startLiveChatForMint(mint) {
+            document.getElementById("chat-mint-input").value = mint;
+            switchTab("live");
+            setTimeout(startLiveChat, 100);
+        }
+
+        function _formatAge(ts) {
+            const diff = Math.floor(Date.now() / 1000 - ts);
+            if (diff < 60) return `${diff}s ago`;
+            if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+            return `${Math.floor(diff/86400)}d ago`;
+        }
+
         // Init
         document.addEventListener("DOMContentLoaded", () => {
             refreshData();
@@ -1615,6 +1939,8 @@
             setInterval(refreshData, 5000);
             setInterval(runMessagingTick, 3000);
             setInterval(loadAgents, 8000);
+            refreshDiscordCoins();
+            setInterval(refreshDiscordCoins, 15000);
         });
     </script>
 </body>

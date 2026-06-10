@@ -4,3 +4,4 @@ python-dotenv==1.0.0
 beautifulsoup4
 feedparser
 lxml
+python-socketio[asyncio]==5.11.2

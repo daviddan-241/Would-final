@@ -22,6 +22,7 @@ _data = {
     "messages": {},          # Conversation messages: {conv_id: [messages]}
     "auto_replies": [],      # Chatbot rules: {id, profile_id, keyword, reply_text, active}
     "growth_campaigns": [],  # Viral traffic campaigns
+    "discord_coins": [],       # Pump.fun coins with Discord links found
     "analytics": {           # Real-time traffic funnel stats
         "impressions": 24500,
         "clicks": 1820,
@@ -511,3 +512,48 @@ def update_settings(new_settings):
     db["settings"].update(new_settings)
     save_db()
     return db["settings"]
+
+
+# --- Discord Coins (pump.fun coins with Discord links) ---
+
+def add_discord_coin(name: str, symbol: str, mint: str, chain: str, discord_link: str,
+                     telegram_link: str = "", twitter: str = "", website: str = "",
+                     image_url: str = "", pair_url: str = "", source: str = "") -> dict:
+    """Store a coin with a Discord link found by the scanner."""
+    db = load_db()
+    if "discord_coins" not in db:
+        db["discord_coins"] = []
+
+    # Avoid duplicates by mint address
+    existing_mints = {c.get("mint", "") for c in db["discord_coins"]}
+    if mint in existing_mints:
+        return {}
+
+    import time as _t
+    entry = {
+        "name": name,
+        "symbol": symbol,
+        "mint": mint,
+        "chain": chain,
+        "discord_link": discord_link,
+        "telegram_link": telegram_link,
+        "twitter": twitter,
+        "website": website,
+        "image_url": image_url,
+        "pair_url": pair_url,
+        "source": source,
+        "found_at": _t.time(),
+    }
+    db["discord_coins"].append(entry)
+    # Keep last 500
+    if len(db["discord_coins"]) > 500:
+        db["discord_coins"] = db["discord_coins"][-500:]
+    save_db()
+    return entry
+
+
+def get_discord_coins(limit: int = 100) -> list:
+    """Return the most recent Discord coins."""
+    db = load_db()
+    coins = db.get("discord_coins", [])
+    return list(reversed(coins[-limit:]))
