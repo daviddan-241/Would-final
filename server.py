@@ -58,6 +58,32 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self.wfile.write(f"Error loading dashboard: {e}".encode("utf-8"))
             return
 
+          # PWA Static Assets (icons, manifest)
+          _static_map = {
+              "/manifest.json": ("manifest.json", "application/manifest+json"),
+              "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
+              "/icon-192.png": ("icon-192.png", "image/png"),
+              "/icon-512.png": ("icon-512.png", "image/png"),
+              "/favicon-32.png": ("favicon-32.png", "image/png"),
+          }
+          if self.path in _static_map:
+              fname, ctype = _static_map[self.path]
+              fpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), fname)
+              try:
+                  with open(fpath, "rb") as _sf:
+                      data = _sf.read()
+                  self.send_response(200)
+                  self.send_header("Content-Type", ctype)
+                  self.send_header("Cache-Control", "public, max-age=86400")
+                  self.end_headers()
+                  self.wfile.write(data)
+              except FileNotFoundError:
+                  self.send_response(404)
+                  self.end_headers()
+                  self.wfile.write(b"Not found")
+              return
+
+  
         if self.path == "/api/agents":
             try:
                 from agents.director import get_company_status
