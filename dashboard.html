@@ -1316,7 +1316,7 @@
         // Auto replies rules
         function renderAutoRepliesTable(items) {
             const tbody = document.getElementById("auto-replies-table-body");
-            tbody.innerHTML = items.length === 0 ? `<tr><td colspan="3" class="py-4 text-center text-gray-600">No chatbot keyword rules configured.</td></tr>` : "";
+            if (!tbody) return;
 
             items.forEach(item => {
                 const tr = document.createElement("tr");
@@ -1336,6 +1336,7 @@
 
         function renderTargetsTable(items) {
             const tbody = document.getElementById("targets-table-body");
+            if (!tbody) return;
             tbody.innerHTML = items.length === 0 ? `<tr><td colspan="3" class="py-4 text-center text-gray-600">No cloner pipelines active.</td></tr>` : "";
             
             items.forEach(item => {
@@ -1357,6 +1358,7 @@
 
         function renderAdsTable(items) {
             const tbody = document.getElementById("ads-table-body");
+            if (!tbody) return;
             tbody.innerHTML = items.length === 0 ? `<tr><td colspan="4" class="py-4 text-center text-gray-600">No active promotional schedules.</td></tr>` : "";
 
             items.forEach(item => {
@@ -1418,6 +1420,7 @@
         // Render Free Viral Growth Campaigns Table
         function renderGrowthCampaignsTable(items) {
             const tbody = document.getElementById("growth-table-body");
+            if (!tbody) return;
             tbody.innerHTML = items.length === 0 ? `<tr><td colspan="4" class="py-4 text-center text-gray-600">No active growth funnels registered.</td></tr>` : "";
 
             items.forEach(item => {
