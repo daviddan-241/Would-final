@@ -8,23 +8,6 @@ import json
 import time
 import logging
 
-
-def add_push_subscription(endpoint: str, p256dh: str, auth: str) -> None:
-    db = load_db()
-    db['push_subscriptions'] = [s for s in db.get('push_subscriptions', []) if s.get('endpoint') != endpoint]
-    db['push_subscriptions'].append({'endpoint': endpoint, 'p256dh': p256dh, 'auth': auth})
-    save_db()
-
-
-def get_push_subscriptions() -> list:
-    return load_db().get('push_subscriptions', [])
-
-
-def remove_push_subscription(endpoint: str) -> None:
-    db = load_db()
-    db['push_subscriptions'] = [s for s in db.get('push_subscriptions', []) if s.get('endpoint') != endpoint]
-    save_db()
-
 logger = logging.getLogger(__name__)
 
 DB_FILE = os.getenv("MARKETING_DB_FILE", os.path.join(os.path.dirname(os.path.abspath(__file__)), "marketing_data.json"))
@@ -39,13 +22,11 @@ _data = {
     "messages": {},          # Conversation messages: {conv_id: [messages]}
     "auto_replies": [],      # Chatbot rules: {id, profile_id, keyword, reply_text, active}
     "growth_campaigns": [],  # Viral traffic campaigns
-    "discord_coins": [],       # Pump.fun coins with Discord links found
-    "push_subscriptions": [],  # Web Push subscriber objects {endpoint, p256dh, auth}
-    "analytics": {           # Real-time traffic funnel stats
-        "impressions": 24500,
-        "clicks": 1820,
-        "leads": 412,
-        "conversion_rate": 22.6
+    "analytics": {           # Real-time traffic funnel stats (starts at zero — only real data)
+        "impressions": 0,
+        "clicks": 0,
+        "leads": 0,
+        "conversion_rate": 0
     },
     "settings": {
         "openai_key": "",
@@ -99,9 +80,46 @@ def save_db():
 
 def get_profiles():
     db = load_db()
-    # No auto-seeding default profiles anymore to prevent them from showing up when you want a clean slate
-    if "profiles" not in db:
-        db["profiles"] = []
+    if "profiles" not in db or not db["profiles"]:
+        # Seed default profiles if empty (Crypto, Celeb, Normal)
+        db["profiles"] = [
+            {
+                "id": "prof_default_crypto",
+                "name": "Crypto Alpha Calls",
+                "niche": "crypto",
+                "bio": "Solana Calls & Daily 100x Gems. Join my private channel for early calls.",
+                "cta_link": "https://t.me/join_alpha_calls",
+                "ai_tone": "bullish_crypto_enthusiast",
+                "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=CryptoAlpha",
+                "active": True,
+                "tg_bot_token": "",
+                "tg_chat_id": ""
+            },
+            {
+                "id": "prof_default_celeb",
+                "name": "Sophie Rain (Official)",
+                "niche": "celeb",
+                "bio": "Welcome to my official inbox! Chat with me directly here. Join my private club below.",
+                "cta_link": "https://onlyfans.com/sophie_rain",
+                "ai_tone": "hype",
+                "avatar": "https://api.dicebear.com/7.x/adventurer/svg?seed=Sophie",
+                "active": True,
+                "tg_bot_token": "",
+                "tg_chat_id": ""
+            },
+            {
+                "id": "prof_default_casual",
+                "name": "Sarah Miller",
+                "niche": "casual",
+                "bio": "Just a normal girl exploring Web3 & sharing life vibes. Let's be friends!",
+                "cta_link": "https://instagram.com/sarah_m",
+                "ai_tone": "casual",
+                "avatar": "https://api.dicebear.com/7.x/lorelei/svg?seed=Sarah",
+                "active": True,
+                "tg_bot_token": "",
+                "tg_chat_id": ""
+            }
+        ]
         save_db()
     return db["profiles"]
 
@@ -530,48 +548,3 @@ def update_settings(new_settings):
     db["settings"].update(new_settings)
     save_db()
     return db["settings"]
-
-
-# --- Discord Coins (pump.fun coins with Discord links) ---
-
-def add_discord_coin(name: str, symbol: str, mint: str, chain: str, discord_link: str,
-                     telegram_link: str = "", twitter: str = "", website: str = "",
-                     image_url: str = "", pair_url: str = "", source: str = "") -> dict:
-    """Store a coin with a Discord link found by the scanner."""
-    db = load_db()
-    if "discord_coins" not in db:
-        db["discord_coins"] = []
-
-    # Avoid duplicates by mint address
-    existing_mints = {c.get("mint", "") for c in db["discord_coins"]}
-    if mint in existing_mints:
-        return {}
-
-    import time as _t
-    entry = {
-        "name": name,
-        "symbol": symbol,
-        "mint": mint,
-        "chain": chain,
-        "discord_link": discord_link,
-        "telegram_link": telegram_link,
-        "twitter": twitter,
-        "website": website,
-        "image_url": image_url,
-        "pair_url": pair_url,
-        "source": source,
-        "found_at": _t.time(),
-    }
-    db["discord_coins"].append(entry)
-    # Keep last 500
-    if len(db["discord_coins"]) > 500:
-        db["discord_coins"] = db["discord_coins"][-500:]
-    save_db()
-    return entry
-
-
-def get_discord_coins(limit: int = 100) -> list:
-    """Return the most recent Discord coins."""
-    db = load_db()
-    coins = db.get("discord_coins", [])
-    return list(reversed(coins[-limit:]))

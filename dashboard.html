@@ -1,1995 +1,1564 @@
 <!DOCTYPE html>
-<html lang="en" class="dark" id="html-root">
+<html lang="en" id="html-root">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Aether SMM OS</title>
-    <!-- PWA Meta Tags -->
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#00a884">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Aether">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body {
-            background-color: #000000;
-            color: #ffffff;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            overflow-x: hidden;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Verizon Suite — Command Center</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.07);
+    --accent: #6c63ff;
+    --accent2: #00d4aa;
+    --accent3: #ff6b6b;
+    --accent4: #ffa34d;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --green: #00d4aa;
+    --blue: #6c63ff;
+    --orange: #ffa34d;
+    --red: #ff6b6b;
+    --pink: #ff6eb4;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+  }
+  /* SCROLLBARS */
+  ::-webkit-scrollbar { width: 0; height: 0; }
 
-        /* Glassmorphism Classes (Claude/Linear/Arc Polish) */
-        .glass-panel {
-            background: rgba(18, 18, 18, 0.6);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 24px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .glass-panel:hover {
-            border-color: rgba(255, 255, 255, 0.15);
-            background: rgba(22, 22, 22, 0.7);
-        }
+  /* GLASS CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .card-sm { border-radius: 12px; padding: 12px; }
 
-        .glass-input {
-            background: rgba(10, 10, 10, 0.5) !important;
-            border: 1px solid rgba(255, 255, 255, 0.08) !important;
-            color: #ffffff !important;
-            border-radius: 14px !important;
-            transition: all 0.2s ease;
-        }
-        .glass-input:focus {
-            outline: none !important;
-            border-color: #3B82F6 !important;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
-            background: rgba(15, 15, 15, 0.8) !important;
-        }
+  /* STAT CARD */
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    opacity: 0.12;
+  }
+  .stat-card.purple::before { background: var(--accent); }
+  .stat-card.green::before  { background: var(--green); }
+  .stat-card.orange::before { background: var(--orange); }
+  .stat-card.red::before    { background: var(--red); }
 
-        /* Swiper / Scroll Snapping styling */
-        .swiper-container {
-            display: flex;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-        }
-        .swiper-slide {
-            flex: 0 0 85%;
-            scroll-snap-align: start;
-        }
+  /* TOGGLE */
+  .toggle-wrap { position: relative; display: inline-block; width: 44px; height: 24px; }
+  .toggle-wrap input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0;
+    background: var(--surface2);
+    border-radius: 24px;
+    cursor: pointer;
+    transition: .3s;
+    border: 1px solid var(--border);
+  }
+  .slider::before {
+    content: '';
+    position: absolute;
+    left: 3px; top: 50%;
+    transform: translateY(-50%);
+    width: 18px; height: 18px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: .3s;
+  }
+  input:checked + .slider { background: var(--accent); border-color: var(--accent); }
+  input:checked + .slider::before { transform: translateX(20px) translateY(-50%); background: #fff; }
 
-        /* Bottom Floating App Pill Dock */
-        .floating-dock {
-            background: rgba(15, 15, 15, 0.75);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 9999px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-        }
+  /* INPUT */
+  .inp {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s;
+  }
+  .inp:focus { border-color: var(--accent); }
+  .inp::placeholder { color: var(--muted); }
+  select.inp option { background: #1a1a26; }
 
-        /* Slide Over Animations for iOS Modal Sheet */
-        .slide-up-sheet {
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .slide-up-sheet.closed {
-            transform: translateY(100%);
-        }
-        .slide-up-sheet.open {
-            transform: translateY(0);
-        }
+  /* BUTTON */
+  .btn {
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: opacity .15s, transform .1s;
+    letter-spacing: .3px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:active { opacity: .8; transform: scale(.97); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-green   { background: var(--green); color: #000; }
+  .btn-orange  { background: var(--orange); color: #000; }
+  .btn-red     { background: var(--red); color: #fff; }
+  .btn-pink    { background: var(--pink); color: #fff; }
+  .btn-ghost   { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-full    { width: 100%; justify-content: center; }
+  .btn-sm      { padding: 6px 10px; font-size: 11px; }
+  .btn-icon    { padding: 8px; border-radius: 8px; }
 
-        /* Hide Scrollbars */
-        ::-webkit-scrollbar {
-            display: none;
-        }
+  /* BADGE */
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: .3px;
+  }
+  .badge-green  { background: rgba(0,212,170,.15); color: var(--green); }
+  .badge-blue   { background: rgba(108,99,255,.15); color: var(--accent); }
+  .badge-orange { background: rgba(255,163,77,.15); color: var(--orange); }
+  .badge-red    { background: rgba(255,107,107,.15); color: var(--red); }
+  .badge-pink   { background: rgba(255,110,180,.15); color: var(--pink); }
+  .badge-muted  { background: var(--surface2); color: var(--muted); }
 
-        /* Selectable Button States */
-        .select-btn {
-            background: rgba(28, 28, 30, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
-            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .select-btn.active {
-            background: rgba(10, 132, 255, 0.15);
-            border-color: #0a84ff;
-            color: #0a84ff;
-        }
-    </style>
+  /* HEADER */
+  #app-header {
+    background: rgba(10,10,15,.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px 10px;
+    position: sticky; top: 0; z-index: 40;
+  }
+
+  /* SCROLL AREA */
+  #scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 14px 90px;
+  }
+
+  /* BOTTOM NAV */
+  #bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 50;
+    background: rgba(12,12,20,.97);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 8px 0 max(8px,env(safe-area-inset-bottom));
+  }
+  .nav-item {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 3px; cursor: pointer; padding: 4px 0;
+    transition: color .2s;
+    color: var(--muted);
+    border: none; background: none;
+    position: relative;
+  }
+  .nav-item.active { color: var(--accent); }
+  .nav-item i { font-size: 18px; }
+  .nav-item span { font-size: 9px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+  .nav-badge {
+    position: absolute; top: 0; right: 24px;
+    background: var(--red);
+    color: #fff; font-size: 8px; font-weight: 800;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    display: none;
+  }
+  .nav-badge.show { display: flex; }
+
+  /* TAB */
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* CHAT BUBBLE */
+  .bubble-in  { background: var(--surface2); border-radius: 18px 18px 18px 4px; }
+  .bubble-out { background: var(--accent); border-radius: 18px 18px 4px 18px; }
+
+  /* SLIDE MODAL */
+  .modal-sheet {
+    position: fixed; inset: 0; z-index: 60;
+    background: var(--bg);
+    transform: translateY(100%);
+    transition: transform .4s cubic-bezier(.16,1,.3,1);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 20px 16px max(20px,env(safe-area-inset-bottom));
+  }
+  .modal-sheet.open { transform: translateY(0); }
+
+  /* RAID CARD */
+  .raid-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .raid-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+  }
+
+  /* PERSONA CARD */
+  .persona-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+
+  /* GRADIENT HEADER */
+  .grad-text {
+    background: linear-gradient(135deg, var(--accent), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .data-table th { color: var(--muted); font-weight: 700; text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--border); letter-spacing: .5px; text-transform: uppercase; font-size: 9px; }
+  .data-table td { padding: 9px 4px; border-bottom: 1px solid rgba(255,255,255,.03); color: var(--text); vertical-align: middle; }
+  .data-table tr:last-child td { border-bottom: none; }
+
+  /* PULSE DOT */
+  .pulse-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green);
+    display: inline-block;
+    box-shadow: 0 0 0 0 rgba(0,212,170,.4);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(0,212,170,.4); }
+    70%  { box-shadow: 0 0 0 6px rgba(0,212,170,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,212,170,0); }
+  }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 10px; font-weight: 800;
+    color: var(--muted); letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 10px;
+  }
+
+  /* LOG AREA */
+  #log-stream {
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    height: 110px;
+    overflow-y: auto;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+
+  /* CHATROOM */
+  #chatroom {
+    position: fixed; inset: 0; z-index: 45;
+    background: var(--bg);
+    display: none;
+    flex-direction: column;
+  }
+  #chatroom.open { display: flex; }
+  #chat-msgs {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  #chat-input-bar {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 10px 12px max(10px,env(safe-area-inset-bottom));
+    display: flex; gap: 8px; align-items: center;
+  }
+
+  /* ANALYTICS PROGRESS BAR */
+  .prog-bar {
+    height: 5px; border-radius: 3px; background: var(--surface2);
+    overflow: hidden; margin-top: 6px;
+  }
+  .prog-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    transition: width .6s ease;
+  }
+
+  /* FORM LABEL */
+  .flabel {
+    font-size: 9px; font-weight: 800;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: .8px; display: block; margin-bottom: 5px;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center; padding: 32px 16px;
+    color: var(--muted); font-size: 12px;
+  }
+  .empty-state i { font-size: 28px; opacity: .3; display: block; margin-bottom: 8px; }
+
+  /* STATUS INDICATOR */
+  .status-live   { color: var(--green); }
+  .status-paused { color: var(--muted); }
+
+  /* CHIP ROW */
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 3px 9px;
+    font-size: 10px; font-weight: 600; color: var(--text);
+  }
+
+  /* TRANSITION */
+  .fade-in { animation: fadeIn .25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+</style>
 </head>
-<body class="h-screen flex flex-col justify-between overflow-hidden">
+<body>
 
-    <!-- INITIALIZATION WIZARD: Shown if no active SMM personas exist -->
-    <div id="init-wizard" class="hidden fixed inset-0 z-50 bg-[#000000] p-6 flex flex-col justify-between overflow-y-auto safe-bottom">
-        <div class="space-y-6">
-            <div class="text-center pt-8">
-                <div class="bg-blue-600/10 w-16 h-16 rounded-3xl mx-auto flex items-center justify-center text-blue-500 text-3xl shadow-lg shadow-blue-500/10 mb-4 border border-blue-500/20">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                </div>
-                <h1 class="text-xl font-black tracking-tight text-white">Aether SMM OS</h1>
-                <p class="text-xs text-gray-500 mt-1">Deploy your first Persona to activate the SMM Suite</p>
-            </div>
-            
-            <form id="form-persona-init" onsubmit="submitPersonaInit(event)" class="space-y-4">
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1.5">Persona Name</label>
-                    <input type="text" id="init-name" placeholder="Sophie Rain, Alpha Calls, etc." class="w-full p-3.5 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none focus:border-blue-500" required>
-                </div>
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-2">Category Niche</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button type="button" onclick="selectInitNiche('celeb')" id="btn-init-celeb" class="select-btn py-3 px-2 text-[10px] font-bold active flex flex-col items-center gap-1.5"><i class="fa-solid fa-star text-base text-pink-400"></i> Celeb</button>
-                        <button type="button" onclick="selectInitNiche('crypto')" id="btn-init-crypto" class="select-btn py-3 px-2 text-[10px] font-bold flex flex-col items-center gap-1.5"><i class="fa-solid fa-chart-line text-base text-blue-400"></i> Crypto</button>
-                        <button type="button" onclick="selectInitNiche('casual')" id="btn-init-casual" class="select-btn py-3 px-2 text-[10px] font-bold flex flex-col items-center gap-1.5"><i class="fa-solid fa-user text-base text-gray-400"></i> Casual</button>
-                    </div>
-                    <input type="hidden" id="init-niche" value="celeb">
-                </div>
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1.5">Biography (Feeds into AI Brain)</label>
-                    <textarea id="init-bio" placeholder="Describe the personality traits and voice of this persona..." rows="3" class="w-full p-3.5 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none focus:border-blue-500" required></textarea>
-                </div>
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1.5">CTA Redirection Link</label>
-                    <input type="url" id="init-cta" placeholder="https://t.me/your_private_channel" class="w-full p-3.5 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none focus:border-blue-500" required>
-                </div>
-                
-                <!-- Telegram setups -->
-                <div class="border-t border-white/10 pt-4 space-y-3">
-                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1"><i class="fa-brands fa-telegram text-blue-500"></i> Telegram Sync (Optional)</h4>
-                    <input type="text" id="init-tg-token" placeholder="Bot Token (from @BotFather)" class="w-full p-3.5 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none">
-                    <input type="text" id="init-tg-chat" placeholder="Group/Channel ID (starts with -100...)" class="w-full p-3.5 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none">
-                </div>
-                
-                <button type="submit" class="w-full bg-blue-600 text-white font-extrabold text-xs py-3.5 mt-4 rounded-xl shadow-lg shadow-blue-500/10">Initialize SMM OS</button>
-            </form>
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header id="app-header">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+    <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
+      <div id="header-avatar" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--accent);overflow:hidden;flex-shrink:0;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:14px;">?</div>
+      <div style="min-width:0;">
+        <select id="persona-switcher" onchange="onPersonaSwitch()" style="background:transparent;border:none;color:var(--text);font-weight:800;font-size:14px;outline:none;cursor:pointer;max-width:180px;"></select>
+        <div style="font-size:8px;color:var(--muted);font-weight:700;letter-spacing:.8px;text-transform:uppercase;display:flex;align-items:center;gap:4px;">
+          <span class="pulse-dot"></span> Live SMM Engine
         </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0;">
+      <button onclick="openModal('help-modal')" class="btn btn-ghost btn-icon" title="Setup Guide"><i class="fa-solid fa-circle-question" style="font-size:15px;color:var(--accent);"></i></button>
+      <button onclick="toggleTheme()" class="btn btn-ghost btn-icon" title="Toggle Theme" id="theme-btn"><i class="fa-solid fa-moon" style="font-size:15px;"></i></button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════ SCROLL AREA ═══════════════ -->
+<div id="scroll-area">
+
+  <!-- ── TAB: DASHBOARD ── -->
+  <div id="tab-dashboard" class="tab-pane active fade-in">
+
+    <!-- SETUP CHECKLIST -->
+    <div id="setup-card" style="margin-top:4px;margin-bottom:14px;background:var(--surface);border:1.5px solid var(--accent);border-radius:16px;padding:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:13px;font-weight:900;">⚡ Setup Checklist</span>
+        <span id="setup-done-badge" class="badge badge-muted" style="font-size:10px;">Loading…</span>
+      </div>
+      <div id="checklist-items" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <div id="setup-complete-msg" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(0,212,170,.1);border-radius:10px;color:#00d4aa;font-size:12px;font-weight:700;text-align:center;">
+        ✅ All set! Your bot is live and will receive real DMs.
+      </div>
     </div>
 
-    <!-- Top Premium iOS-Style Header -->
-    <header id="main-app-header" class="app-header sticky top-0 z-40 px-5 pt-10 pb-4 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <div id="header-persona-avatar" class="w-10 h-10 rounded-full bg-gray-800 border border-white/10 flex items-center justify-center font-bold">
-                ?
-            </div>
-            <div>
-                <select id="active-persona-switch" onchange="switchActivePersona()" class="bg-transparent text-white dark:text-white light:text-black font-extrabold text-base focus:outline-none cursor-pointer">
-                    <!-- Dynamic profiles switcher options -->
-                </select>
-                <p class="text-[9px] text-[#8696a0] font-bold uppercase tracking-wider mt-0.5">Active SMM Profile</p>
-            </div>
-        </div>
-        
-        <div class="flex gap-2">
-            <!-- iOS Premium A-Z Setup Help Guide "?" Button -->
-            <button onclick="openHelpGuide()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-blue-500 font-bold shadow-sm active:scale-95 transition-transform">
-                <i class="fa-solid fa-circle-question text-base"></i>
-            </button>
-            
-            <!-- Push Notifications Bell -->
-            <button id="push-enable-btn" onclick="enablePushNotifications()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 font-bold shadow-sm active:scale-95 transition-transform" title="Enable push alerts for new Discord coins">
-                <i class="fa-solid fa-bell text-base"></i>
-            </button>
-
-            <!-- Light/Dark Mode Switcher -->
-            <button onclick="toggleTheme()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white font-bold shadow-sm">
-                <i class="fa-solid fa-circle-half-stroke text-base" id="theme-icon"></i>
-            </button>
-        </div>
-    </header>
-
-    <!-- Main Workspace (Restricted Height to avoid bottom overlap) -->
-    <div class="flex-1 overflow-y-auto px-4 py-4 space-y-6 pb-32" id="main-scroll-view">
-
-        <!-- TAB: DASHBOARD (Active Campaigns, Analytics, Switches) -->
-        <div id="tab-dashboard" class="tab-content space-y-6 pb-32">
-            <!-- Real-Time Traffic Funnel Analytics -->
-            <div class="glass-panel p-5">
-                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><i class="fa-solid fa-chart-line text-blue-500"></i> Organic Funnel</h3>
-                <div class="grid grid-cols-3 gap-2 text-center">
-                    <div class="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                        <span class="text-[10px] text-gray-500 block">Impressions</span>
-                        <span class="text-base font-bold text-gray-100" id="funnel-impressions">0</span>
-                    </div>
-                    <div class="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                        <span class="text-[10px] text-gray-500 block">Clicks</span>
-                        <span class="text-base font-bold text-gray-100" id="funnel-clicks">0</span>
-                    </div>
-                    <div class="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                        <span class="text-[10px] text-gray-500 block">Conversion</span>
-                        <span class="text-base font-bold text-emerald-400" id="funnel-conversion">0%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Master Switches -->
-            <div class="glass-panel overflow-hidden">
-                <div class="px-4 py-2.5 text-xs font-bold text-gray-400 uppercase tracking-wider bg-white/5">Engine Master Switches</div>
-                
-                <!-- Toggle: Mirror -->
-                <div class="flex items-center justify-between p-4 border-b border-white/5">
-                    <div>
-                        <h4 class="text-sm font-semibold">Account Cloning</h4>
-                        <p class="text-xs text-gray-500">Auto copy and rewrite posts</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-mirror" onchange="updateEngineSwitches()" class="sr-only ios-switch">
-                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
-                    </label>
-                </div>
-
-                <!-- Toggle: Ads -->
-                <div class="flex items-center justify-between p-4 border-b border-white/5">
-                    <div>
-                        <h4 class="text-sm font-semibold">Promotional Posting</h4>
-                        <p class="text-xs text-gray-500">Broadcast ads automatically</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-ads" onchange="updateEngineSwitches()" class="sr-only ios-switch">
-                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
-                    </label>
-                </div>
-
-                <!-- Toggle: DM Chatbot -->
-                <div class="flex items-center justify-between p-4 border-b border-white/5">
-                    <div>
-                        <h4 class="text-sm font-semibold">AI Inbox Chatbot</h4>
-                        <p class="text-xs text-gray-500">Respond to incoming messages</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-dms" onchange="updateEngineSwitches()" class="sr-only ios-switch">
-                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
-                    </label>
-                </div>
-
-                <!-- Toggle: Growth Hacks -->
-                <div class="flex items-center justify-between p-4">
-                    <div>
-                        <h4 class="text-sm font-semibold">Free Organic Growth</h4>
-                        <p class="text-xs text-gray-500">Extract leads & run traffic triggers</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggle-growth" onchange="updateEngineSwitches()" class="sr-only ios-switch">
-                        <div class="w-11 h-6 bg-gray-700 rounded-full ios-switch-bg transition-colors duration-200 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform"></div>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Apple System Live Stream Monitor -->
-            <div class="glass-panel p-4">
-                <div class="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
-                    <h3 class="font-bold text-sm text-gray-300"><i class="fa-solid fa-terminal text-[#34C759] mr-1.5"></i> Activity Terminal</h3>
-                    <button onclick="clearLogs()" class="text-xs text-[#0A84FF] font-medium">Clear</button>
-                </div>
-                <div class="space-y-2 font-mono text-[10px] max-h-48 overflow-y-auto text-gray-400" id="log-container">
-                    <div>[06:30] SMM Engine loaded.</div>
-                    <div>[06:30] Auto post engines synchronized.</div>
-                    <div>[06:35] Free auto-re-writer ready.</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB: CHATS (WhatsApp/iMessage Jet-Black Overhaul - Chats Contacts List) -->
-        <div id="tab-chats" class="tab-content hidden space-y-4 pb-32">
-            
-            <div id="chats-list-view" class="space-y-4">
-                <div class="flex items-center justify-between px-1">
-                    <h3 class="font-extrabold text-xs uppercase tracking-wider text-gray-500">Live Leads Inbox</h3>
-                    <span class="text-xs text-[#00a884] font-bold" id="inbox-count-badge">0 Contacts</span>
-                </div>
-
-                <!-- Apple Search Contacts Bar -->
-                <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-500 text-xs"></i>
-                    <input type="text" placeholder="Search contacts by handle..." id="conv-search" oninput="filterConversations()" class="w-full pl-9 pr-4 py-3 text-xs bg-[#121314] rounded-xl border border-white/10 focus:outline-none focus:ring-0">
-                </div>
-
-                <!-- Contacts Scroll List -->
-                <div class="space-y-2.5 overflow-y-auto pr-1" id="conversations-list-container">
-                    <!-- Dynamic Conversations list -->
-                </div>
-            </div>
-
-            <!-- VIEW B: Premium iOS iMessage Chatroom Frame (Only visible when contact is selected!) -->
-            <div id="chatroom-view" class="hidden flex flex-col h-[calc(100vh-160px)] justify-between overflow-hidden shadow-2xl rounded-2xl" style="background-color: #000000; border: 0.5px solid rgba(255,255,255,0.08);">
-                <!-- Room Header with Back Button -->
-                <div class="p-4 flex items-center justify-between bg-[#121314] border-b border-white/10">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <button onclick="closeChatroom()" class="text-[#0a84ff] font-bold text-xs flex items-center gap-1 active:scale-95 transition-transform mr-1 shrink-0">
-                            <i class="fa-solid fa-chevron-left text-sm"></i> Back
-                        </button>
-                        <div class="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center text-xs text-gray-300 font-bold" id="chat-avatar-placeholder">?</div>
-                        <div class="min-w-0">
-                            <h4 class="text-xs font-bold text-white truncate" id="chat-title-handle">Select a contact</h4>
-                            <p class="text-[9px] text-[#8696a0]" id="chat-subtitle-platform">Waiting for chat thread...</p>
-                        </div>
-                    </div>
-                    <span class="text-[9px] px-2.5 py-1 bg-[#0a84ff]/20 text-[#0a84ff] font-bold rounded-full shrink-0">iMessage</span>
-                </div>
-
-                <!-- Chat Bubbles Area -->
-                <div class="flex-1 p-5 overflow-y-auto space-y-4 flex flex-col bg-[#000000]" id="chat-messages-container">
-                    <!-- Dynamic messages render here cleanly -->
-                </div>
-
-                <!-- Message Keyboard (Input Text Box - ONLY inside active chatroom!) -->
-                <form onsubmit="sendCustomReply(event)" class="p-3 flex gap-2 bg-[#121314] border-t border-white/10">
-                    <input type="hidden" id="active-conv-id" value="">
-                    <input type="text" id="chat-reply-input" placeholder="Type a message..." class="flex-1 px-4 py-3 rounded-full text-xs bg-[#242526] border-none text-white focus:outline-none focus:ring-0" disabled>
-                    <button type="submit" id="chat-send-btn" class="bg-[#0a84ff] text-white p-3 rounded-full text-xs font-bold disabled:opacity-40 flex items-center justify-center w-10 h-10 shrink-0 shadow-md shadow-black/10" disabled>
-                        <i class="fa-solid fa-paper-plane text-xs"></i>
-                    </button>
-                </form>
-            </div>
-
-        </div>
-
-        <!-- TAB: AGENTS (Company Worker Roster) -->
-        <div id="tab-agents" class="tab-content hidden space-y-4 pb-32">
-
-            <!-- Company Header -->
-            <div class="glass-panel p-5 bg-gradient-to-br from-[#1a1a2e]/80 to-[#16213e]/80 border border-[#0f3460]/30">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl">🏢</div>
-                    <div>
-                        <h2 class="font-extrabold text-base text-white" id="company-name">Verizon Suite Operations</h2>
-                        <p class="text-[10px] text-gray-400">Real-time agent company status</p>
-                    </div>
-                    <div class="ml-auto text-right">
-                        <div class="text-[10px] text-gray-400">Uptime</div>
-                        <div class="text-sm font-bold text-[#00a884]" id="company-uptime">--</div>
-                    </div>
-                </div>
-                <div class="grid grid-cols-3 gap-2 mt-4">
-                    <div class="bg-white/5 rounded-xl p-3 text-center">
-                        <div class="text-xl font-extrabold text-white" id="stat-total-agents">--</div>
-                        <div class="text-[9px] text-gray-400 mt-0.5">Total Agents</div>
-                    </div>
-                    <div class="bg-white/5 rounded-xl p-3 text-center">
-                        <div class="text-xl font-extrabold text-[#00a884]" id="stat-active-agents">--</div>
-                        <div class="text-[9px] text-gray-400 mt-0.5">Active Now</div>
-                    </div>
-                    <div class="bg-white/5 rounded-xl p-3 text-center">
-                        <div class="text-xl font-extrabold text-blue-400" id="stat-tasks-done">--</div>
-                        <div class="text-[9px] text-gray-400 mt-0.5">Tasks Done</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Agent Cards -->
-            <div id="agents-list" class="space-y-3">
-                <div class="text-center text-gray-500 text-sm py-8">Loading agents...</div>
-            </div>
-
-            <!-- Test DM Panel -->
-            <div class="glass-panel p-5 space-y-3">
-                <h3 class="font-bold text-sm flex items-center gap-2">💬 Test DM Inbox</h3>
-                <p class="text-[10px] text-gray-400">Fire a real DM at your active persona and watch the AI reply appear in the Chats tab.</p>
-                <input type="text" id="test-dm-sender" placeholder="Sender name (e.g. @john)" class="glass-input w-full px-4 py-3 text-sm" value="@TestUser">
-                <textarea id="test-dm-text" placeholder="Type a message..." class="glass-input w-full px-4 py-3 text-sm resize-none" rows="3"></textarea>
-                <button onclick="fireTestDM()" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3 rounded-2xl text-sm">
-                    🚀 Fire Test DM
-                </button>
-                <div id="test-dm-result" class="hidden text-xs text-[#00a884] font-semibold text-center mt-1"></div>
-            </div>
-
-        </div>
-
-        <!-- TAB: SETTINGS (Consolidated & Highly Spacious SMM Controls) -->
-        <div id="tab-settings" class="tab-content hidden space-y-6 pb-32">
-            
-            <!-- Add SMM Persona CTA Button -->
-            <div class="flex items-center justify-between bg-gradient-to-r from-blue-600/15 to-[#AF52DE]/15 p-5 rounded-2xl border border-white/5 dark:border-white/5 light:border-black/5 shadow-md">
-                <div class="space-y-0.5">
-                    <h3 class="font-extrabold text-sm">Deploy New Persona</h3>
-                    <p class="text-[10px] text-gray-400">Launch a separate brand character with unique AI brains</p>
-                </div>
-                <button onclick="openPersonaCreator()" class="bg-[#0A84FF] text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-500/20 active:scale-95 transition-transform">
-                    <i class="fa-solid fa-plus text-xs"></i> Add Persona
-                </button>
-            </div>
-
-            <!-- Global Redirect Funnel Link Configurator -->
-            <div class="glass-panel p-5 space-y-2.5">
-                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-link text-blue-500"></i> Global Funnel Override Link</h3>
-                <form onsubmit="saveGlobalLink(event)" class="flex gap-2">
-                    <input type="url" id="global-cta-input" placeholder="https://t.me/your_private_channel_or_link" class="flex-1 p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black font-bold focus:outline-none" required>
-                    <button type="submit" class="bg-[#00a884] text-white text-xs font-bold px-4 rounded-xl active:scale-95 transition-transform">Apply</button>
-                </form>
-            </div>
-
-            <!-- Connected Accounts fleet (Supports Multiple Accounts concurrently!) -->
-            <div class="glass-panel p-5 space-y-4">
-                <h3 class="font-bold text-xs text-[#FF9500] uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-users"></i> Connected SMM Fleet (Multi-Account)</h3>
-                
-                <!-- iOS Tap Button Platform Selector (REPLACED dropdown select!) -->
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-2">Select Social Channel</label>
-                    <div class="grid grid-cols-4 gap-2">
-                        <button type="button" onclick="selectFleetPlatform('twitter')" id="btn-fleet-twitter" class="select-btn py-3 text-[10px] font-bold active flex flex-col items-center gap-1"><i class="fa-brands fa-twitter text-blue-400 text-lg"></i> X / Twitter</button>
-                        <button type="button" onclick="selectFleetPlatform('tiktok')" id="btn-fleet-tiktok" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-brands fa-tiktok text-pink-400 text-lg"></i> TikTok</button>
-                        <button type="button" onclick="selectFleetPlatform('instagram')" id="btn-fleet-instagram" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-brands fa-instagram text-pink-500 text-lg"></i> Instagram</button>
-                        <button type="button" onclick="selectFleetPlatform('facebook')" id="btn-fleet-facebook" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-brands fa-facebook text-blue-600 text-lg"></i> Facebook</button>
-                    </div>
-                    <input type="hidden" id="acc-platform" value="twitter">
-                </div>
-
-                <form id="form-account" onsubmit="submitAccount(event)" class="space-y-3">
-                    <div>
-                        <label class="block text-[9px] uppercase font-bold text-gray-500 mb-1">Profile Username / Handle</label>
-                        <input type="text" id="acc-username" placeholder="Username (no @)" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required>
-                    </div>
-                    <div>
-                        <label class="block text-[9px] uppercase font-bold text-gray-500 mb-1">API Token / Bearer Token</label>
-                        <input type="text" id="acc-token" placeholder="Twitter: Bearer token — Meta/Instagram: Page Access Token" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none">
-                    </div>
-                    <button type="submit" class="w-full bg-[#FF9500] text-white text-xs font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform">Register Profile to Fleet</button>
-                </form>
-
-                <!-- Accounts lists -->
-                <div class="space-y-2 mt-4" id="accounts-list-container">
-                    <!-- Dynamic multi-account displays -->
-                </div>
-            </div>
-
-            <!-- Cloning & Mirroring Targets -->
-            <div class="glass-panel p-5 space-y-4">
-                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-copy text-blue-500"></i> Cloning & Mirroring Targets</h3>
-                
-                <!-- iOS Tap Button Platform Selector (REPLACED dropdown select!) -->
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-2">Select Target Platform</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button type="button" onclick="selectMirrorPlatform('twitter')" id="btn-mirror-twitter" class="select-btn py-3 text-[10px] font-bold active flex flex-col items-center gap-1"><i class="fa-brands fa-twitter text-blue-400 text-lg"></i> X / Twitter</button>
-                        <button type="button" onclick="selectMirrorPlatform('tiktok')" id="btn-mirror-tiktok" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-brands fa-tiktok text-pink-400 text-lg"></i> TikTok</button>
-                        <button type="button" onclick="selectMirrorPlatform('instagram')" id="btn-mirror-instagram" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-brands fa-instagram text-pink-500 text-lg"></i> Instagram</button>
-                    </div>
-                    <input type="hidden" id="target-platform" value="twitter">
-                </div>
-
-                <form id="form-target" onsubmit="submitTarget(event)" class="space-y-3">
-                    <input type="text" id="target-handle" placeholder="Influencer to clone (e.g. elonmusk, sophierain)" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required>
-                    <button type="submit" class="w-full bg-blue-600 text-white text-xs font-bold py-3 rounded-xl active:scale-95 transition-transform">Create Mirror Connection</button>
-                </form>
-
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-left text-xs text-gray-400">
-                        <thead>
-                            <tr class="text-gray-500 font-bold border-b border-white/5">
-                                <th class="pb-2">Platform</th>
-                                <th class="pb-2">Target</th>
-                                <th class="pb-2 text-right">Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody id="targets-table-body">
-                            <!-- Dynamic clones -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Organic Traffic Growth Hack Campaign Deployer -->
-            <div class="glass-panel p-5 space-y-4">
-                <h3 class="font-bold text-xs text-[#AF52DE] uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i> Free Organic Growth Campaigns</h3>
-                
-                <!-- iOS Tap Button Platform Selector (REPLACED dropdown select!) -->
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-2">Select Campaign Niche</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button type="button" onclick="selectGrowthNiche('solana')" id="btn-growth-solana" class="select-btn py-3 text-[10px] font-bold active flex flex-col items-center gap-1"><i class="fa-solid fa-rocket text-yellow-500 text-lg"></i> Solana Meme</button>
-                        <button type="button" onclick="selectGrowthNiche('celeb')" id="btn-growth-celeb" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-solid fa-star text-pink-500 text-lg"></i> Celeb & Model</button>
-                        <button type="button" onclick="selectGrowthNiche('lifestyle')" id="btn-growth-lifestyle" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-solid fa-camera text-blue-500 text-lg"></i> Lifestyle Vlog</button>
-                        <button type="button" onclick="selectGrowthNiche('viral')" id="btn-growth-viral" class="select-btn py-3 text-[10px] font-bold flex flex-col items-center gap-1"><i class="fa-solid fa-fire text-orange-500 text-lg"></i> Viral Trends</button>
-                    </div>
-                    <input type="hidden" id="growth-niche" value="solana">
-                </div>
-
-                <form id="form-growth" onsubmit="submitGrowthCampaign(event)" class="space-y-3">
-                    <input type="text" id="growth-keywords" placeholder="Keywords (solana, meme, fashion, travel)" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required>
-                    <input type="url" id="growth-cta" placeholder="CTA Redirect Link" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required>
-                    <select id="growth-platform" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black font-semibold focus:outline-none">
-                        <option value="all">Hijack ALL platforms organically</option>
-                        <option value="twitter">𝕏 Twitter / X Threads</option>
-                        <option value="tiktok">🎵 TikTok Comments</option>
-                        <option value="instagram">📸 Instagram Discover</option>
-                    </select>
-                    <button type="submit" class="w-full bg-[#AF52DE] text-white text-xs font-bold py-3 rounded-xl active:scale-95 transition-transform shadow-lg shadow-purple-500/10">Deploy Free Funnel</button>
-                </form>
-
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-left text-xs text-gray-400">
-                        <thead>
-                            <tr class="text-gray-500 font-bold border-b border-white/5">
-                                <th class="pb-2">Niche</th>
-                                <th class="pb-2">Platform</th>
-                                <th class="pb-2 text-right">Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody id="growth-table-body">
-                            <!-- Dynamic campaigns -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Scheduled Ads Broadcasting Section -->
-            <div class="ios-card p-5 space-y-4">
-                <h3 class="font-bold text-xs text-[#34C759] uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-clock"></i> Scheduled Ad Broadcaster</h3>
-                <form id="form-ad" onsubmit="submitAd(event)" class="space-y-3">
-                    <select id="ad-platform" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black font-semibold focus:outline-none">
-                        <option value="telegram">💬 My Telegram Channel Only</option>
-                        <option value="twitter">𝕏 Connected Twitter Accounts</option>
-                        <option value="all">All Channels</option>
-                    </select>
-                    <input type="number" id="ad-interval" value="30" min="5" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required>
-                    <textarea id="ad-content" placeholder="Ad body text (HTML supported)..." rows="3" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none" required></textarea>
-                    <button type="submit" class="w-full bg-[#34C759] text-white text-xs font-bold py-3 rounded-xl active:scale-95 transition-transform shadow-lg shadow-emerald-500/10">Activate Ad Schedule</button>
-                </form>
-
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-left text-xs text-gray-400">
-                        <thead>
-                            <tr class="text-gray-500 font-bold border-b border-white/5">
-                                <th class="pb-2">Target</th>
-                                <th class="pb-2">Interval</th>
-                                <th class="pb-2 text-right">Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ads-table-body">
-                            <!-- Dynamic ad items -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- AI Credentials & API Keys config -->
-            <div class="ios-card p-5 space-y-3">
-                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-key text-blue-500"></i> AI Credentials (Optional)</h3>
-                <form id="form-settings-ai" onsubmit="submitSettings(event)" class="space-y-3">
-                    <input type="password" id="set-openai-key" placeholder="OpenAI Key (sk-...)" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none">
-                    <input type="password" id="set-gemini-key" placeholder="Google Gemini Key (AIzaSy...)" class="w-full p-3 rounded-xl text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none">
-                    <button type="submit" class="w-full bg-[#0A84FF] text-white text-xs font-bold py-3 rounded-xl active:scale-95 transition-transform">Save Keys</button>
-                </form>
-            </div>
-
-            <!-- Rotating SMM Proxies configuration -->
-            <div class="ios-card p-5 space-y-3">
-                <h3 class="font-bold text-xs text-gray-400 uppercase tracking-wider"><i class="fa-solid fa-network-wired text-orange-500"></i> Rotating Proxy Nodes</h3>
-                <textarea id="set-proxies" placeholder="username:password@ip:port&#10;192.168.1.1:8080" rows="3" class="w-full p-3 rounded-xl font-mono text-xs bg-black border border-white/10 dark:border-white/10 light:border-black/10 text-white dark:text-white light:text-black focus:outline-none"></textarea>
-                <button onclick="saveProxies()" class="w-full bg-orange-600 text-white text-xs font-bold py-3 rounded-xl active:scale-95 transition-transform">Apply Proxy Network</button>
-            </div>
-            
-            <!-- Personas setup cards list -->
-            <div class="space-y-3">
-                <h3 class="font-bold text-xs text-gray-500 uppercase tracking-wider px-1">Active SMM Personas</h3>
-                <div class="space-y-4" id="personas-table-body">
-                    <!-- Dynamic profiles cards -->
-                </div>
-            </div>
-        </div>
-
+    <div class="section-title">Live Analytics</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div class="stat-card purple">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Impressions</div>
+        <div id="stat-impressions" style="font-size:24px;font-weight:900;margin-top:2px;">—</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px;">total reach</div>
+      </div>
+      <div class="stat-card green">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Clicks</div>
+        <div id="stat-clicks" style="font-size:24px;font-weight:900;margin-top:2px;">—</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px;">link taps</div>
+      </div>
+      <div class="stat-card orange">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Leads</div>
+        <div id="stat-leads" style="font-size:24px;font-weight:900;margin-top:2px;">—</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px;">captured</div>
+      </div>
+      <div class="stat-card red">
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Conv. Rate</div>
+        <div id="stat-conv" style="font-size:24px;font-weight:900;margin-top:2px;">—</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px;">conversion</div>
+      </div>
     </div>
 
-
-        <!-- TAB: LIVE CHAT + DISCORD SCANNER -->
-        <div id="tab-live" class="tab-content hidden space-y-4 pb-32">
-
-            <!-- Pump.fun Livestream Chat -->
-            <div class="glass-panel p-4 space-y-3">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-[#f97316]/15 flex items-center justify-center">
-                        <i class="fa-solid fa-satellite-dish text-[#f97316] text-sm"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-white">Pump.fun Live Chat</h3>
-                        <p class="text-[10px] text-gray-400">Proxy real-time comments from any livestream to your site</p>
-                    </div>
-                    <div class="ml-auto">
-                        <span id="chat-status-dot" class="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-gray-800 text-gray-400">
-                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500 inline-block"></span> Idle
-                        </span>
-                    </div>
-                </div>
-
-                <div class="space-y-2">
-                    <input type="text" id="chat-mint-input"
-                        placeholder="Mint address (e.g. pump.fun/xxxx or paste contract)"
-                        class="w-full p-3 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none focus:border-orange-500 font-mono">
-                    <input type="text" id="chat-jwt-input"
-                        placeholder="pump.fun JWT (optional — get from browser DevTools > Network > Authorization header)"
-                        class="w-full p-3 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none focus:border-orange-500">
-                    <div class="flex gap-2">
-                        <button onclick="startLiveChat()" class="flex-1 bg-[#f97316] text-white text-xs font-bold py-3 rounded-xl">
-                            <i class="fa-solid fa-play mr-1"></i> Connect
-                        </button>
-                        <button onclick="stopLiveChat()" class="px-4 bg-[#1c1c1e] text-gray-400 text-xs font-bold py-3 rounded-xl border border-white/10">
-                            <i class="fa-solid fa-stop mr-1"></i> Stop
-                        </button>
-                        <button onclick="clearLiveChat()" class="px-4 bg-[#1c1c1e] text-gray-400 text-xs font-bold py-3 rounded-xl border border-white/10">
-                            <i class="fa-solid fa-trash text-xs"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- JWT How-to -->
-                <details class="text-[10px] text-gray-500">
-                    <summary class="cursor-pointer text-blue-400 font-semibold">How to get your pump.fun JWT token</summary>
-                    <div class="mt-2 space-y-1 text-gray-400 leading-relaxed">
-                        <p>1. Open <b>pump.fun</b> in Chrome/Safari and log in with your wallet</p>
-                        <p>2. Open DevTools (F12) → Network tab</p>
-                        <p>3. Visit any live coin page and look for a request to <code>frontend-api-v3.pump.fun</code></p>
-                        <p>4. In the request headers, find <code>Authorization: Bearer xxxx</code></p>
-                        <p>5. Copy everything after "Bearer " and paste above</p>
-                        <p class="text-yellow-500">⚠️ Without a JWT, only public read-only access is attempted</p>
-                    </div>
-                </details>
-            </div>
-
-            <!-- Live Chat Messages -->
-            <div class="glass-panel overflow-hidden">
-                <div class="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                    <span class="text-xs font-bold text-white">Live Messages</span>
-                    <span id="chat-message-count" class="text-[10px] text-gray-500">0 messages</span>
-                </div>
-                <div id="live-chat-messages"
-                    class="space-y-0 max-h-96 overflow-y-auto p-3 font-mono text-xs"
-                    style="background: rgba(0,0,0,0.4);">
-                    <div class="text-gray-600 text-center py-8 text-[10px]">
-                        Enter a mint address above and click Connect to see live chat
-                    </div>
-                </div>
-            </div>
-
-            <!-- Discord Scanner Feed -->
-            <div class="glass-panel overflow-hidden">
-                <div class="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-brands fa-discord text-[#5865F2] text-base"></i>
-                        <span class="text-xs font-bold text-white">Discord Coins Scanner</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span id="discord-coins-count" class="text-[10px] text-gray-500">Scanning...</span>
-                        <button onclick="refreshDiscordCoins()" class="text-[10px] text-blue-400 font-semibold">Refresh</button>
-                    </div>
-                </div>
-                <div class="px-3 py-2 border-b border-white/5">
-                    <p class="text-[10px] text-gray-500">All newly created pump.fun + DexScreener coins with Discord links — found in real time</p>
-                </div>
-                <div id="discord-coins-list" class="max-h-96 overflow-y-auto p-3 space-y-2">
-                    <div class="text-gray-600 text-center py-6 text-[10px]">
-                        Waiting for scanner to find Discord coins...
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-    <!-- Fresh Spacious Slide Up Persona Page Modal Sheet (iOS Native feel) -->
-    <div id="persona-modal" class="slide-up-sheet closed fixed inset-0 z-50 bg-[#000000] p-5 flex flex-col justify-between overflow-y-auto safe-bottom">
-        <div class="space-y-5">
-            <div class="flex items-center justify-between border-b border-white/10 pb-3">
-                <h2 class="text-lg font-bold text-gray-100 flex items-center gap-1.5"><i class="fa-solid fa-user-plus text-blue-500"></i> Create SMM Profile</h2>
-                <button onclick="closePersonaCreator()" class="text-sm text-blue-500 font-bold">Cancel</button>
-            </div>
-            <form id="form-persona" onsubmit="submitPersona(event)" class="space-y-4">
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Persona Name / Handle</label>
-                    <input type="text" id="persona-name" placeholder="Sophie Rain, Alpha Calls, Elon, etc." class="w-full p-3 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none" required>
-                </div>
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Niche Category</label>
-                    <select id="persona-niche" class="w-full p-3 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none">
-                        <option value="celeb">⭐ Celebrity / Influencer (Sophie Rain / for her)</option>
-                        <option value="crypto">📈 Crypto / Calls / Trading Analyst</option>
-                        <option value="casual">👤 Casual / Friend / Random Person</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Biography / Role Details (Feeds into AI chatbot)</label>
-                    <textarea id="persona-bio" placeholder="Role characteristics used to craft natural AI dialogues..." rows="3" class="w-full p-3 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none" required></textarea>
-                </div>
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Target Direct CTA Link (Funnels redirects)</label>
-                    <input type="url" id="persona-cta" placeholder="https://t.me/your_private_channel" class="w-full p-3 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none" required>
-                </div>
-                <div>
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">AI Conversation Tone</label>
-                    <select id="persona-tone" class="w-full p-3 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none">
-                        <option value="hype">🚨 High-Energy Sweet Hype (Best for Celebs)</option>
-                        <option value="bullish_crypto_enthUST">🚀 Bullish & Enthusiastic (Best for Crypto)</option>
-                        <option value="casual">🤙 Friendly & Casual (Best for Randoms)</option>
-                        <option value="professional">📊 Professional & Analytical</option>
-                    </select>
-                </div>
-                
-                <!-- NEW Profile-Specific Telegram Bot Configurations! -->
-                <div class="border-t border-white/10 pt-4 space-y-4">
-                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider"><i class="fa-brands fa-telegram text-blue-500"></i> Profile Telegram Channel (Optional)</h4>
-                    <p class="text-[9px] text-gray-500">Each persona can automatically broadcast to their own separate Telegram group or channel using unique bots.</p>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Persona Telegram Bot Token</label>
-                        <input type="text" id="persona-tg-token" placeholder="BotFather Token (e.g. 123456:ABC...)" class="w-full p-3 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1">Persona Telegram Chat ID</label>
-                        <input type="text" id="persona-tg-chat" placeholder="Group/Channel Chat ID (starts with -100...)" class="w-full p-3 rounded-xl text-xs bg-[#121314] border border-white/10 text-white focus:outline-none">
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full bg-[#0a84ff] text-white text-xs font-bold py-3 mt-4 rounded-xl shadow-lg">Deploy SMM Persona</button>
-            </form>
-        </div>
+    <div class="section-title">Funnel Pipeline</div>
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:12px;font-weight:700;">Traffic → Leads Funnel</span>
+        <span class="badge badge-green" id="funnel-pct">0%</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span>Impressions</span><span id="f-imp" style="color:var(--text);font-weight:700;">0</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-imp" style="width:100%"></div></div>
+      <div style="font-size:11px;color:var(--muted);display:flex;justify-content:space-between;margin-top:8px;margin-bottom:4px;">
+        <span>Clicks</span><span id="f-clk" style="color:var(--text);font-weight:700;">0</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-clk" style="width:0%;background:linear-gradient(90deg,var(--green),var(--accent))"></div></div>
+      <div style="font-size:11px;color:var(--muted);display:flex;justify-content:space-between;margin-top:8px;margin-bottom:4px;">
+        <span>Leads</span><span id="f-leads" style="color:var(--text);font-weight:700;">0</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-leads" style="width:0%;background:linear-gradient(90deg,var(--orange),var(--red))"></div></div>
     </div>
 
-    <!-- Fresh Spacious Slide Up A-Z Setup & Strategy HELP Modal Sheet (iOS Native style question button) -->
-    <div id="help-modal" class="slide-up-sheet closed fixed inset-0 z-50 bg-[#000000] p-5 flex flex-col justify-between overflow-y-auto safe-bottom">
-        <div class="space-y-6 pb-20">
-            <div class="flex items-center justify-between border-b border-white/10 pb-3">
-                <h2 class="text-lg font-bold text-gray-100 flex items-center gap-1.5"><i class="fa-solid fa-circle-question text-blue-500"></i> A-Z SMM Setup Guide</h2>
-                <button onclick="closeHelpGuide()" class="text-sm text-blue-500 font-bold">Done</button>
-            </div>
-            
-            <div class="space-y-6 text-xs text-gray-300 leading-relaxed">
-                <div class="space-y-2">
-                    <h3 class="text-[#0a84ff] font-extrabold text-sm uppercase tracking-wide">Phase 1: Render Deployment (Free)</h3>
-                    <p>Go to your <a href="https://render.com" target="_blank" class="text-blue-400 underline font-bold">Render Dashboard</a>, select your <b>Would-final</b> repository, and set the <b>Runtime to Docker</b>. Use the Free tier instance and deploy.</p>
-                </div>
-                
-                <div class="space-y-2">
-                    <h3 class="text-[#34c759] font-extrabold text-sm uppercase tracking-wide">Phase 2: Telegram Bots & Chat IDs</h3>
-                    <p>Open Telegram and message <a href="https://t.me/BotFather" target="_blank" class="text-blue-400 underline font-bold">@BotFather</a>. Create a new bot using <code>/newbot</code>. Add your bot as Admin in your group. Get your group ID using <code>@raw_data_bot</code>. Paste these under individual Personas settings to separate groups!</p>
-                </div>
-
-                <div class="space-y-2">
-                    <h3 class="text-[#AF52DE] font-extrabold text-sm uppercase tracking-wide">Phase 3: Free Google Gemini AI Key</h3>
-                    <p>Navigate to <a href="https://aistudio.google.com" target="_blank" class="text-blue-400 underline font-bold">Google AI Studio</a>. Click <b>"Get API Key"</b> and project-register a 100% free Gemini API key (supports 15 free requests/min). Paste this inside your AI Settings section!</p>
-                </div>
-
-                <div class="space-y-2">
-                    <h3 class="text-[#FF9500] font-extrabold text-sm uppercase tracking-wide">Phase 4: iOS Mobile Cookies bookmarklet</h3>
-                    <p>Since iPhones have no F12 keys, create a bookmarked URL in Safari named <b>"Get Cookies"</b> and paste this code as its URL:</p>
-                    <pre class="bg-black/80 p-3 rounded-lg border border-white/5 font-mono text-[9px] select-all overflow-x-auto text-[#FF9500]">javascript:(function(){var c=document.cookie; if(!c){alert('No cookies found. Log in!');}else{prompt('Copy your cookies below:', c);}})();</pre>
-                    <p class="text-[10px] text-gray-500">Go to Twitter/TikTok/Instagram in Safari, log in, tap your bookmarklet, and copy your session keys (e.g. <code>auth_token</code> or <code>sessionid</code>) into the SMM Fleet forms sequentially to connect unlimited accounts!</p>
-                </div>
-
-                <div class="space-y-2">
-                    <h3 class="text-orange-500 font-extrabold text-sm uppercase tracking-wide">Phase 5: How to Get SMM Proxies ($0)</h3>
-                    <p>Sign up on <a href="https://www.webshare.io" target="_blank" class="text-blue-400 underline font-bold">Webshare.io</a> for a 100% Free Plan containing <b>10 rotating datacenter proxies</b>. Paste your proxies formatted as <code>username:password@ip:port</code> (one per line) inside Settings -> Rotating Proxies card.</p>
-                </div>
-            </div>
-        </div>
+    <div class="section-title">Engine Status</div>
+    <div class="card" style="margin-bottom:14px;">
+      <div id="engine-toggles" style="display:flex;flex-direction:column;gap:12px;"></div>
     </div>
 
-    <!-- Bottom Navigation Pill Dock (Arc/Claude Premium Style Overlay) -->
-    <nav class="ios-blur fixed bottom-6 left-6 right-6 z-40 border border-white/10 rounded-full py-1.5 safe-bottom bg-[#121314]/80 shadow-2xl">
-        <div class="max-w-md mx-auto flex justify-around items-center">
-            
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active flex flex-col items-center gap-1 text-[#00a884] font-medium transition-colors relative">
-                <i class="fa-solid fa-chart-pie text-lg"></i>
-                <span class="text-[9px]">Overview</span>
-            </button>
+    <div class="section-title">Live Activity Log</div>
+    <div class="card" style="margin-bottom:4px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:11px;font-weight:700;color:var(--muted);">System Stream</span>
+        <button onclick="clearLog()" class="btn btn-ghost btn-sm">Clear</button>
+      </div>
+      <div id="log-stream"><div style="color:var(--muted);">Initializing engines…</div></div>
+    </div>
 
-            <button onclick="switchTab('chats')" id="nav-chats" class="nav-btn flex flex-col items-center gap-1 text-gray-500 font-medium transition-colors relative">
-                <i class="fa-solid fa-comment-dots text-lg"></i>
-                <span class="text-[9px]">DMs</span>
-                <span class="absolute top-0 right-2 bg-[#FF3B30] text-white font-bold text-[8px] w-4 h-4 flex items-center justify-center rounded-full hidden" id="inbox-unread-count">0</span>
-            </button>
+  </div>
 
-            <button onclick="switchTab('agents')" id="nav-agents" class="nav-btn flex flex-col items-center gap-1 text-gray-500 font-medium transition-colors">
-                <i class="fa-solid fa-users-gear text-lg"></i>
-                <span class="text-[9px]">Agents</span>
-            </button>
+  <!-- ── TAB: INBOX ── -->
+  <div id="tab-inbox" class="tab-pane fade-in">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="section-title" style="margin:0;">DM Inbox</div>
+      <span class="badge badge-green" id="inbox-badge">0 chats</span>
+    </div>
+    <div style="position:relative;margin-bottom:10px;">
+      <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;"></i>
+      <input type="text" id="inbox-search" placeholder="Search contacts…" oninput="filterInbox()" class="inp" style="padding-left:32px;">
+    </div>
+    <div id="inbox-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
 
-            <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn flex flex-col items-center gap-1 text-gray-500 font-medium transition-colors">
-                <i class="fa-solid fa-gear text-lg"></i>
-                <span class="text-[9px]">Settings</span>
-            </button>
+  <!-- ── TAB: RAIDS ── -->
+  <div id="tab-raids" class="tab-pane fade-in">
 
-            <button onclick="switchTab('live')" id="nav-live" class="nav-btn flex flex-col items-center gap-1 text-gray-500 font-medium transition-colors relative">
-                <i class="fa-solid fa-satellite-dish text-lg"></i>
-                <span class="text-[9px]">Live</span>
-            </button>
-
+    <div class="section-title" style="margin-top:4px;">Launch Raid</div>
+    <div class="card" style="margin-bottom:14px;">
+      <form id="form-raid" onsubmit="submitRaid(event)" style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <label class="flabel">Platform</label>
+          <select id="raid-platform" class="inp">
+            <option value="twitter">𝕏 Twitter / X</option>
+            <option value="tiktok">🎵 TikTok</option>
+            <option value="instagram">📸 Instagram</option>
+            <option value="facebook">👤 Facebook</option>
+          </select>
         </div>
-    </nav>
-
-    <!-- Global JS Script for iOS Admin Operations -->
-    <script>
-        let dbData = {};
-        let activeConversationId = null;
-        let selectedInboxProfileId = "all";
-        let isDarkMode = true;
-
-        function addLog(message, colorClass = "text-gray-400") {
-            const container = document.getElementById("log-container");
-            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const logDiv = document.createElement("div");
-            logDiv.className = colorClass;
-            logDiv.innerHTML = `[${timeStr}] ${message}`;
-            if (container) {
-                container.appendChild(logDiv);
-                container.scrollTop = container.scrollHeight;
-            }
-        }
-
-        function clearLogs() {
-            document.getElementById("log-container").innerHTML = "<div class='text-gray-500'>Logs cleared. Waiting for active streams...</div>";
-        }
-
-        // WhatsApp Theme Switcher (White / Dark Switch)
-        function toggleTheme() {
-            const root = document.getElementById("html-root");
-            const icon = document.getElementById("theme-icon");
-            
-            isDarkMode = !isDarkMode;
-            if (isDarkMode) {
-                root.classList.add("dark");
-                root.classList.remove("light");
-                icon.className = "fa-solid fa-circle-half-stroke text-base";
-            } else {
-                root.classList.remove("dark");
-                root.classList.add("light");
-                icon.className = "fa-solid fa-sun text-base text-gray-800";
-            }
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
-            
-            // Re-style bottom buttons like iOS tabs
-            document.querySelectorAll(".nav-btn").forEach(el => {
-                el.classList.remove("text-[#00a884]");
-                el.classList.add("text-gray-500");
-            });
-            
-            document.getElementById(`tab-${tabId}`).classList.remove("hidden");
-            document.getElementById(`nav-${tabId}`).classList.add("text-[#00a884]");
-            document.getElementById(`nav-${tabId}`).classList.remove("text-gray-500");
-
-            const titleMap = {
-                dashboard: "Overview",
-                chats: "Unified DMs",
-                agents: "AI Agent Company",
-                settings: "Console Settings",
-                live: "Live Chat & Discord Scanner"
-            };
-            
-            document.getElementById("header-title").textContent = titleMap[tabId];
-            document.getElementById("main-scroll-view").scrollTop = 0;
-            
-            // If switching to chats tab, make sure main header is visible
-            document.getElementById("main-app-header").classList.remove("hidden");
-        }
-
-        // Open/Close Persona Creator Fresh Page Overlay (iOS Native style slide transitions)
-        function openPersonaCreator() {
-            const modal = document.getElementById("persona-modal");
-            modal.classList.remove("hidden", "closed");
-            modal.classList.add("open");
-        }
-        function closePersonaCreator() {
-            const modal = document.getElementById("persona-modal");
-            modal.classList.remove("open");
-            modal.classList.add("closed");
-            setTimeout(() => {
-                modal.classList.add("hidden");
-            }, 400);
-        }
-
-        // Open/Close iOS Premium A-Z Setup Help Guide Modal
-        function openHelpGuide() {
-            const modal = document.getElementById("help-modal");
-            modal.classList.remove("hidden", "closed");
-            modal.classList.add("open");
-        }
-        function closeHelpGuide() {
-            const modal = document.getElementById("help-modal");
-            modal.classList.remove("open");
-            modal.classList.add("closed");
-            setTimeout(() => {
-                modal.classList.add("hidden");
-            }, 400);
-        }
-
-        // Toggle Platform Selections inside iOS forms (REPLACED standard select dropdown!)
-        function selectFleetPlatform(platform) {
-            document.querySelectorAll("#tab-settings .select-btn[id^='btn-fleet-']").forEach(btn => btn.classList.remove("active"));
-            document.getElementById(`btn-fleet-${platform}`).classList.add("active");
-            document.getElementById("acc-platform").value = platform;
-        }
-
-        function selectMirrorPlatform(platform) {
-            document.querySelectorAll("#tab-settings .select-btn[id^='btn-mirror-']").forEach(btn => btn.classList.remove("active"));
-            document.getElementById(`btn-mirror-${platform}`).classList.add("active");
-            document.getElementById("target-platform").value = platform;
-        }
-
-        function selectGrowthNiche(niche) {
-            document.querySelectorAll("#tab-settings .select-btn[id^='btn-growth-']").forEach(btn => btn.classList.remove("active"));
-            document.getElementById(`btn-growth-${niche}`).classList.add("active");
-            document.getElementById("growth-niche").value = niche;
-        }
-
-        async function fetchAPI(url, options = {}) {
-            try {
-                const response = await fetch(url, options);
-                return await response.json();
-            } catch (err) {
-                console.error("API Call error:", err);
-                return null;
-            }
-        }
-
-        async function refreshData() {
-            const data = await fetchAPI("/api/data");
-            if (!data) return;
-            dbData = data;
-
-            // Master Analytics
-            document.getElementById("funnel-impressions").textContent = data.analytics.impressions.toLocaleString();
-            document.getElementById("funnel-clicks").textContent = data.analytics.clicks.toLocaleString();
-            document.getElementById("funnel-conversion").textContent = `${data.analytics.conversion_rate}%`;
-
-            // Global CTA Link Prepopulation
-            document.getElementById("global-cta-input").value = data.settings.global_cta_link || "";
-
-            // Switch Toggles state
-            document.getElementById("toggle-mirror").checked = data.settings.auto_mirror_enabled;
-            document.getElementById("toggle-ads").checked = data.settings.auto_post_enabled;
-            document.getElementById("toggle-dms").checked = data.settings.auto_dm_reply_enabled || false;
-            document.getElementById("toggle-growth").checked = data.settings.growth_hacks_enabled || false;
-
-            // Form Prepopulation
-            document.getElementById("set-openai-key").value = data.settings.openai_key || "";
-            document.getElementById("set-gemini-key").value = data.settings.gemini_key || "";
-            document.getElementById("set-proxies").value = (data.settings.proxy_list || []).join("\n");
-
-            // Populate active switcher & drop filters
-            populateProfileFilters(data.profiles || []);
-
-            // Check if profiles are empty -> Open initialization Wizard on load!
-            const initWizard = document.getElementById("init-wizard");
-            if (data.profiles && data.profiles.length === 0) {
-                initWizard.classList.remove("hidden");
-            } else {
-                initWizard.classList.add("hidden");
-            }
-
-            // Render tables
-            renderTargetsTable(data.targets);
-            renderAdsTable(data.ads);
-            renderAccountsTable(data.accounts || []);
-            renderGrowthCampaignsTable(data.growth_campaigns || []);
-            renderPersonasCards(data.profiles || []);
-            
-            // Render Inbox list (filtered by selected profile)
-            renderConversationsList(data.conversations || []);
-            renderAutoRepliesTable(data.auto_replies || []);
-            
-            // Handle unread counts
-            const unreadCount = (data.conversations || []).reduce((acc, curr) => acc + (curr.unread || 0), 0);
-            const badge = document.getElementById("inbox-unread-count");
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount;
-                badge.classList.remove("hidden");
-            } else {
-                badge.classList.add("hidden");
-            }
-        }
-
-        // Initialize first profile wizard trigger
-        let activeInitNiche = "celeb";
-        function selectInitNiche(niche) {
-            document.querySelectorAll("#init-wizard .select-btn").forEach(btn => btn.classList.remove("active"));
-            document.getElementById(`btn-init-${niche}`).classList.add("active");
-            document.getElementById("init-niche").value = niche;
-        }
-
-        async function submitPersonaInit(e) {
-            e.preventDefault();
-            const data = {
-                name: document.getElementById("init-name").value,
-                niche: document.getElementById("init-niche").value,
-                bio: document.getElementById("init-bio").value,
-                cta_link: document.getElementById("init-cta").value,
-                ai_tone: "casual",
-                tg_bot_token: document.getElementById("init-tg-token").value,
-                tg_chat_id: document.getElementById("init-tg-chat").value
-            };
-            const res = await fetchAPI("/api/profiles", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-            if (res) {
-                document.getElementById("init-wizard").classList.add("hidden");
-                refreshData();
-            }
-        }
-
-        // Fill dropdown profile selectors with active passwords
-        function populateProfileFilters(profiles) {
-            const selectSwitcher = document.getElementById("active-persona-switch");
-            const currentSwitcherVal = selectSwitcher.value;
-            
-            // Active switcher header
-            selectSwitcher.innerHTML = '';
-            
-            profiles.forEach(p => {
-                const opt = document.createElement("option");
-                opt.value = p.id;
-                opt.textContent = `${p.niche === 'crypto' ? '📈' : p.niche === 'celeb' ? '⭐' : '👤'} ${p.name}`;
-                selectSwitcher.appendChild(opt);
-            });
-            
-            // Restore selections
-            selectSwitcher.value = currentSwitcherVal || (profiles[0] ? profiles[0].id : "");
-            
-            // Set header avatar
-            const activeProfile = profiles.find(p => p.id === selectSwitcher.value);
-            if (activeProfile) {
-                document.getElementById("header-persona-avatar").innerHTML = `<img src="${activeProfile.avatar}" class="w-full h-full rounded-full border border-white/10">`;
-            }
-        }
-
-        function switchActivePersona() {
-            const val = document.getElementById("active-persona-switch").value;
-            selectedInboxProfileId = val;
-            
-            // Update Avatar
-            const activeProfile = (dbData.profiles || []).find(p => p.id === val);
-            if (activeProfile) {
-                document.getElementById("header-persona-avatar").innerHTML = `<img src="${activeProfile.avatar}" class="w-full h-full rounded-full border border-white/10">`;
-            }
-            
-            filterConversationsByProfile();
-        }
-
-        function filterConversationsByProfile() {
-            if (dbData.conversations) {
-                renderConversationsList(dbData.conversations);
-            }
-        }
-
-        // Render Conversation Contacts list
-        function renderConversationsList(conversations) {
-            const container = document.getElementById("conversations-list-container");
-            const searchVal = document.getElementById("conv-search").value.toLowerCase();
-            
-            // Filter conversations by selected profile AND search handle query
-            let filtered = conversations;
-            if (selectedInboxProfileId !== "all") {
-                filtered = filtered.filter(c => c.profile_id === selectedInboxProfileId);
-            }
-            filtered = filtered.filter(c => c.sender_handle.toLowerCase().includes(searchVal));
-
-            document.getElementById("inbox-count-badge").textContent = `${filtered.length} Chats`;
-            container.innerHTML = filtered.length === 0 ? `<div class="text-center text-gray-500 py-6 text-xs text-white">No active real-world chats yet.</div>` : "";
-
-            filtered.forEach(c => {
-                const isSelected = activeConversationId === c.id;
-                const div = document.createElement("div");
-                div.className = `p-3.5 rounded-xl flex items-center justify-between cursor-pointer transition-all ${isSelected ? 'bg-[#00a884]/20 border border-[#00a884]/30' : 'bg-white/5 border border-transparent'}`;
-                div.setAttribute("onclick", `selectConversation('${c.id}', '${c.sender_handle}', '${c.platform}')`);
-
-                const platformIcon = getPlatformIcon(c.platform);
-                const unreadDot = c.unread > 0 ? `<span class="bg-[#00a884] w-2.5 h-2.5 rounded-full block"></span>` : "";
-
-                // Get persona name to show context in inbox
-                const persona = (dbData.profiles || []).find(p => p.id === c.profile_id);
-                const personaName = persona ? persona.name : "System";
-
-                div.innerHTML = `
-                    <div class="flex items-center gap-3 min-w-0 flex-1">
-                        <img src="${c.avatar}" alt="Lead" class="w-9 h-9 rounded-full bg-[#1C1C1E] border border-white/5">
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-1 font-bold text-xs text-gray-200 justify-between">
-                                <span class="truncate max-w-[130px] text-[13px]">${c.sender_handle}</span>
-                                ${platformIcon}
-                            </div>
-                            <span class="text-[8px] bg-white/10 px-1 py-0.5 rounded text-gray-400 font-semibold inline-block truncate max-w-[120px] mt-0.5">${personaName}</span>
-                            <p class="text-[11px] text-gray-400 truncate mt-1 max-w-[140px]">${c.last_message_text}</p>
-                        </div>
-                    </div>
-                    ${unreadDot}
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function filterConversations() {
-            if (dbData.conversations) {
-                renderConversationsList(dbData.conversations);
-            }
-        }
-
-        async function selectConversation(id, handle, platform) {
-            activeConversationId = id;
-            
-            // Switch views dynamically to slide into the specific chat thread (and display input bar/keyboard!)
-            document.getElementById("chats-list-view").classList.add("hidden");
-            document.getElementById("chatroom-view").classList.remove("hidden");
-            
-            // Hide the active persona selector from top to give the Chatroom maximum visual screen estate!
-            document.getElementById("main-app-header").classList.add("hidden");
-            
-            // Enable UI inputs
-            document.getElementById("chat-reply-input").removeAttribute("disabled");
-            document.getElementById("chat-send-btn").removeAttribute("disabled");
-            document.getElementById("active-conv-id").value = id;
-            document.getElementById("chat-title-handle").textContent = handle;
-            
-            // Get conversation metadata
-            const conv = (dbData.conversations || []).find(c => c.id === id);
-            const persona = conv ? (dbData.profiles || []).find(p => p.id === conv.profile_id) : null;
-            const personaLabel = persona ? ` | ${persona.name}` : "";
-
-            document.getElementById("chat-subtitle-platform").innerHTML = `Source: <span class="font-bold uppercase">${platform}</span>${personaLabel}`;
-
-            const ph = document.getElementById("chat-avatar-placeholder");
-            ph.innerHTML = `<img src="https://api.dicebear.com/7.x/bottts/svg?seed=${handle}" class="w-full h-full rounded-full bg-gray-800">`;
-
-            // Reload messages instantly
-            await loadMessages(id);
-            refreshData();
-        }
-
-        // Closes Chatroom and slides back to contacts list, completely hiding the input bar/keyboard!
-        function closeChatroom() {
-            activeConversationId = null;
-            document.getElementById("active-conv-id").value = "";
-            
-            // Hide Chatroom and restore Contacts list view
-            document.getElementById("chatroom-view").classList.add("hidden");
-            document.getElementById("chats-list-view").classList.remove("hidden");
-            
-            // Show main header again
-            document.getElementById("main-app-header").classList.remove("hidden");
-            
-            refreshData();
-        }
-
-        async function loadMessages(conv_id) {
-            if (activeConversationId !== conv_id) return;
-            const res = await fetchAPI(`/api/messages?conv_id=${conv_id}`);
-            if (res && res.success) {
-                const container = document.getElementById("chat-messages-container");
-                container.innerHTML = res.messages.length === 0 ? `<div class="text-center text-gray-500 py-12 text-xs">No messages recorded.</div>` : "";
-
-                res.messages.forEach(m => {
-                    const div = document.createElement("div");
-                    div.className = `flex ${m.is_incoming ? 'justify-start' : 'justify-end'} mb-1`;
-
-                    const timeStr = new Date(m.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    
-                    const bubbleBg = m.is_incoming ? 'bg-[#202c33] text-white rounded-tl-none border border-white/5' : 'bg-[#005c4b] text-white rounded-tr-none shadow-md shadow-black/10';
-
-                    div.innerHTML = `
-                        <div class="max-w-[75%] px-3 py-2.5 rounded-xl text-xs ${bubbleBg}">
-                            <p class="leading-relaxed break-words text-[13px]">${m.text}</p>
-                            <div class="flex items-center justify-end gap-1 mt-1 opacity-50">
-                                <span class="block text-[8px]">${timeStr}</span>
-                                ${!m.is_incoming ? '<i class="fa-solid fa-check-double text-[8px] text-[#53bdeb]"></i>' : ''}
-                            </div>
-                        </div>
-                    `;
-                    container.appendChild(div);
-                });
-                container.scrollTop = container.scrollHeight;
-            }
-        }
-
-        async function sendCustomReply(e) {
-            e.preventDefault();
-            const textInput = document.getElementById("chat-reply-input");
-            const text = textInput.value.trim();
-            const conv_id = document.getElementById("active-conv-id").value;
-
-            if (!text || !conv_id) return;
-
-            const res = await fetchAPI("/api/messages/send", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ conv_id, text })
-            });
-
-            if (res && res.success) {
-                textInput.value = "";
-                await loadMessages(conv_id);
-                refreshData();
-            }
-        }
-
-        // Save Global Redirect CTA Link
-        async function saveGlobalLink(e) {
-            e.preventDefault();
-            const link = document.getElementById("global-cta-input").value.trim();
-            const res = await fetchAPI("/api/settings", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ global_cta_link: link })
-            });
-            if (res) {
-                addLog(`Global redirect link updated: ${link}`, "text-blue-400");
-                refreshData();
-            }
-        }
-
-        // Deployed Personas cards rendering
-        function renderPersonasCards(profiles) {
-            const container = document.getElementById("personas-table-body");
-            container.innerHTML = profiles.length === 0 ? `<div class="p-6 text-center text-gray-500 text-xs text-white">No personas deployed yet.</div>` : "";
-            
-            profiles.forEach(p => {
-                const card = document.createElement("div");
-                card.className = "p-4 bg-black/40 rounded-xl border border-white/5 flex gap-3 relative";
-                
-                const badgeColor = p.niche === 'crypto' ? 'bg-blue-600/20 text-blue-400' : p.niche === 'celeb' ? 'bg-pink-600/20 text-pink-400' : 'bg-gray-800 text-gray-400';
-                const lastCheckStr = p.active ? '<span class="text-[#34C759] font-semibold text-[10px]">🟢 Live & Active</span>' : '<span class="text-gray-500 font-semibold text-[10px]">🔴 Paused</span>';
-                
-                // Print profile-specific telegram configurations if available
-                const customBotText = p.tg_bot_token ? `<p class="text-[9px] text-[#34C759] font-semibold mt-0.5"><i class="fa-brands fa-telegram"></i> Dedicated Telegram Bot Active</p>` : "";
-
-                card.innerHTML = `
-                    <img src="${p.avatar}" alt="Persona" class="w-12 h-12 rounded-full bg-[#1C1C1E] border border-white/10 shrink-0">
-                    <div class="space-y-1 pr-10 flex-1">
-                        <div class="flex items-center gap-2 justify-between">
-                            <h4 class="font-bold text-sm text-gray-200">${p.name}</h4>
-                            <span class="text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${badgeColor}">${p.niche}</span>
-                        </div>
-                        <p class="text-xs text-gray-400 leading-relaxed">${p.bio}</p>
-                        <p class="text-[10px] font-mono text-blue-400 truncate max-w-[200px]"><i class="fa-solid fa-link"></i> ${p.cta_link}</p>
-                        ${customBotText}
-                        <div class="pt-1 flex items-center justify-between">
-                            ${lastCheckStr}
-                            <button onclick="togglePersona('${p.id}')" class="text-xs text-[#0A84FF] font-semibold">${p.active ? 'Pause' : 'Activate'}</button>
-                        </div>
-                    </div>
-                    <!-- Delete button absolute top-right -->
-                    <button onclick="deletePersona('${p.id}')" class="absolute top-4 right-4 text-xs text-red-500 font-bold hover:text-red-400"><i class="fa-solid fa-trash"></i></button>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        async function submitPersona(e) {
-            e.preventDefault();
-            const data = {
-                name: document.getElementById("persona-name").value,
-                niche: document.getElementById("persona-niche").value,
-                bio: document.getElementById("persona-bio").value,
-                cta_link: document.getElementById("persona-cta").value,
-                ai_tone: document.getElementById("persona-tone").value,
-                tg_bot_token: document.getElementById("persona-tg-token").value,
-                tg_chat_id: document.getElementById("persona-tg-chat").value
-            };
-            const res = await fetchAPI("/api/profiles", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-            if (res) {
-                addLog(`Registered and deployed Persona profile: '${data.name}'!`, "text-emerald-400");
-                document.getElementById("form-persona").reset();
-                closePersonaCreator();
-                refreshData();
-            }
-        }
-
-        async function deletePersona(id) {
-            const res = await fetchAPI("/api/profiles/delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id })
-            });
-            if (res) {
-                addLog("Persona de-registered.", "text-red-400");
-                refreshData();
-            }
-        }
-
-        async function togglePersona(id) {
-            const res = await fetchAPI("/api/profiles/toggle", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id })
-            });
-            if (res) {
-                refreshData();
-            }
-        }
-
-
-        // Auto replies rules
-        function renderAutoRepliesTable(items) {
-            const tbody = document.getElementById("auto-replies-table-body");
-            if (!tbody) return;
-
-            items.forEach(item => {
-                const tr = document.createElement("tr");
-                tr.className = "border-b border-white/5 hover:bg-white/5";
-
-                tr.innerHTML = `
-                    <td class="py-2.5 font-mono text-[11px] font-bold text-pink-400">#${item.keyword}</td>
-                    <td class="py-2.5 text-[11px] truncate max-w-[150px]">${item.reply_text}</td>
-                    <td class="py-2.5 text-right">
-                        <button onclick="deleteAutoReply('${item.id}')" class="text-xs text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-
-        function renderTargetsTable(items) {
-            const tbody = document.getElementById("targets-table-body");
-            if (!tbody) return;
-            tbody.innerHTML = items.length === 0 ? `<tr><td colspan="3" class="py-4 text-center text-gray-600">No cloner pipelines active.</td></tr>` : "";
-            
-            items.forEach(item => {
-                const tr = document.createElement("tr");
-                tr.className = "border-b border-white/5 hover:bg-white/5";
-                
-                const platformIcon = getPlatformIcon(item.platform);
-
-                tr.innerHTML = `
-                    <td class="py-2.5 flex items-center gap-2">${platformIcon} ${item.platform.toUpperCase()}</td>
-                    <td class="py-2.5 font-mono font-bold text-[11px]">${item.handle}</td>
-                    <td class="py-2.5 text-right">
-                        <button onclick="deleteTarget('${item.id}')" class="text-xs text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function renderAdsTable(items) {
-            const tbody = document.getElementById("ads-table-body");
-            if (!tbody) return;
-            tbody.innerHTML = items.length === 0 ? `<tr><td colspan="4" class="py-4 text-center text-gray-600">No active promotional schedules.</td></tr>` : "";
-
-            items.forEach(item => {
-                const tr = document.createElement("tr");
-                tr.className = "border-b border-white/5 hover:bg-white/5";
-
-                const lastPostedStr = item.last_posted ? new Date(item.last_posted * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Never";
-
-                tr.innerHTML = `
-                    <td class="py-2.5 font-semibold text-[10px] text-[#34C759]">${item.platform.toUpperCase()}</td>
-                    <td class="py-2.5 text-[11px] font-bold">${item.interval_min} Mins</td>
-                    <td class="py-2.5 text-right">
-                        <button onclick="deleteAd('${item.id}')" class="text-xs text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // Overhauled Connected SMM Account lists displays
-        function renderAccountsTable(items) {
-            const container = document.getElementById("accounts-list-container");
-            container.innerHTML = items.length === 0 ? `<div class="p-4 text-center text-gray-600 text-xs bg-black/20 rounded-xl">No profiles connected to fleet yet.</div>` : "";
-
-            // Group accounts by platform
-            const groups = {};
-            items.forEach(a => {
-                if (!groups[a.platform]) groups[a.platform] = [];
-                groups[a.platform].push(a);
-            });
-
-            container.innerHTML = '';
-            for (const platform in groups) {
-                const groupCard = document.createElement("div");
-                groupCard.className = "p-3 bg-black/30 rounded-xl border border-white/5 mb-2.5 space-y-2";
-                
-                const icon = getPlatformIcon(platform);
-                groupCard.innerHTML = `<div class="text-xs font-extrabold uppercase text-gray-400 flex items-center gap-1">${icon} ${platform} FLEET</div>`;
-                
-                groups[platform].forEach(acc => {
-                    const row = document.createElement("div");
-                    row.className = "flex items-center justify-between text-xs py-1.5 border-b border-white/5 last:border-b-0";
-                    row.innerHTML = `
-                        <div class="flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            <span class="font-mono font-bold text-gray-200">${acc.username}</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-[9px] text-gray-500">${acc.token_session ? 'Cookie Auth' : 'Password Auth'}</span>
-                            <button onclick="deleteAccount('${acc.id}')" class="text-xs text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    `;
-                    groupCard.appendChild(row);
-                });
-                container.appendChild(groupCard);
-            }
-        }
-
-        // Render Free Viral Growth Campaigns Table
-        function renderGrowthCampaignsTable(items) {
-            const tbody = document.getElementById("growth-table-body");
-            if (!tbody) return;
-            tbody.innerHTML = items.length === 0 ? `<tr><td colspan="4" class="py-4 text-center text-gray-600">No active growth funnels registered.</td></tr>` : "";
-
-            items.forEach(item => {
-                const tr = document.createElement("tr");
-                tr.className = "border-b border-white/5 hover:bg-white/5";
-
-                tr.innerHTML = `
-                    <td class="py-2.5 font-semibold text-xs text-gray-200 capitalize">${item.niche}</td>
-                    <td class="py-2.5 text-[10px] font-mono text-gray-400">${item.platform.toUpperCase()}</td>
-                    <td class="py-2.5 text-right">
-                        <button onclick="deleteGrowthCampaign('${item.id}')" class="text-xs text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        async function submitGrowthCampaign(e) {
-            e.preventDefault();
-            const data = {
-                niche: document.getElementById("growth-niche").value,
-                keywords: document.getElementById("growth-keywords").value,
-                cta_link: document.getElementById("growth-cta").value,
-                platform: document.getElementById("growth-platform").value
-            };
-            const res = await fetchAPI("/api/growth_campaigns", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-            if (res) {
-                addLog(`⚡ Activated free viral organic funnel targeting keyword topics!`, "text-[#0A84FF]");
-                document.getElementById("form-growth").reset();
-                refreshData();
-            }
-        }
-
-        async function deleteGrowthCampaign(id) {
-            const res = await fetchAPI("/api/growth_campaigns/delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id })
-            });
-            if (res) {
-                addLog("Traffic campaign deleted.", "text-red-400");
-                refreshData();
-            }
-        }
-
-
-        function getPlatformIcon(platform) {
-            switch (platform.toLowerCase()) {
-                case "twitter": return `<i class="fa-brands fa-twitter text-blue-400 text-sm"></i>`;
-                case "tiktok": return `<i class="fa-brands fa-tiktok text-pink-400 text-sm"></i>`;
-                case "instagram": return `<i class="fa-brands fa-instagram text-pink-500 text-sm"></i>`;
-                case "facebook": return `<i class="fa-brands fa-facebook text-blue-600 text-sm"></i>`;
-                default: return `<i class="fa-solid fa-share-nodes text-sm"></i>`;
-            }
-        }
-
-        // Submissions
-        async function updateEngineSwitches() {
-            const data = {
-                auto_mirror_enabled: document.getElementById("toggle-mirror").checked,
-                auto_post_enabled: document.getElementById("toggle-ads").checked,
-                auto_dm_reply_enabled: document.getElementById("toggle-dms").checked,
-                growth_hacks_enabled: document.getElementById("toggle-growth").checked
-            };
-            const res = await fetchAPI("/api/settings", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-            if (res) {
-                addLog("Master toggles updated.", "text-blue-400");
-                refreshData();
-            }
-        }
-
-        async function submitTarget(e) {
-            e.preventDefault();
-            const data = {
-                platform: document.getElementById("target-platform").value,
-                handle: document.getElementById("target-handle").value,
-                destination: "AUTO_ACCOUNTS"
-            };
-            const res = await fetchAPI("/api/targets", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-            if (res) {
-                addLog(`Created cloning target for ${data.handle}!`, "text-emerald-400");
-                document.getElementById("form-target").reset();
-                refreshData();
-            }
-        }
-
-        async function deleteTarget(id) {
-            const res = await fetchAPI("/api/targets/delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id })
-            });
-            if (res) {
-                addLog("Pipeline deleted.", "text-red-400");
-                refreshData();
-            }
-        }
-
-        async function submitAd(e) {
-            e.preventDefault();
-            const data = {
-                platform: document.getElementById("ad-platform").value,
-                interval_min: document.getElementById("ad-interval").value,
-                content: document.getElementById("ad-content").value,
-                image_url: ""
-            };
-            const res = await fetchAPI("/api/ads", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-            if (res) {
-                addLog(`Created ad campaign! Every ${data.interval_min} minutes.`, "text-emerald-400");
-                document.getElementById("form-ad").reset();
-                refreshData();
-            }
-        }
-
-        async function deleteAd(id) {
-            const res = await fetchAPI("/api/ads/delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id })
-            });
-            if (res) {
-                addLog("Ad deleted.", "text-red-400");
-                refreshData();
-            }
-        }
-
-        async function submitAccount(e) {
-            e.preventDefault();
-            const data = {
-                platform: document.getElementById("acc-platform").value,
-                username: document.getElementById("acc-username").value,
-                token_session: document.getElementById("acc-token").value
-            };
-            const res = await fetchAPI("/api/accounts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-            if (res) {
-                addLog(`Fleet account @${data.username} registered.`, "text-amber-400");
-                document.getElementById("form-account").reset();
-                refreshData();
-            }
-        }
-
-        async function deleteAccount(id) {
-            const res = await fetchAPI("/api/accounts/delete", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id })
-            });
-            if (res) {
-                addLog("Account removed.", "text-red-400");
-                refreshData();
-            }
-        }
-
-        async function submitSettings(e) {
-            e.preventDefault();
-            const data = {
-                openai_key: document.getElementById("set-openai-key").value,
-                gemini_key: document.getElementById("set-gemini-key").value
-            };
-            const res = await fetchAPI("/api/settings", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            });
-            if (res) {
-                addLog("AI keys updated successfully.", "text-emerald-400");
-                refreshData();
-            }
-        }
-
-        async function saveProxies() {
-            const rawProxies = document.getElementById("set-proxies").value;
-            const proxy_list = rawProxies.split("\n").map(line => line.strip ? line.strip() : line.trim()).filter(line => line.length > 0);
-            
-            const res = await fetchAPI("/api/settings", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ proxy_list })
-            });
-            if (res) {
-                addLog(`Applied ${proxy_list.length} proxies to engine.`, "text-emerald-400");
-                refreshData();
-            }
-        }
-
-        // Loop messaging loading in open chats
-        async function runMessagingTick() {
-            if (activeConversationId) {
-                await loadMessages(activeConversationId);
-            }
-        }
-
-        // ─── AGENTS TAB ───────────────────────────────────────────
-
-        async function loadAgents() {
-            try {
-                const data = await fetchAPI("/api/agents");
-                if (!data || !data.success) return;
-
-                document.getElementById("company-uptime").textContent = data.uptime_human || "--";
-                document.getElementById("stat-total-agents").textContent = data.total_agents || 0;
-                document.getElementById("stat-active-agents").textContent = data.active_agents || 0;
-                document.getElementById("stat-tasks-done").textContent = (data.total_tasks_completed || 0).toLocaleString();
-
-                const statusColors = {
-                    "running":   "text-[#00a884]",
-                    "idle":      "text-blue-400",
-                    "scanning":  "text-yellow-400",
-                    "computing": "text-purple-400",
-                    "executing": "text-orange-400",
-                    "monitoring":"text-cyan-400",
-                    "checking":  "text-indigo-400",
-                    "watching":  "text-pink-400",
-                    "error":     "text-red-400",
-                    "stopped":   "text-gray-500"
-                };
-
-                const list = document.getElementById("agents-list");
-                if (!data.agents || data.agents.length === 0) {
-                    list.innerHTML = `<div class="text-center text-gray-500 text-sm py-8">No agents running yet. Start the bot to activate.</div>`;
-                    return;
-                }
-
-                list.innerHTML = data.agents.map(agent => {
-                    const statusColor = statusColors[agent.status] || "text-gray-400";
-                    const uptime = agent.uptime_s < 60 ? `${agent.uptime_s}s` :
-                                   agent.uptime_s < 3600 ? `${Math.floor(agent.uptime_s/60)}m` :
-                                   `${Math.floor(agent.uptime_s/3600)}h ${Math.floor((agent.uptime_s%3600)/60)}m`;
-                    const lastLog = agent.recent_logs && agent.recent_logs.length > 0
-                        ? agent.recent_logs[agent.recent_logs.length - 1].msg
-                        : "Waiting for activity...";
-                    return `
-                    <div class="glass-panel p-4 space-y-2">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-lg flex-shrink-0">${agent.emoji}</div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-bold text-sm text-white">${agent.name}</span>
-                                    <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 ${statusColor} font-semibold uppercase">${agent.status}</span>
-                                </div>
-                                <p class="text-[10px] text-gray-400 leading-tight mt-0.5 truncate">${agent.role}</p>
-                            </div>
-                            <div class="text-right flex-shrink-0">
-                                <div class="text-sm font-extrabold text-white">${(agent.tasks_completed || 0).toLocaleString()}</div>
-                                <div class="text-[9px] text-gray-500">tasks</div>
-                            </div>
-                        </div>
-                        <div class="bg-black/30 rounded-lg px-3 py-2">
-                            <p class="text-[10px] text-gray-400 font-mono leading-relaxed truncate">💬 ${lastLog}</p>
-                        </div>
-                        <div class="flex gap-4 text-[9px] text-gray-500">
-                            <span>⏱ Up ${uptime}</span>
-                            <span class="text-red-400">${agent.error_count > 0 ? `⚠️ ${agent.error_count} errors` : '✅ No errors'}</span>
-                        </div>
-                    </div>`;
-                }).join("");
-            } catch (e) {
-                console.error("Agent load error:", e);
-            }
-        }
-
-        async function fireTestDM() {
-            const sender = document.getElementById("test-dm-sender").value.trim() || "@TestUser";
-            const text = document.getElementById("test-dm-text").value.trim();
-            if (!text) { alert("Please type a message to send."); return; }
-
-            const res = await fetchAPI("/api/inject_dm", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ platform: "telegram", sender, text })
-            });
-
-            const resultEl = document.getElementById("test-dm-result");
-            if (res && res.success) {
-                resultEl.textContent = "✅ DM fired! Check the Chats tab for the AI reply in a few seconds.";
-                resultEl.classList.remove("hidden");
-                document.getElementById("test-dm-text").value = "";
-                setTimeout(() => resultEl.classList.add("hidden"), 6000);
-            } else {
-                resultEl.textContent = res?.error || "❌ Failed — make sure you have an active Persona first.";
-                resultEl.classList.remove("hidden");
-                resultEl.classList.add("text-red-400");
-            }
-        }
-
-        // ═══════════════════════════════════════════════════════════
-        // LIVE CHAT + DISCORD SCANNER
-        // ═══════════════════════════════════════════════════════════
-
-        let liveChatMint = "";
-        let liveChatPollInterval = null;
-        let liveChatLastTs = 0;
-
-        function extractMintFromInput(raw) {
-            raw = raw.trim();
-            // pump.fun URL: https://pump.fun/coin/MINT or https://pump.fun/MINT
-            let m = raw.match(/pump\.fun\/(?:coin\/)?([1-9A-HJ-NP-Za-km-z]{32,44})/);
-            if (m) return m[1];
-            // raw address (base58, 32-44 chars)
-            if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(raw)) return raw;
-            return raw;
-        }
-
-        function setLiveChatStatus(status, label) {
-            const dot = document.getElementById("chat-status-dot");
-            const colors = {
-                idle: "bg-gray-800 text-gray-400",
-                connecting: "bg-yellow-900/40 text-yellow-400",
-                live: "bg-green-900/40 text-[#00a884]",
-                polling: "bg-blue-900/40 text-blue-400",
-                error: "bg-red-900/40 text-red-400",
-                auth_required: "bg-orange-900/40 text-orange-400",
-                no_stream: "bg-gray-800 text-gray-500",
-            };
-            const dotColors = {
-                idle: "bg-gray-500", connecting: "bg-yellow-400 animate-pulse",
-                live: "bg-[#00a884] animate-pulse", polling: "bg-blue-400 animate-pulse",
-                error: "bg-red-500", auth_required: "bg-orange-400", no_stream: "bg-gray-500",
-            };
-            dot.className = `inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full ${colors[status] || colors.idle}`;
-            dot.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${dotColors[status] || dotColors.idle} inline-block"></span> ${label}`;
-        }
-
-        async function startLiveChat() {
-            const mintRaw = document.getElementById("chat-mint-input").value.trim();
-            const jwt = document.getElementById("chat-jwt-input").value.trim();
-            if (!mintRaw) { alert("Enter a mint address or pump.fun URL first."); return; }
-
-            const mint = extractMintFromInput(mintRaw);
-            liveChatMint = mint;
-            liveChatLastTs = 0;
-
-            setLiveChatStatus("connecting", "Connecting...");
-            appendChatSystemMessage(`Connecting to ${mint.slice(0, 8)}...`);
-
-            try {
-                const res = await fetchAPI("/api/chat/start", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({mint, jwt})
-                });
-
-                if (res && res.success) {
-                    setLiveChatStatus("connecting", "Starting...");
-                    if (liveChatPollInterval) clearInterval(liveChatPollInterval);
-                    liveChatPollInterval = setInterval(() => pollLiveChat(mint), 2000);
-                } else {
-                    setLiveChatStatus("error", "Failed");
-                    appendChatSystemMessage("Error: " + (res?.error || "Failed to start"));
-                }
-            } catch (e) {
-                setLiveChatStatus("error", "Error");
-                appendChatSystemMessage("Connection error: " + e.message);
-            }
-        }
-
-        async function pollLiveChat(mint) {
-            if (!mint) return;
-            try {
-                const res = await fetchAPI(`/api/chat/messages?mint=${encodeURIComponent(mint)}&since=${liveChatLastTs}`);
-                if (!res) return;
-
-                const statusMap = {
-                    live: ["live", "Live"],
-                    connecting: ["connecting", "Connecting..."],
-                    polling: ["polling", "Polling"],
-                    error: ["error", "Error"],
-                    auth_required: ["auth_required", "Auth required"],
-                    no_stream: ["no_stream", "No stream"],
-                    idle: ["idle", "Idle"],
-                };
-                const [s, l] = statusMap[res.status] || ["idle", "Idle"];
-                setLiveChatStatus(s, l);
-
-                if (res.messages && res.messages.length > 0) {
-                    res.messages.forEach(msg => {
-                        if (msg.ts && msg.ts > liveChatLastTs) {
-                            liveChatLastTs = msg.ts;
-                        }
-                        renderChatMessage(msg);
-                    });
-                    const count = document.querySelectorAll("#live-chat-messages .chat-msg").length;
-                    document.getElementById("chat-message-count").textContent = count + " messages";
-                }
-            } catch (e) {
-                // ignore polling errors
-            }
-        }
-
-        function renderChatMessage(msg) {
-            const container = document.getElementById("live-chat-messages");
-            // Remove empty state
-            const empty = container.querySelector(".text-gray-600");
-            if (empty) empty.remove();
-
-            const div = document.createElement("div");
-            div.className = "chat-msg flex items-start gap-2 py-1.5 border-b border-white/5";
-
-            if (msg.type === "system" || msg.type === "error") {
-                div.innerHTML = `<span class="text-[10px] text-gray-500 italic w-full block py-0.5">[${msg.type}] ${escHtml(msg.text)}</span>`;
-            } else {
-                const avatar = msg.avatar
-                    ? `<img src="${escHtml(msg.avatar)}" class="w-6 h-6 rounded-full object-cover flex-shrink-0" onerror="this.style.display='none'">`
-                    : `<div class="w-6 h-6 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center text-[9px] text-gray-400">${escHtml((msg.user||"?")[0].toUpperCase())}</div>`;
-                const wallet = msg.wallet ? `<span class="text-gray-600 font-mono text-[8px] ml-1">${msg.wallet.slice(0,6)}...</span>` : "";
-                div.innerHTML = `
-                    ${avatar}
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-1">
-                            <span class="text-[10px] font-bold text-[#f97316]">${escHtml(msg.user || "anon")}</span>${wallet}
-                        </div>
-                        <p class="text-[11px] text-gray-200 leading-snug break-words">${escHtml(msg.text)}</p>
-                    </div>`;
-            }
-
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function appendChatSystemMessage(text) {
-            renderChatMessage({type: "system", text});
-        }
-
-        async function stopLiveChat() {
-            if (liveChatPollInterval) { clearInterval(liveChatPollInterval); liveChatPollInterval = null; }
-            if (liveChatMint) {
-                await fetchAPI("/api/chat/stop", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({mint: liveChatMint})
-                });
-            }
-            liveChatMint = "";
-            liveChatLastTs = 0;
-            setLiveChatStatus("idle", "Idle");
-        }
-
-        function clearLiveChat() {
-            const container = document.getElementById("live-chat-messages");
-            container.innerHTML = `<div class="text-gray-600 text-center py-8 text-[10px]">Enter a mint address above and click Connect to see live chat</div>`;
-            document.getElementById("chat-message-count").textContent = "0 messages";
-            liveChatLastTs = 0;
-        }
-
-        function escHtml(str) {
-            return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-        }
-
-        // ── Discord Coins Scanner ────────────────────────────────────
-        async function refreshDiscordCoins() {
-            try {
-                const res = await fetchAPI("/api/discord_coins");
-                if (!res || !res.success) return;
-                const coins = res.coins || [];
-                const container = document.getElementById("discord-coins-list");
-                const countEl = document.getElementById("discord-coins-count");
-                countEl.textContent = `${coins.length} coins found`;
-
-                if (coins.length === 0) {
-                    container.innerHTML = `<div class="text-gray-600 text-center py-6 text-[10px]">No Discord coins found yet — scanner is running...</div>`;
-                    return;
-                }
-
-                container.innerHTML = coins.map(coin => {
-                    const age = coin.found_at ? _formatAge(coin.found_at) : "";
-                    const tgBtn = coin.telegram_link ? `<a href="${escHtml(coin.telegram_link)}" target="_blank" class="text-[9px] px-2 py-1 rounded-lg bg-blue-900/30 text-blue-400 font-bold">TG</a>` : "";
-                    const dcBtn = coin.discord_link ? `<a href="${escHtml(coin.discord_link)}" target="_blank" class="text-[9px] px-2 py-1 rounded-lg bg-[#5865F2]/20 text-[#7289DA] font-bold"><i class="fa-brands fa-discord mr-0.5"></i>Discord</a>` : "";
-                    const chart = coin.pair_url ? `<a href="${escHtml(coin.pair_url)}" target="_blank" class="text-[9px] px-2 py-1 rounded-lg bg-white/5 text-gray-400 font-bold">Chart</a>` : "";
-                    const img = coin.image_url ? `<img src="${escHtml(coin.image_url)}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0" onerror="this.src='https://api.dicebear.com/7.x/shapes/svg?seed=${coin.symbol}'">` : `<div class="w-8 h-8 rounded-lg bg-[#5865F2]/20 flex items-center justify-center text-[#7289DA] text-[10px] font-bold flex-shrink-0">${escHtml((coin.symbol||"?")[0])}</div>`;
-                    return `
-                    <div class="flex items-start gap-3 p-3 rounded-xl bg-[#5865F2]/5 border border-[#5865F2]/15 hover:border-[#5865F2]/30 transition-colors">
-                        ${img}
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="text-xs font-bold text-white">${escHtml(coin.name)}</span>
-                                <span class="text-[10px] text-gray-500">$${escHtml(coin.symbol)}</span>
-                                <span class="text-[9px] text-gray-600">${age}</span>
-                                <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-gray-500">${escHtml(coin.chain || "Solana")}</span>
-                            </div>
-                            <p class="text-[9px] font-mono text-gray-600 mt-0.5 truncate">${escHtml(coin.mint)}</p>
-                            <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                                ${dcBtn}${tgBtn}${chart}
-                                <button onclick="startLiveChatForMint('${escHtml(coin.mint)}')" class="text-[9px] px-2 py-1 rounded-lg bg-[#f97316]/10 text-[#f97316] font-bold border border-[#f97316]/20">
-                                    <i class="fa-solid fa-satellite-dish mr-0.5 text-[8px]"></i>Watch Chat
-                                </button>
-                            </div>
-                        </div>
-                    </div>`;
-                }).join("");
-            } catch (e) {
-                console.error("Discord coins error:", e);
-            }
-        }
-
-        function startLiveChatForMint(mint) {
-            document.getElementById("chat-mint-input").value = mint;
-            switchTab("live");
-            setTimeout(startLiveChat, 100);
-        }
-
-        function _formatAge(ts) {
-            const diff = Math.floor(Date.now() / 1000 - ts);
-            if (diff < 60) return `${diff}s ago`;
-            if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-            if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
-            return `${Math.floor(diff/86400)}d ago`;
-        }
-
-        // Init
-        document.addEventListener("DOMContentLoaded", () => {
-            refreshData();
-            loadAgents();
-            setInterval(refreshData, 5000);
-            setInterval(runMessagingTick, 3000);
-            setInterval(loadAgents, 8000);
-            refreshDiscordCoins();
-            setInterval(refreshDiscordCoins, 15000);
-        });
-    </script>
-
-    <!-- Push Notification Bootstrap -->
-    <script>
-    const VAPID_PUBLIC_KEY = 'BKxxrJ2iB226pSmFEDKat4PGs7r3XlUCW6mipcVnssJLDJ7ib7rSZ_T45yf-AMBlRebPfOqJHy1yAp7MsOvvoyQ';
-    async function registerPushNotifications() {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-      try {
-        const reg = await navigator.serviceWorker.register('/sw.js');
-        const existing = await reg.pushManager.getSubscription();
-        if (existing) return existing;
-        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
-        await fetch('/api/push/subscribe', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(sub) });
-        console.log('[Push] subscribed');
-        return sub;
-      } catch(e) { console.warn('[Push] error:', e); }
+        <div>
+          <label class="flabel">Post URL to Raid</label>
+          <input type="url" id="raid-url" placeholder="https://x.com/user/status/..." class="inp" required>
+        </div>
+        <div>
+          <label class="flabel">Battle Cry / Caption (optional)</label>
+          <input type="text" id="raid-caption" placeholder="🚀 Let's go! Bullish!" class="inp">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full"><i class="fa-solid fa-rocket"></i> Launch Raid</button>
+      </form>
+    </div>
+
+    <div class="section-title">Active Raids</div>
+    <div id="raids-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+
+  </div>
+
+  <!-- ── TAB: TOOLS ── -->
+  <div id="tab-tools" class="tab-pane fade-in">
+
+    <!-- Mirror Targets -->
+    <div class="section-title" style="margin-top:4px;">Content Mirror Targets</div>
+    <div class="card" style="margin-bottom:14px;">
+      <form id="form-mirror" onsubmit="submitMirror(event)" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label class="flabel">Platform</label>
+            <select id="mirror-platform" class="inp">
+              <option value="twitter">𝕏 Twitter</option>
+              <option value="tiktok">🎵 TikTok</option>
+              <option value="instagram">📸 Instagram</option>
+              <option value="facebook">👤 Facebook</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Handle</label>
+            <input type="text" id="mirror-handle" placeholder="@elonmusk" class="inp" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full"><i class="fa-solid fa-copy"></i> Add Mirror Target</button>
+      </form>
+      <div id="mirror-table-wrap" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Ad Scheduler -->
+    <div class="section-title">Scheduled Ad Broadcaster</div>
+    <div class="card" style="margin-bottom:14px;">
+      <form id="form-ad" onsubmit="submitAd(event)" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label class="flabel">Channel</label>
+            <select id="ad-platform" class="inp">
+              <option value="telegram">💬 Telegram</option>
+              <option value="twitter">𝕏 Twitter</option>
+              <option value="all">All Channels</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Interval (min)</label>
+            <input type="number" id="ad-interval" value="30" min="5" class="inp" required>
+          </div>
+        </div>
+        <div>
+          <label class="flabel">Ad Content</label>
+          <textarea id="ad-content" placeholder="Your ad copy here…" rows="3" class="inp" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-green btn-full"><i class="fa-solid fa-clock"></i> Schedule Ad</button>
+      </form>
+      <div id="ads-table-wrap" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Growth Campaigns -->
+    <div class="section-title">Organic Growth Campaigns</div>
+    <div class="card" style="margin-bottom:14px;">
+      <form id="form-growth" onsubmit="submitGrowth(event)" style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <label class="flabel">Niche</label>
+          <select id="growth-niche" class="inp">
+            <option value="solana">🟣 Solana Memecoins</option>
+            <option value="ethereum">💎 Ethereum / Base</option>
+            <option value="memecoins">🐸 General Memecoins</option>
+            <option value="celeb">⭐ Celebrity / Influencer</option>
+            <option value="viral">🔥 Viral Trends</option>
+            <option value="lifestyle">🌴 Lifestyle / Travel</option>
+          </select>
+        </div>
+        <div>
+          <label class="flabel">Keywords (comma separated)</label>
+          <input type="text" id="growth-kw" placeholder="solana, meme, $sol, moonshot" class="inp" required>
+        </div>
+        <div>
+          <label class="flabel">CTA Redirect Link</label>
+          <input type="url" id="growth-cta" placeholder="https://t.me/your_channel" class="inp" required>
+        </div>
+        <div>
+          <label class="flabel">Target Platform</label>
+          <select id="growth-platform" class="inp">
+            <option value="all">🌐 All Platforms</option>
+            <option value="twitter">𝕏 Twitter / X</option>
+            <option value="tiktok">🎵 TikTok</option>
+            <option value="instagram">📸 Instagram</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-pink btn-full"><i class="fa-solid fa-wand-magic-sparkles"></i> Deploy Campaign</button>
+      </form>
+      <div id="growth-table-wrap" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Auto-Reply Rules -->
+    <div class="section-title">Auto-Reply Bot Rules</div>
+    <div class="card" style="margin-bottom:14px;">
+      <form id="form-reply" onsubmit="submitAutoReply(event)" style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <label class="flabel">Trigger Keyword</label>
+          <input type="text" id="reply-kw" placeholder="price, link, info…" class="inp" required>
+        </div>
+        <div>
+          <label class="flabel">Reply Message</label>
+          <textarea id="reply-text" placeholder="Your automated response…" rows="2" class="inp" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-orange btn-full"><i class="fa-solid fa-robot"></i> Add Rule</button>
+      </form>
+      <div id="replies-table-wrap" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- SMM Account Fleet -->
+    <div class="section-title">SMM Account Fleet</div>
+    <div class="card" style="margin-bottom:4px;">
+      <form id="form-account" onsubmit="submitAccount(event)" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label class="flabel">Platform</label>
+            <select id="acc-platform" class="inp">
+              <option value="twitter">𝕏 Twitter</option>
+              <option value="tiktok">🎵 TikTok</option>
+              <option value="instagram">📸 Instagram</option>
+              <option value="facebook">👤 Facebook</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Username</label>
+            <input type="text" id="acc-username" placeholder="@handle" class="inp" required>
+          </div>
+        </div>
+        <div>
+          <label class="flabel">Session Token / Cookie</label>
+          <input type="text" id="acc-token" placeholder="Paste session token…" class="inp">
+        </div>
+        <button type="submit" class="btn btn-ghost btn-full" style="border-color:var(--accent);color:var(--accent);"><i class="fa-solid fa-user-plus"></i> Add to Fleet</button>
+      </form>
+      <div id="accounts-table-wrap" style="margin-top:12px;"></div>
+    </div>
+
+  </div>
+
+  <!-- ── TAB: SETTINGS ── -->
+  <div id="tab-settings" class="tab-pane fade-in">
+
+    <div class="section-title" style="margin-top:4px;">SMM Personas</div>
+    <div style="margin-bottom:14px;">
+      <button onclick="openModal('persona-modal')" class="btn btn-primary btn-full" style="margin-bottom:12px;"><i class="fa-solid fa-plus"></i> Create New Persona</button>
+      <div id="personas-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+
+    <div class="section-title">Global Funnel Link</div>
+    <div class="card" style="margin-bottom:14px;">
+      <form onsubmit="saveGlobalLink(event)" style="display:flex;gap:8px;align-items:stretch;">
+        <input type="url" id="global-link" placeholder="https://t.me/your_channel" class="inp" style="flex:1;">
+        <button type="submit" class="btn btn-green" style="flex-shrink:0;"><i class="fa-solid fa-check"></i> Apply</button>
+      </form>
+      <p style="font-size:10px;color:var(--muted);margin-top:8px;">Overrides all persona CTAs — routes all traffic here.</p>
+    </div>
+
+    <div class="section-title">AI Credentials</div>
+    <div class="card" style="margin-bottom:14px;">
+      <form id="form-ai" onsubmit="saveAI(event)" style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <label class="flabel">OpenAI API Key</label>
+          <input type="password" id="ai-openai" placeholder="sk-proj-…" class="inp">
+        </div>
+        <div>
+          <label class="flabel">Google Gemini Key</label>
+          <input type="password" id="ai-gemini" placeholder="AIzaSy…" class="inp">
+        </div>
+        <div>
+          <label class="flabel">Rewrite Style</label>
+          <select id="ai-style" class="inp">
+            <option value="bullish_crypto_enthusiast">🚀 Bullish Crypto</option>
+            <option value="hype">🔥 Hype / Viral</option>
+            <option value="casual">🤙 Casual & Friendly</option>
+            <option value="professional">📊 Professional</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full"><i class="fa-solid fa-key"></i> Save Keys</button>
+      </form>
+    </div>
+
+    <div class="section-title">Rotating Proxy Nodes</div>
+    <div class="card" style="margin-bottom:14px;">
+      <label class="flabel">One per line: user:pass@ip:port</label>
+      <textarea id="proxy-list" rows="4" placeholder="username:password@192.168.1.1:8080" class="inp" style="margin-top:4px;font-family:monospace;font-size:11px;"></textarea>
+      <button onclick="saveProxies()" class="btn btn-orange btn-full" style="margin-top:10px;"><i class="fa-solid fa-network-wired"></i> Apply Proxies</button>
+    </div>
+
+  </div>
+
+</div>
+<!-- /scroll-area -->
+
+<!-- ═══════════════ BOTTOM NAV ═══════════════ -->
+<nav id="bottom-nav">
+  <button class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')">
+    <i class="fa-solid fa-chart-line"></i>
+    <span>Dashboard</span>
+  </button>
+  <button class="nav-item" id="nav-inbox" onclick="switchTab('inbox')">
+    <i class="fa-solid fa-inbox"></i>
+    <span>Inbox</span>
+    <span class="nav-badge" id="nav-inbox-badge">0</span>
+  </button>
+  <button class="nav-item" id="nav-raids" onclick="switchTab('raids')">
+    <i class="fa-solid fa-rocket"></i>
+    <span>Raids</span>
+  </button>
+  <button class="nav-item" id="nav-tools" onclick="switchTab('tools')">
+    <i class="fa-solid fa-tools"></i>
+    <span>Tools</span>
+  </button>
+  <button class="nav-item" id="nav-settings" onclick="switchTab('settings')">
+    <i class="fa-solid fa-gear"></i>
+    <span>Settings</span>
+  </button>
+</nav>
+
+<!-- ═══════════════ CHATROOM OVERLAY ═══════════════ -->
+<div id="chatroom">
+  <header style="background:var(--surface);border-bottom:1px solid var(--border);padding:12px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+    <button onclick="closeChat()" class="btn btn-ghost btn-icon" style="flex-shrink:0;"><i class="fa-solid fa-chevron-left" style="color:var(--accent);"></i></button>
+    <div id="chat-avatar" style="width:34px;height:34px;border-radius:50%;overflow:hidden;background:var(--surface2);flex-shrink:0;"></div>
+    <div style="min-width:0;flex:1;">
+      <div id="chat-name" style="font-weight:800;font-size:13px;truncate;"></div>
+      <div id="chat-meta" style="font-size:9px;color:var(--muted);"></div>
+    </div>
+    <span class="badge badge-blue" style="font-size:9px;">iMessage</span>
+  </header>
+  <div id="chat-msgs"></div>
+  <div id="chat-input-bar">
+    <input type="hidden" id="active-conv">
+    <input type="text" id="chat-text" placeholder="Type a message…" class="inp" style="flex:1;" disabled>
+    <button onclick="sendMsg()" class="btn btn-primary btn-icon" id="chat-send-btn" disabled><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL: PERSONA CREATOR ═══════════════ -->
+<div id="persona-modal" class="modal-sheet">
+  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:16px;">
+    <h2 style="font-size:16px;font-weight:900;"><i class="fa-solid fa-user-plus" style="color:var(--accent);margin-right:6px;"></i>Create Persona</h2>
+    <button onclick="closeModal('persona-modal')" class="btn btn-ghost btn-sm">Cancel</button>
+  </div>
+  <form id="form-persona" onsubmit="submitPersona(event)" style="display:flex;flex-direction:column;gap:12px;">
+    <div>
+      <label class="flabel">Persona Name / Handle</label>
+      <input type="text" id="p-name" placeholder="Sophie Rain, Alpha Calls…" class="inp" required>
+    </div>
+    <div>
+      <label class="flabel">Niche</label>
+      <select id="p-niche" class="inp">
+        <option value="celeb">⭐ Celebrity / Influencer</option>
+        <option value="crypto">📈 Crypto / Trading</option>
+        <option value="casual">👤 Casual / Lifestyle</option>
+      </select>
+    </div>
+    <div>
+      <label class="flabel">Biography (AI Context)</label>
+      <textarea id="p-bio" placeholder="Character traits, tone, background…" rows="3" class="inp" required></textarea>
+    </div>
+    <div>
+      <label class="flabel">CTA Link</label>
+      <input type="url" id="p-cta" placeholder="https://t.me/your_channel" class="inp" required>
+    </div>
+    <div>
+      <label class="flabel">AI Tone</label>
+      <select id="p-tone" class="inp">
+        <option value="hype">🔥 Hype (Best for Celebs)</option>
+        <option value="bullish_crypto_enthusiast">🚀 Bullish Crypto</option>
+        <option value="casual">🤙 Casual</option>
+        <option value="professional">📊 Professional</option>
+      </select>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:12px;">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;"><i class="fa-brands fa-telegram" style="color:var(--accent);"></i> Persona Telegram (Optional)</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <label class="flabel">Bot Token</label>
+          <input type="text" id="p-tg-token" placeholder="BotFather token…" class="inp">
+        </div>
+        <div>
+          <label class="flabel">Chat ID</label>
+          <input type="text" id="p-tg-chat" placeholder="-1001234567890" class="inp">
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-full" style="margin-top:4px;"><i class="fa-solid fa-rocket"></i> Deploy Persona</button>
+  </form>
+</div>
+
+<!-- ═══════════════ MODAL: HELP GUIDE ═══════════════ -->
+<div id="help-modal" class="modal-sheet">
+  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:16px;">
+    <h2 style="font-size:16px;font-weight:900;"><i class="fa-solid fa-book-open" style="color:var(--accent);margin-right:6px;"></i>A-Z Setup Guide</h2>
+    <button onclick="closeModal('help-modal')" class="btn btn-primary btn-sm">Done</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:20px;font-size:12px;color:var(--muted);line-height:1.7;">
+    <div>
+      <div style="color:var(--accent);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">① Deploy to Render (Free)</div>
+      <p>Visit <a href="https://render.com" target="_blank" style="color:var(--green);">render.com</a>, connect your <strong style="color:var(--text);">daviddan-241/Would-final</strong> GitHub repo, set Runtime to <strong style="color:var(--text);">Docker</strong>, and deploy on the free tier.</p>
+    </div>
+    <div>
+      <div style="color:var(--green);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">② Telegram Bot Setup</div>
+      <p>Message <a href="https://t.me/BotFather" target="_blank" style="color:var(--green);">@BotFather</a>, run <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;">/newbot</code>, add it as Admin to your group. Get the group ID via <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;">@raw_data_bot</code>.</p>
+    </div>
+    <div>
+      <div style="color:var(--pink);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">③ Free Gemini AI Key</div>
+      <p>Go to <a href="https://aistudio.google.com" target="_blank" style="color:var(--green);">Google AI Studio</a> → <strong style="color:var(--text);">Get API Key</strong>. Free tier gives 15 requests/min. Paste in Settings → AI Credentials.</p>
+    </div>
+    <div>
+      <div style="color:var(--orange);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">④ Session Cookies (iOS Safari)</div>
+      <p>Create a Safari bookmark with this URL:</p>
+      <pre style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:9px;color:var(--orange);overflow-x:auto;margin-top:6px;white-space:pre-wrap;word-break:break-all;">javascript:(function(){var c=document.cookie;if(!c){alert('No cookies. Log in!');}else{prompt('Copy cookies:',c);}})();</pre>
+      <p style="margin-top:6px;">Log in to Twitter/TikTok/Instagram in Safari, tap the bookmark, copy the <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;">auth_token</code> value.</p>
+    </div>
+    <div>
+      <div style="color:var(--red);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">⑤ Free Rotating Proxies</div>
+      <p>Sign up at <a href="https://webshare.io" target="_blank" style="color:var(--green);">Webshare.io</a> — free plan gives 10 rotating proxies. Paste them as <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;">user:pass@ip:port</code> in Settings → Proxy Nodes.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ JAVASCRIPT ═══════════════ -->
+<script>
+let DB = {};
+let activeChatId = null;
+let isDark = true;
+
+// ── THEME ──
+function toggleTheme() {
+  isDark = !isDark;
+  const r = document.documentElement;
+  if (isDark) {
+    r.style.setProperty('--bg', '#0a0a0f');
+    r.style.setProperty('--surface', '#12121a');
+    r.style.setProperty('--surface2', '#1a1a26');
+    r.style.setProperty('--border', 'rgba(255,255,255,0.07)');
+    r.style.setProperty('--text', '#e8e8f0');
+    r.style.setProperty('--muted', '#6b6b80');
+    document.getElementById('theme-btn').innerHTML = '<i class="fa-solid fa-moon" style="font-size:15px;"></i>';
+  } else {
+    r.style.setProperty('--bg', '#f2f2f7');
+    r.style.setProperty('--surface', '#ffffff');
+    r.style.setProperty('--surface2', '#e8e8ed');
+    r.style.setProperty('--border', 'rgba(0,0,0,0.08)');
+    r.style.setProperty('--text', '#1c1c1e');
+    r.style.setProperty('--muted', '#8e8e93');
+    document.getElementById('theme-btn').innerHTML = '<i class="fa-solid fa-sun" style="font-size:15px;"></i>';
+  }
+}
+
+// ── TABS ──
+const TAB_LABELS = { dashboard:'Dashboard', inbox:'Inbox', raids:'Raids', tools:'Tools', settings:'Settings' };
+function switchTab(id) {
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  document.getElementById('scroll-area').scrollTop = 0;
+}
+
+// ── MODALS ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── API ──
+async function api(url, opts={}) {
+  try {
+    const r = await fetch(url, opts);
+    return await r.json();
+  } catch(e) { console.error(e); return null; }
+}
+
+// ── LOG ──
+function addLog(msg, color='#6b6b80') {
+  const el = document.getElementById('log-stream');
+  if (!el) return;
+  const t = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const d = document.createElement('div');
+  d.style.color = color;
+  d.textContent = `[${t}] ${msg}`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+  if (el.children.length > 60) el.removeChild(el.children[0]);
+}
+function clearLog() {
+  const el = document.getElementById('log-stream');
+  el.innerHTML = '<div style="color:var(--muted);">Log cleared.</div>';
+}
+
+// ── MAIN DATA REFRESH ──
+async function refresh() {
+  const data = await api('/api/data');
+  if (!data) return;
+  DB = data;
+
+  // Setup Checklist
+  renderSetupChecklist(data);
+
+  // Analytics
+  const a = data.analytics || {};
+  document.getElementById('stat-impressions').textContent = (a.impressions||0).toLocaleString();
+  document.getElementById('stat-clicks').textContent = (a.clicks||0).toLocaleString();
+  document.getElementById('stat-leads').textContent = (a.leads||0).toLocaleString();
+  document.getElementById('stat-conv').textContent = (a.conversion_rate||0)+'%';
+  document.getElementById('funnel-pct').textContent = (a.conversion_rate||0)+'%';
+
+  const imp = a.impressions || 1;
+  const clkPct = Math.round(((a.clicks||0)/imp)*100);
+  const ldPct  = Math.round(((a.leads||0)/imp)*100);
+  document.getElementById('f-imp').textContent   = (a.impressions||0).toLocaleString();
+  document.getElementById('f-clk').textContent   = (a.clicks||0).toLocaleString();
+  document.getElementById('f-leads').textContent = (a.leads||0).toLocaleString();
+  document.getElementById('prog-clk').style.width   = clkPct+'%';
+  document.getElementById('prog-leads').style.width  = ldPct+'%';
+
+  // Engine toggles
+  renderEngineToggles(data.settings||{});
+
+  // Persona switcher
+  populatePersonaSwitcher(data.profiles||[]);
+
+  // Persona list (settings)
+  renderPersonaList(data.profiles||[]);
+
+  // Inbox
+  renderInbox(data.conversations||[]);
+
+  // Raids
+  renderRaids(data.raids||[]);
+
+  // Tools tables
+  renderMirrorTable(data.targets||[]);
+  renderAdsTable(data.ads||[]);
+  renderGrowthTable(data.growth_campaigns||[]);
+  renderRepliesTable(data.auto_replies||[]);
+  renderAccountsTable(data.accounts||[]);
+
+  // Global link
+  document.getElementById('global-link').value = data.settings?.global_cta_link || '';
+
+  // AI keys
+  document.getElementById('ai-openai').value = data.settings?.openai_key || '';
+  document.getElementById('ai-gemini').value = data.settings?.gemini_key || '';
+  if (document.getElementById('ai-style')) {
+    document.getElementById('ai-style').value = data.settings?.rewrite_style || 'bullish_crypto_enthusiast';
+  }
+
+  // Proxies
+  document.getElementById('proxy-list').value = (data.settings?.proxy_list||[]).join('\n');
+
+  // Unread badge
+  const unread = (data.conversations||[]).reduce((a,c)=>a+(c.unread||0),0);
+  const badge = document.getElementById('nav-inbox-badge');
+  if (unread > 0) { badge.textContent=unread; badge.classList.add('show'); }
+  else badge.classList.remove('show');
+}
+
+// ── SETUP CHECKLIST ──
+function renderSetupChecklist(data) {
+  const s = data.settings || {};
+  const profiles = data.profiles || [];
+  const hasAI = !!(s.openai_key || s.gemini_key);
+  const hasTgToken = profiles.some(p => p.tg_bot_token);
+  const hasCTA = profiles.some(p => p.cta_link && !p.cta_link.includes('your_'));
+  const hasGlobalLink = !!(s.global_cta_link);
+
+  const steps = [
+    {
+      ok: hasTgToken,
+      title: 'Telegram Bot Token',
+      desc: hasTgToken
+        ? 'Bot token set — your bot will reply to real Telegram DMs automatically.'
+        : 'Go to <b>@BotFather</b> on Telegram → /newbot → copy the token → add it under your persona in <b>Settings tab</b>.',
+      cta: !hasTgToken ? 'Open Settings' : null,
+      ctaAction: !hasTgToken ? "showTab('settings')" : null
+    },
+    {
+      ok: hasAI,
+      title: 'AI Reply Key (Gemini or OpenAI)',
+      desc: hasAI
+        ? 'AI key active — replies will be smart and human-sounding.'
+        : 'Get a <b>free Gemini key</b> at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/apikey</a> → paste it in <b>Settings → AI Keys</b>.',
+      cta: !hasAI ? 'Open Settings' : null,
+      ctaAction: !hasAI ? "showTab('settings')" : null
+    },
+    {
+      ok: hasCTA || hasGlobalLink,
+      title: 'Funnel Link (your Telegram group or channel)',
+      desc: (hasCTA || hasGlobalLink)
+        ? 'Funnel CTA link is set — all DMs will end with your link.'
+        : 'In <b>Settings → Global Funnel Link</b> paste your Telegram channel link (e.g. t.me/yourchannel). All replies will include it.',
+      cta: !(hasCTA || hasGlobalLink) ? 'Open Settings' : null,
+      ctaAction: !(hasCTA || hasGlobalLink) ? "showTab('settings')" : null
+    },
+    {
+      ok: false,
+      title: 'Instagram / Facebook DMs (optional)',
+      desc: 'Deploy this app → go to <b>Meta for Developers</b> → create an app → set webhook URL to <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;">https://YOUR-APP-URL/api/webhooks/incoming</code> and verify token <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;">my_smm_verify_token_123</code>',
+      optional: true
     }
-    function urlBase64ToUint8Array(b) {
-      const p = '='.repeat((4 - b.length % 4) % 4);
-      const s = atob((b + p).replace(/-/g,'+').replace(/_/g,'/'));
-      return Uint8Array.from([...s].map(c=>c.charCodeAt(0)));
-    }
-    async function enablePushNotifications() {
-      const perm = await Notification.requestPermission();
-      if (perm === 'granted') {
-        const sub = await registerPushNotifications();
-        if (sub) { const btn = document.getElementById('push-enable-btn'); if(btn){btn.textContent='Notifications On ✓';btn.classList.add('text-green-400');} }
-      }
-    }
-    if (Notification.permission === 'granted') registerPushNotifications();
-    </script>
-    <script type="module" src="/src/main.tsx"></script>
+  ];
+
+  const el = document.getElementById('checklist-items');
+  const badge = document.getElementById('setup-done-badge');
+  const doneCount = steps.filter(s => s.ok).length;
+  const required = steps.filter(s => !s.optional);
+  const requiredDone = required.filter(s => s.ok).length;
+
+  badge.textContent = `${doneCount}/${steps.length} complete`;
+  badge.className = requiredDone === required.length ? 'badge badge-green' : 'badge badge-orange';
+
+  document.getElementById('setup-complete-msg').style.display = requiredDone === required.length ? 'block' : 'none';
+
+  el.innerHTML = steps.map(step => `
+    <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--bg);border-radius:12px;border:1px solid ${step.ok ? 'rgba(0,212,170,.3)' : step.optional ? 'rgba(255,255,255,.07)' : 'rgba(255,100,100,.25)'}">
+      <div style="min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;background:${step.ok ? '#00d4aa22' : step.optional ? 'rgba(255,255,255,.06)' : 'rgba(255,80,80,.15)'};color:${step.ok ? '#00d4aa' : step.optional ? 'var(--muted)' : '#ff6060'};font-weight:900;">
+        ${step.ok ? '✓' : step.optional ? '○' : '!'}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:800;color:${step.ok ? '#00d4aa' : 'var(--text)'};margin-bottom:3px;">
+          ${step.title}${step.optional ? ' <span style="font-size:9px;color:var(--muted);font-weight:600;">OPTIONAL</span>' : ''}
+        </div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">${step.desc}</div>
+        ${step.cta ? `<button onclick="${step.ctaAction}" style="margin-top:7px;padding:5px 12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:10px;font-weight:800;cursor:pointer;">${step.cta} →</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── ENGINE TOGGLES ──
+const TOGGLES = [
+  { key:'auto_mirror_enabled',   label:'Content Mirroring',     icon:'fa-copy',              color:'var(--accent)' },
+  { key:'auto_raid_enabled',     label:'Auto-Raid Engine',      icon:'fa-rocket',            color:'var(--red)' },
+  { key:'auto_post_enabled',     label:'Ad Broadcaster',        icon:'fa-clock',             color:'var(--green)' },
+  { key:'auto_dm_reply_enabled', label:'DM Auto-Responder',     icon:'fa-robot',             color:'var(--orange)' },
+  { key:'growth_hacks_enabled',  label:'Growth Hack Campaigns', icon:'fa-wand-magic-sparkles', color:'var(--pink)' },
+];
+function renderEngineToggles(settings) {
+  const el = document.getElementById('engine-toggles');
+  el.innerHTML = '';
+  TOGGLES.forEach(t => {
+    const on = !!settings[t.key];
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;';
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="fa-solid ${t.icon}" style="width:16px;text-align:center;color:${t.color};font-size:13px;"></i>
+        <span style="font-size:12px;font-weight:600;">${t.label}</span>
+      </div>
+      <label class="toggle-wrap">
+        <input type="checkbox" ${on?'checked':''} onchange="saveToggle('${t.key}',this.checked)">
+        <span class="slider"></span>
+      </label>
+    `;
+    el.appendChild(row);
+  });
+}
+async function saveToggle(key, val) {
+  const payload = {};
+  TOGGLES.forEach(t => {
+    const input = document.querySelector(`input[onchange="saveToggle('${t.key}',this.checked)"]`);
+    if (input) payload[t.key] = input.checked;
+  });
+  payload[key] = val;
+  await api('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+  addLog(`Engine "${key.replace(/_/g,' ')}" → ${val?'ON':'OFF'}`, val?'#00d4aa':'#ff6b6b');
+}
+
+// ── PERSONA SWITCHER ──
+function populatePersonaSwitcher(profiles) {
+  const sel = document.getElementById('persona-switcher');
+  const cur = sel.value;
+  sel.innerHTML = '';
+  if (!profiles.length) { sel.innerHTML = '<option value="">No personas</option>'; return; }
+  profiles.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    const emoji = p.niche==='crypto'?'📈':p.niche==='celeb'?'⭐':'👤';
+    opt.textContent = emoji+' '+p.name;
+    sel.appendChild(opt);
+  });
+  if (cur) sel.value = cur;
+  updateHeaderAvatar(profiles.find(p=>p.id===sel.value));
+}
+function onPersonaSwitch() {
+  const sel = document.getElementById('persona-switcher');
+  const p = (DB.profiles||[]).find(x=>x.id===sel.value);
+  updateHeaderAvatar(p);
+}
+function updateHeaderAvatar(p) {
+  const el = document.getElementById('header-avatar');
+  if (!p) { el.textContent='?'; return; }
+  if (p.avatar) el.innerHTML = `<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
+  else el.textContent = p.name[0]||'?';
+}
+
+// ── INBOX ──
+function renderInbox(convs) {
+  const search = document.getElementById('inbox-search').value.toLowerCase();
+  const filtered = convs.filter(c=>c.sender_handle.toLowerCase().includes(search));
+  document.getElementById('inbox-badge').textContent = filtered.length+' chats';
+  const el = document.getElementById('inbox-list');
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-inbox"></i>No conversations yet.<br><span style="font-size:10px;">Incoming DMs will appear here.</span></div>';
+    return;
+  }
+  el.innerHTML = '';
+  filtered.forEach(c => {
+    const persona = (DB.profiles||[]).find(p=>p.id===c.profile_id);
+    const personaName = persona ? persona.name : 'System';
+    const row = document.createElement('div');
+    row.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s;';
+    row.onclick = ()=>openChat(c.id, c.sender_handle, c.platform);
+    const unreadDot = c.unread>0 ? `<div style="width:9px;height:9px;border-radius:50%;background:var(--accent);flex-shrink:0;box-shadow:0 0 0 2px var(--bg);"></div>` : '';
+    const platformIcon = getPlatformIcon(c.platform);
+    row.innerHTML = `
+      <img src="${c.avatar||'https://api.dicebear.com/7.x/bottts/svg?seed='+c.sender_handle}" style="width:42px;height:42px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface2);flex-shrink:0;" onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed=${c.sender_handle}'">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+          <span style="font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">${c.sender_handle}</span>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">${platformIcon}${unreadDot}</div>
+        </div>
+        <div style="font-size:9px;color:var(--accent);font-weight:700;margin-bottom:3px;">${personaName}</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.last_message_text||''}</div>
+      </div>
+    `;
+    el.appendChild(row);
+  });
+}
+function filterInbox() { if (DB.conversations) renderInbox(DB.conversations); }
+
+async function openChat(id, handle, platform) {
+  activeChatId = id;
+  document.getElementById('chat-name').textContent = handle;
+  const conv = (DB.conversations||[]).find(c=>c.id===id);
+  const persona = conv ? (DB.profiles||[]).find(p=>p.id===conv.profile_id) : null;
+  document.getElementById('chat-meta').textContent = `${platform.toUpperCase()}${persona?' · '+persona.name:''}`;
+  document.getElementById('chat-avatar').innerHTML = `<img src="https://api.dicebear.com/7.x/bottts/svg?seed=${handle}" style="width:100%;height:100%;object-fit:cover;">`;
+  document.getElementById('active-conv').value = id;
+  document.getElementById('chat-text').removeAttribute('disabled');
+  document.getElementById('chat-send-btn').removeAttribute('disabled');
+  document.getElementById('chatroom').classList.add('open');
+  await loadMessages(id);
+}
+
+function closeChat() {
+  activeChatId = null;
+  document.getElementById('chatroom').classList.remove('open');
+  document.getElementById('chat-msgs').innerHTML = '';
+  refresh();
+}
+
+async function loadMessages(id) {
+  const res = await api(`/api/messages?conv_id=${id}`);
+  if (!res?.success) return;
+  const el = document.getElementById('chat-msgs');
+  if (!res.messages.length) {
+    el.innerHTML = '<div class="empty-state" style="margin-top:40px;"><i class="fa-solid fa-comment-slash"></i>No messages yet.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  res.messages.forEach(m => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = `display:flex;justify-content:${m.is_incoming?'flex-start':'flex-end'};`;
+    const t = new Date(m.timestamp*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const cls = m.is_incoming ? 'bubble-in' : 'bubble-out';
+    wrap.innerHTML = `
+      <div class="${cls}" style="max-width:76%;padding:10px 13px;font-size:13px;line-height:1.5;">
+        <div style="word-break:break-word;">${m.text}</div>
+        <div style="font-size:9px;opacity:.5;text-align:right;margin-top:4px;display:flex;align-items:center;justify-content:flex-end;gap:3px;">
+          ${t}${!m.is_incoming?'<i class="fa-solid fa-check-double" style="color:#53bdeb;font-size:8px;"></i>':''}
+        </div>
+      </div>
+    `;
+    el.appendChild(wrap);
+  });
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendMsg() {
+  const textEl = document.getElementById('chat-text');
+  const text = textEl.value.trim();
+  const id = document.getElementById('active-conv').value;
+  if (!text || !id) return;
+  textEl.value = '';
+  const res = await api('/api/messages/send', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conv_id:id,text})});
+  if (res?.success) await loadMessages(id);
+}
+
+document.getElementById('chat-text').addEventListener('keydown', e => { if(e.key==='Enter') sendMsg(); });
+
+// ── RAIDS ──
+async function submitRaid(e) {
+  e.preventDefault();
+  const data = {
+    platform: document.getElementById('raid-platform').value,
+    url: document.getElementById('raid-url').value,
+    caption: document.getElementById('raid-caption').value,
+  };
+  const res = await api('/api/raids', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if (res?.success) {
+    addLog(`🚀 Raid launched on ${data.platform}: ${data.url}`, '#6c63ff');
+    document.getElementById('form-raid').reset();
+    refresh();
+  }
+}
+
+function renderRaids(raids) {
+  const el = document.getElementById('raids-list');
+  if (!raids.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-rocket"></i>No raids yet.<br><span style="font-size:10px;">Launch your first raid above.</span></div>';
+    return;
+  }
+  el.innerHTML = '';
+  [...raids].reverse().forEach(r => {
+    const statusColor = r.status==='Completed'?'badge-green':r.status==='Active'?'badge-blue':'badge-muted';
+    const icon = getPlatformIcon(r.platform,'16px');
+    const card = document.createElement('div');
+    card.className = 'raid-card fade-in';
+    card.innerHTML = `
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:7px;">
+          ${icon}
+          <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;">${r.platform}</span>
+          <span class="badge ${statusColor}">${r.status||'Queued'}</span>
+        </div>
+        <button onclick="deleteRaid('${r.id}')" class="btn btn-ghost btn-icon btn-sm" style="padding:4px 6px;"><i class="fa-solid fa-trash" style="color:var(--red);font-size:10px;"></i></button>
+      </div>
+      <a href="${r.url}" target="_blank" style="font-size:11px;color:var(--accent);word-break:break-all;display:block;margin-bottom:6px;">${r.url}</a>
+      ${r.caption?`<p style="font-size:11px;color:var(--muted);">${r.caption}</p>`:''}
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <a href="${r.url}" target="_blank" class="btn btn-primary btn-sm"><i class="fa-solid fa-heart"></i> Like</a>
+        <a href="${r.url}" target="_blank" class="btn btn-ghost btn-sm"><i class="fa-solid fa-retweet"></i> Repost</a>
+        <a href="${r.url}" target="_blank" class="btn btn-ghost btn-sm"><i class="fa-solid fa-comment"></i> Comment</a>
+      </div>
+    `;
+    el.appendChild(card);
+  });
+}
+
+async function deleteRaid(id) {
+  await api('/api/raids/delete', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  addLog('Raid deleted.', '#ff6b6b');
+  refresh();
+}
+
+// ── MIRROR ──
+async function submitMirror(e) {
+  e.preventDefault();
+  const data = {
+    platform: document.getElementById('mirror-platform').value,
+    handle: document.getElementById('mirror-handle').value,
+    destination: 'AUTO_ACCOUNTS',
+  };
+  const res = await api('/api/targets', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if (res?.success) {
+    addLog(`Mirror added: ${data.handle} on ${data.platform}`, '#6c63ff');
+    document.getElementById('form-mirror').reset();
+    refresh();
+  }
+}
+
+function renderMirrorTable(targets) {
+  const el = document.getElementById('mirror-table-wrap');
+  if (!targets.length) { el.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:11px;">No mirror targets yet.</div>'; return; }
+  let html = '<table class="data-table"><thead><tr><th>Platform</th><th>Handle</th><th>Status</th><th style="text-align:right;">Del</th></tr></thead><tbody>';
+  targets.forEach(t => {
+    const statusBadge = t.active!==false ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-muted">Paused</span>';
+    html += `<tr>
+      <td>${getPlatformIcon(t.platform)}</td>
+      <td style="font-weight:700;">${t.handle}</td>
+      <td>${statusBadge}</td>
+      <td style="text-align:right;"><button onclick="deleteTarget('${t.id}')" class="btn btn-ghost btn-icon btn-sm"><i class="fa-solid fa-xmark" style="color:var(--red);"></i></button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+async function deleteTarget(id) {
+  await api('/api/targets/delete', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  addLog('Mirror target removed.', '#ff6b6b');
+  refresh();
+}
+
+// ── ADS ──
+async function submitAd(e) {
+  e.preventDefault();
+  const data = {
+    platform: document.getElementById('ad-platform').value,
+    interval_min: parseInt(document.getElementById('ad-interval').value),
+    content: document.getElementById('ad-content').value,
+    image_url: '',
+  };
+  const res = await api('/api/ads', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if (res?.success) {
+    addLog(`Ad scheduled every ${data.interval_min}min on ${data.platform}`, '#00d4aa');
+    document.getElementById('form-ad').reset();
+    document.getElementById('ad-interval').value = '30';
+    refresh();
+  }
+}
+
+function renderAdsTable(ads) {
+  const el = document.getElementById('ads-table-wrap');
+  if (!ads.length) { el.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:11px;">No scheduled ads.</div>'; return; }
+  let html = '<table class="data-table"><thead><tr><th>Channel</th><th>Interval</th><th>Status</th><th style="text-align:right;">Del</th></tr></thead><tbody>';
+  ads.forEach(a => {
+    const statusBadge = a.active!==false ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-muted">Paused</span>';
+    html += `<tr>
+      <td>${getPlatformIcon(a.platform)}</td>
+      <td style="font-weight:700;">${a.interval_min}m</td>
+      <td>${statusBadge}</td>
+      <td style="text-align:right;"><button onclick="deleteAd('${a.id}')" class="btn btn-ghost btn-icon btn-sm"><i class="fa-solid fa-xmark" style="color:var(--red);"></i></button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+async function deleteAd(id) {
+  await api('/api/ads/delete', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  addLog('Ad removed.', '#ff6b6b');
+  refresh();
+}
+
+// ── GROWTH ──
+async function submitGrowth(e) {
+  e.preventDefault();
+  const data = {
+    niche: document.getElementById('growth-niche').value,
+    keywords: document.getElementById('growth-kw').value,
+    cta_link: document.getElementById('growth-cta').value,
+    platform: document.getElementById('growth-platform').value,
+  };
+  const res = await api('/api/growth_campaigns', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if (res?.success) {
+    addLog(`Growth campaign deployed: ${data.keywords}`, '#ff6eb4');
+    document.getElementById('form-growth').reset();
+    refresh();
+  }
+}
+
+function renderGrowthTable(camps) {
+  const el = document.getElementById('growth-table-wrap');
+  if (!camps.length) { el.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:11px;">No campaigns deployed.</div>'; return; }
+  let html = '<table class="data-table"><thead><tr><th>Niche</th><th>Platform</th><th>Impressions</th><th style="text-align:right;">Del</th></tr></thead><tbody>';
+  camps.forEach(c => {
+    const kws = Array.isArray(c.keywords) ? c.keywords.join(', ') : c.keywords;
+    html += `<tr>
+      <td><div style="font-weight:700;">${c.niche}</div><div style="font-size:9px;color:var(--muted);">${kws}</div></td>
+      <td>${getPlatformIcon(c.platform)}</td>
+      <td style="color:var(--green);font-weight:700;">${(c.impressions_generated||0).toLocaleString()}</td>
+      <td style="text-align:right;"><button onclick="deleteGrowth('${c.id}')" class="btn btn-ghost btn-icon btn-sm"><i class="fa-solid fa-xmark" style="color:var(--red);"></i></button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+async function deleteGrowth(id) {
+  await api('/api/growth_campaigns/delete', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  addLog('Campaign deleted.', '#ff6b6b');
+  refresh();
+}
+
+// ── AUTO REPLIES ──
+async function submitAutoReply(e) {
+  e.preventDefault();
+  const data = {
+    keyword: document.getElementById('reply-kw').value,
+    reply_text: document.getElementById('reply-text').value,
+  };
+  const res = await api('/api/auto_replies', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if (res?.success) {
+    addLog(`Auto-reply rule added: "${data.keyword}"`, '#ffa34d');
+    document.getElementById('form-reply').reset();
+    refresh();
+  }
+}
+
+function renderRepliesTable(rules) {
+  const el = document.getElementById('replies-table-wrap');
+  if (!rules.length) { el.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:11px;">No auto-reply rules.</div>'; return; }
+  let html = '<table class="data-table"><thead><tr><th>Keyword</th><th>Reply</th><th style="text-align:right;">Del</th></tr></thead><tbody>';
+  rules.forEach(r => {
+    html += `<tr>
+      <td style="font-weight:700;color:var(--orange);">${r.keyword}</td>
+      <td style="color:var(--muted);max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.reply_text}</td>
+      <td style="text-align:right;"><button onclick="deleteReply('${r.id}')" class="btn btn-ghost btn-icon btn-sm"><i class="fa-solid fa-xmark" style="color:var(--red);"></i></button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+async function deleteReply(id) {
+  await api('/api/auto_replies/delete', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  addLog('Auto-reply rule removed.', '#ff6b6b');
+  refresh();
+}
+
+// ── ACCOUNTS ──
+async function submitAccount(e) {
+  e.preventDefault();
+  const data = {
+    platform: document.getElementById('acc-platform').value,
+    username: document.getElementById('acc-username').value,
+    token_session: document.getElementById('acc-token').value,
+  };
+  const res = await api('/api/accounts', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if (res?.success) {
+    addLog(`Fleet account @${data.username} added.`, '#ffa34d');
+    document.getElementById('form-account').reset();
+    refresh();
+  }
+}
+
+function renderAccountsTable(accs) {
+  const el = document.getElementById('accounts-table-wrap');
+  if (!accs.length) { el.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:11px;">No accounts in fleet.</div>'; return; }
+  let html = '<table class="data-table"><thead><tr><th>Platform</th><th>Username</th><th>Status</th><th style="text-align:right;">Del</th></tr></thead><tbody>';
+  accs.forEach(a => {
+    const statusBadge = a.status==='Active' ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-muted">'+a.status+'</span>';
+    html += `<tr>
+      <td>${getPlatformIcon(a.platform)}</td>
+      <td style="font-weight:700;">@${a.username}</td>
+      <td>${statusBadge}</td>
+      <td style="text-align:right;"><button onclick="deleteAccount('${a.id}')" class="btn btn-ghost btn-icon btn-sm"><i class="fa-solid fa-xmark" style="color:var(--red);"></i></button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+async function deleteAccount(id) {
+  await api('/api/accounts/delete', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  addLog('Account removed from fleet.', '#ff6b6b');
+  refresh();
+}
+
+// ── PERSONAS ──
+async function submitPersona(e) {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('p-name').value,
+    niche: document.getElementById('p-niche').value,
+    bio: document.getElementById('p-bio').value,
+    cta_link: document.getElementById('p-cta').value,
+    ai_tone: document.getElementById('p-tone').value,
+    avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(document.getElementById('p-name').value)}`,
+    tg_bot_token: document.getElementById('p-tg-token').value,
+    tg_chat_id: document.getElementById('p-tg-chat').value,
+  };
+  const res = await api('/api/profiles', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if (res?.success) {
+    addLog(`Persona "${data.name}" deployed!`, '#6c63ff');
+    document.getElementById('form-persona').reset();
+    closeModal('persona-modal');
+    refresh();
+  }
+}
+
+function renderPersonaList(profiles) {
+  const el = document.getElementById('personas-list');
+  if (!profiles.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-user"></i>No personas yet.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  profiles.forEach(p => {
+    const emoji = p.niche==='crypto'?'📈':p.niche==='celeb'?'⭐':'👤';
+    const statusBadge = p.active ? '<span class="badge badge-green">Live</span>' : '<span class="badge badge-muted">Paused</span>';
+    const nicheColor = p.niche==='crypto'?'var(--accent)':p.niche==='celeb'?'var(--pink)':'var(--muted)';
+    const card = document.createElement('div');
+    card.className = 'persona-card';
+    card.innerHTML = `
+      <img src="${p.avatar||'https://api.dicebear.com/7.x/bottts/svg?seed='+p.id}" style="width:44px;height:44px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;" onerror="this.style.display='none'">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-weight:800;font-size:13px;">${emoji} ${p.name}</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${statusBadge}
+            <button onclick="togglePersona('${p.id}')" class="btn btn-ghost btn-icon btn-sm" title="Toggle"><i class="fa-solid fa-power-off" style="font-size:10px;color:${p.active?'var(--green)':'var(--muted)'}"></i></button>
+            <button onclick="deletePersona('${p.id}')" class="btn btn-ghost btn-icon btn-sm" title="Delete"><i class="fa-solid fa-xmark" style="font-size:10px;color:var(--red);"></i></button>
+          </div>
+        </div>
+        <div style="font-size:10px;color:${nicheColor};font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${p.niche} · ${p.ai_tone}</div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.bio}</div>
+        <div style="margin-top:6px;"><a href="${p.cta_link}" target="_blank" style="font-size:10px;color:var(--green);">${p.cta_link}</a></div>
+      </div>
+    `;
+    el.appendChild(card);
+  });
+}
+
+async function togglePersona(id) {
+  await api('/api/profiles/toggle', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  refresh();
+}
+
+async function deletePersona(id) {
+  await api('/api/profiles/delete', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  addLog('Persona removed.', '#ff6b6b');
+  refresh();
+}
+
+// ── SETTINGS ──
+async function saveGlobalLink(e) {
+  e.preventDefault();
+  const link = document.getElementById('global-link').value.trim();
+  await api('/api/settings', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({global_cta_link:link})});
+  addLog(`Global CTA link updated: ${link}`, '#00d4aa');
+}
+
+async function saveAI(e) {
+  e.preventDefault();
+  const data = {
+    openai_key: document.getElementById('ai-openai').value,
+    gemini_key: document.getElementById('ai-gemini').value,
+    rewrite_style: document.getElementById('ai-style').value,
+  };
+  await api('/api/settings', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  addLog('AI credentials saved.', '#6c63ff');
+}
+
+async function saveProxies() {
+  const raw = document.getElementById('proxy-list').value;
+  const proxy_list = raw.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+  await api('/api/settings', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({proxy_list})});
+  addLog(`${proxy_list.length} proxies applied.`, '#ffa34d');
+}
+
+// ── UTILS ──
+function getPlatformIcon(p, size='13px') {
+  const icons = {
+    twitter:   `<i class="fa-brands fa-x-twitter" style="font-size:${size};color:#e7e9ea;"></i>`,
+    tiktok:    `<i class="fa-brands fa-tiktok" style="font-size:${size};color:#fe2c55;"></i>`,
+    instagram: `<i class="fa-brands fa-instagram" style="font-size:${size};color:#e1306c;"></i>`,
+    facebook:  `<i class="fa-brands fa-facebook-f" style="font-size:${size};color:#1877f2;"></i>`,
+    telegram:  `<i class="fa-brands fa-telegram" style="font-size:${size};color:#0088cc;"></i>`,
+    all:       `<i class="fa-solid fa-globe" style="font-size:${size};color:var(--accent);"></i>`,
+  };
+  return icons[p] || `<i class="fa-solid fa-circle" style="font-size:${size};color:var(--muted);"></i>`;
+}
+
+// ── CHAT POLLING ──
+async function pollChat() {
+  if (activeChatId) await loadMessages(activeChatId);
+}
+
+// ── STARTUP ──
+document.addEventListener('DOMContentLoaded', () => {
+  refresh();
+  setInterval(refresh, 6000);
+  setInterval(pollChat, 3000);
+  addLog('Verizon Suite online. All engines active.', '#6c63ff');
+});
+</script>
 </body>
 </html>
