@@ -679,6 +679,33 @@
           <input type="password" id="acc-fb-xs" placeholder="Paste xs value…" class="inp">
         </div>
 
+        <!-- Niche + CTA + Outreach -->
+        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:2px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div>
+              <label class="flabel">Account Niche</label>
+              <select id="acc-niche" class="inp">
+                <option value="crypto">🚀 Crypto / Coins</option>
+                <option value="solana">🟣 Solana Memecoins</option>
+                <option value="ethereum">💎 Ethereum / Base</option>
+                <option value="memecoins">🐸 General Memecoins</option>
+                <option value="celeb">⭐ Celeb / Influencer</option>
+                <option value="lifestyle">🌴 Lifestyle / Travel</option>
+                <option value="viral">🔥 Viral / Trend</option>
+              </select>
+            </div>
+            <div style="display:flex;flex-direction:column;justify-content:flex-end;">
+              <label class="flabel">Auto-Post to Attract DMs</label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
+                <input type="checkbox" id="acc-outreach" style="width:16px;height:16px;accent-color:var(--accent);">
+                <span style="font-size:12px;font-weight:600;">Enable outreach posts</span>
+              </label>
+            </div>
+          </div>
+          <label class="flabel">Your Funnel Link (people get this when they DM)</label>
+          <input type="url" id="acc-cta" placeholder="https://t.me/your_channel" class="inp">
+        </div>
+
         <button type="submit" class="btn btn-primary btn-full"><i class="fa-solid fa-plug"></i> Connect Account — Start Receiving DMs</button>
       </form>
       <div id="accounts-table-wrap" style="margin-top:12px;"></div>
@@ -804,6 +831,7 @@
   <button class="nav-item" id="nav-tools" onclick="switchTab('tools')">
     <i class="fa-solid fa-tools"></i>
     <span>Tools</span>
+    <span class="nav-badge" id="nav-tools-badge" style="background:#ff4444;">!</span>
   </button>
   <button class="nav-item" id="nav-settings" onclick="switchTab('settings')">
     <i class="fa-solid fa-gear"></i>
@@ -1582,11 +1610,16 @@ async function submitAccount(e) {
     if (!cookies.c_user || !cookies.xs) { showToast('⚠️ Paste both c_user and xs for Facebook.','#ff6b6b'); return; }
   }
 
-  const data = { platform, username, token_session: '', ...cookies };
+  const niche = document.getElementById('acc-niche').value;
+  const cta = document.getElementById('acc-cta').value.trim();
+  const outreach = document.getElementById('acc-outreach').checked;
+
+  const data = { platform, username, token_session: '', niche, cta_link: cta, outreach_enabled: outreach, ...cookies };
   const res = await api('/api/accounts', data, 'POST');
   if (res?.success) {
-    showToast(`✅ @${username} connected! DMs will flow in within 60 seconds.`);
-    addLog(`📲 Real account @${username} (${platform}) added to fleet.`, '#00d4aa');
+    const outMsg = outreach ? ' Auto-posting enabled — content will go out hourly to attract DMs.' : '';
+    showToast(`✅ @${username} connected! DMs will flow in within 60 seconds.${outMsg}`);
+    addLog(`📲 Real account @${username} (${platform}/${niche}) added to fleet.`, '#00d4aa');
     document.getElementById('form-account').reset();
     updateCookieFields();
     refresh();
@@ -1595,19 +1628,47 @@ async function submitAccount(e) {
 
 function renderAccountsTable(accs) {
   const el = document.getElementById('accounts-table-wrap');
-  if (!accs.length) { el.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:11px;">No accounts in fleet.</div>'; return; }
-  let html = '<table class="data-table"><thead><tr><th>Platform</th><th>Username</th><th>Status</th><th style="text-align:right;">Del</th></tr></thead><tbody>';
+  if (!accs.length) { el.innerHTML = '<div style="text-align:center;padding:12px;color:var(--muted);font-size:11px;">No accounts in fleet yet. Add your first account above.</div>'; return; }
+
+  // Check for expired accounts → show Tools nav badge
+  const expired = accs.filter(a => a.status && a.status.startsWith('Expired'));
+  const nb = document.getElementById('nav-tools-badge');
+  if (nb) { nb.textContent = expired.length || ''; nb.classList.toggle('show', expired.length > 0); }
+
+  let html = '';
   accs.forEach(a => {
-    const statusBadge = a.status==='Active' ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-muted">'+a.status+'</span>';
-    html += `<tr>
-      <td>${getPlatformIcon(a.platform)}</td>
-      <td style="font-weight:700;">@${a.username}</td>
-      <td>${statusBadge}</td>
-      <td style="text-align:right;"><button onclick="deleteAccount('${a.id}')" class="btn btn-ghost btn-icon btn-sm"><i class="fa-solid fa-xmark" style="color:var(--red);"></i></button></td>
-    </tr>`;
+    const isExpired = a.status && a.status.startsWith('Expired');
+    const isActive = a.status === 'Active';
+    const outReach = a.outreach_enabled ? '<span class="badge badge-blue" style="font-size:9px;">📡 posting</span>' : '';
+    const nicheTag = a.niche ? `<span class="badge badge-muted" style="font-size:9px;">${a.niche}</span>` : '';
+
+    const statusBadge = isActive
+      ? `<span class="badge badge-green" style="font-size:10px;">● Live</span>`
+      : isExpired
+      ? `<span class="badge" style="background:#ff444422;color:#ff4444;border:1px solid #ff444466;font-size:10px;">⚠ Expired</span>`
+      : `<span class="badge badge-muted">${a.status}</span>`;
+
+    const expiredAlert = isExpired ? `
+      <tr><td colspan="4" style="padding:0 0 8px 0;">
+        <div style="background:#ff444415;border:1px solid #ff444440;border-radius:8px;padding:8px 12px;font-size:11px;color:#ff6b6b;line-height:1.5;">
+          <strong>🔴 Session expired</strong> — cookies for <strong>@${a.username}</strong> stopped working.<br>
+          Log back into <strong>${a.platform}.com</strong> in Chrome → F12 → Application → Cookies → re-copy and re-add this account.
+          <button onclick="deleteAccount('${a.id}')" class="btn btn-ghost btn-sm" style="margin-top:6px;color:#ff6b6b;border-color:#ff444466;width:100%;font-size:11px;">
+            <i class="fa-solid fa-rotate"></i> Remove & Re-add Account
+          </button>
+        </div>
+      </td></tr>` : '';
+
+    html += `
+      <tr>
+        <td>${getPlatformIcon(a.platform)}</td>
+        <td><div style="font-weight:700;font-size:12px;">@${a.username}</div><div style="display:flex;gap:4px;margin-top:3px;">${nicheTag}${outReach}</div></td>
+        <td>${statusBadge}</td>
+        <td style="text-align:right;"><button onclick="deleteAccount('${a.id}')" class="btn btn-ghost btn-icon btn-sm"><i class="fa-solid fa-xmark" style="color:var(--red);"></i></button></td>
+      </tr>
+      ${expiredAlert}`;
   });
-  html += '</tbody></table>';
-  el.innerHTML = html;
+  el.innerHTML = `<table class="data-table"><thead><tr><th>Platform</th><th>Account</th><th>Status</th><th></th></tr></thead><tbody>${html}</tbody></table>`;
 }
 
 async function deleteAccount(id) {
