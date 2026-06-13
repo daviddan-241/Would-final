@@ -253,21 +253,26 @@ def get_accounts():
     return db["accounts"]
 
 
-def add_account(platform, username, password="", token_session="", status="Active"):
+def add_account(platform, username, password="", token_session="", status="Active", cookies=None):
     db = load_db()
     if "accounts" not in db:
         db["accounts"] = []
-    
+
     acc_id = f"acc_{int(time.time() * 1000)}"
     new_acc = {
         "id": acc_id,
         "platform": platform,
-        "username": username,
+        "username": username.lstrip("@"),
         "password": password,
         "token_session": token_session,
         "status": status,
         "created_at": time.time()
     }
+    # Store platform-specific session cookies (non-empty values only)
+    if cookies:
+        for k, v in cookies.items():
+            if v:
+                new_acc[k] = v
     db["accounts"].append(new_acc)
     save_db()
     return new_acc
