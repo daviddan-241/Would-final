@@ -612,27 +612,74 @@
     <!-- SMM Account Fleet -->
     <div class="section-title">SMM Account Fleet</div>
     <div class="card" style="margin-bottom:4px;">
+      <p style="font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.5;">
+        Add your real social accounts here — DMs from every account flow into your inbox automatically. No API keys or paid plans needed.
+        <br><strong style="color:var(--accent);">How to get cookies:</strong> Log into the account in Chrome → press F12 → Application → Cookies → copy the values below.
+      </p>
       <form id="form-account" onsubmit="submitAccount(event)" style="display:flex;flex-direction:column;gap:10px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div>
             <label class="flabel">Platform</label>
-            <select id="acc-platform" class="inp">
-              <option value="twitter">𝕏 Twitter</option>
-              <option value="tiktok">🎵 TikTok</option>
+            <select id="acc-platform" class="inp" onchange="updateCookieFields()">
+              <option value="twitter">𝕏 Twitter / X</option>
               <option value="instagram">📸 Instagram</option>
+              <option value="tiktok">🎵 TikTok</option>
               <option value="facebook">👤 Facebook</option>
             </select>
           </div>
           <div>
-            <label class="flabel">Username</label>
-            <input type="text" id="acc-username" placeholder="@handle" class="inp" required>
+            <label class="flabel">Your Username</label>
+            <input type="text" id="acc-username" placeholder="@yourhandle" class="inp" required>
           </div>
         </div>
-        <div>
-          <label class="flabel">Session Token / Cookie</label>
-          <input type="text" id="acc-token" placeholder="Paste session token…" class="inp">
+
+        <!-- Twitter fields -->
+        <div id="cookie-fields-twitter">
+          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6;">
+            Chrome → twitter.com → F12 → Application → Cookies → twitter.com<br>
+            Copy <code style="color:var(--accent);">auth_token</code> and <code style="color:var(--accent);">ct0</code>
+          </div>
+          <label class="flabel">auth_token cookie</label>
+          <input type="password" id="acc-tw-auth" placeholder="Paste auth_token value…" class="inp" style="margin-bottom:6px;">
+          <label class="flabel">ct0 cookie</label>
+          <input type="password" id="acc-tw-ct0" placeholder="Paste ct0 value…" class="inp">
         </div>
-        <button type="submit" class="btn btn-ghost btn-full" style="border-color:var(--accent);color:var(--accent);"><i class="fa-solid fa-user-plus"></i> Add to Fleet</button>
+
+        <!-- Instagram fields -->
+        <div id="cookie-fields-instagram" style="display:none;">
+          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6;">
+            Chrome → instagram.com → F12 → Application → Cookies → instagram.com<br>
+            Copy <code style="color:var(--accent);">sessionid</code>
+          </div>
+          <label class="flabel">sessionid cookie</label>
+          <input type="password" id="acc-ig-session" placeholder="Paste sessionid value…" class="inp">
+        </div>
+
+        <!-- TikTok fields -->
+        <div id="cookie-fields-tiktok" style="display:none;">
+          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6;">
+            Chrome → tiktok.com → F12 → Application → Cookies → tiktok.com<br>
+            Copy <code style="color:var(--accent);">sessionid</code> and <code style="color:var(--accent);">ttwid</code>
+          </div>
+          <label class="flabel">sessionid cookie</label>
+          <input type="password" id="acc-tt-session" placeholder="Paste sessionid value…" class="inp" style="margin-bottom:6px;">
+          <label class="flabel">ttwid cookie (optional but recommended)</label>
+          <input type="password" id="acc-tt-ttwid" placeholder="Paste ttwid value…" class="inp">
+        </div>
+
+        <!-- Facebook fields -->
+        <div id="cookie-fields-facebook" style="display:none;">
+          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6;">
+            Chrome → facebook.com → F12 → Application → Cookies → facebook.com<br>
+            Copy <code style="color:var(--accent);">c_user</code> and <code style="color:var(--accent);">xs</code>
+          </div>
+          <label class="flabel">c_user cookie</label>
+          <input type="password" id="acc-fb-cuser" placeholder="Paste c_user value…" class="inp" style="margin-bottom:6px;">
+          <label class="flabel">xs cookie</label>
+          <input type="password" id="acc-fb-xs" placeholder="Paste xs value…" class="inp">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full"><i class="fa-solid fa-plug"></i> Connect Account — Start Receiving DMs</button>
       </form>
       <div id="accounts-table-wrap" style="margin-top:12px;"></div>
     </div>
@@ -1503,17 +1550,45 @@ async function deleteReply(id) {
 }
 
 // ── ACCOUNTS ──
+function updateCookieFields() {
+  const p = document.getElementById('acc-platform').value;
+  ['twitter','instagram','tiktok','facebook'].forEach(pl => {
+    const el = document.getElementById('cookie-fields-' + pl);
+    if (el) el.style.display = (pl === p) ? '' : 'none';
+  });
+}
+
 async function submitAccount(e) {
   e.preventDefault();
-  const data = {
-    platform: document.getElementById('acc-platform').value,
-    username: document.getElementById('acc-username').value,
-    token_session: document.getElementById('acc-token').value,
-  };
-  const res = await api('/api/accounts', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const platform = document.getElementById('acc-platform').value;
+  const username = document.getElementById('acc-username').value;
+
+  // Collect the right cookies for each platform
+  const cookies = {};
+  if (platform === 'twitter') {
+    cookies.auth_token = document.getElementById('acc-tw-auth').value.trim();
+    cookies.ct0 = document.getElementById('acc-tw-ct0').value.trim();
+    if (!cookies.auth_token || !cookies.ct0) { showToast('⚠️ Paste both auth_token and ct0 for Twitter.','#ff6b6b'); return; }
+  } else if (platform === 'instagram') {
+    cookies.sessionid = document.getElementById('acc-ig-session').value.trim();
+    if (!cookies.sessionid) { showToast('⚠️ Paste your Instagram sessionid cookie.','#ff6b6b'); return; }
+  } else if (platform === 'tiktok') {
+    cookies.sessionid = document.getElementById('acc-tt-session').value.trim();
+    cookies.ttwid = document.getElementById('acc-tt-ttwid').value.trim();
+    if (!cookies.sessionid) { showToast('⚠️ Paste your TikTok sessionid cookie.','#ff6b6b'); return; }
+  } else if (platform === 'facebook') {
+    cookies.c_user = document.getElementById('acc-fb-cuser').value.trim();
+    cookies.xs = document.getElementById('acc-fb-xs').value.trim();
+    if (!cookies.c_user || !cookies.xs) { showToast('⚠️ Paste both c_user and xs for Facebook.','#ff6b6b'); return; }
+  }
+
+  const data = { platform, username, token_session: '', ...cookies };
+  const res = await api('/api/accounts', data, 'POST');
   if (res?.success) {
-    addLog(`Fleet account @${data.username} added.`, '#ffa34d');
+    showToast(`✅ @${username} connected! DMs will flow in within 60 seconds.`);
+    addLog(`📲 Real account @${username} (${platform}) added to fleet.`, '#00d4aa');
     document.getElementById('form-account').reset();
+    updateCookieFields();
     refresh();
   }
 }
