@@ -399,24 +399,24 @@
     <div class="section-title">Live Analytics</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
       <div class="stat-card purple">
-        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Impressions</div>
-        <div id="stat-impressions" style="font-size:24px;font-weight:900;margin-top:2px;">—</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:1px;">total reach</div>
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Conversations</div>
+        <div id="stat-impressions" style="font-size:24px;font-weight:900;margin-top:2px;">0</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px;">real DM threads</div>
       </div>
       <div class="stat-card green">
-        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Clicks</div>
-        <div id="stat-clicks" style="font-size:24px;font-weight:900;margin-top:2px;">—</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:1px;">link taps</div>
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Messages In</div>
+        <div id="stat-clicks" style="font-size:24px;font-weight:900;margin-top:2px;">0</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px;">received</div>
       </div>
       <div class="stat-card orange">
-        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Leads</div>
-        <div id="stat-leads" style="font-size:24px;font-weight:900;margin-top:2px;">—</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:1px;">captured</div>
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Replies Sent</div>
+        <div id="stat-leads" style="font-size:24px;font-weight:900;margin-top:2px;">0</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px;">auto-replied</div>
       </div>
       <div class="stat-card red">
-        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Conv. Rate</div>
-        <div id="stat-conv" style="font-size:24px;font-weight:900;margin-top:2px;">—</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:1px;">conversion</div>
+        <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;">Response Rate</div>
+        <div id="stat-conv" style="font-size:24px;font-weight:900;margin-top:2px;">0%</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px;">auto-reply rate</div>
       </div>
     </div>
 
@@ -681,6 +681,52 @@
       </form>
     </div>
 
+    <div class="section-title">Social Platform API Keys</div>
+    <div class="card" style="margin-bottom:14px;">
+      <p style="font-size:10px;color:var(--muted);margin-bottom:12px;">
+        Connect real social accounts so DMs flow into your inbox live.
+        <a href="https://developer.twitter.com" target="_blank" style="color:var(--accent);">Get Twitter keys →</a>
+      </p>
+      <form id="form-socials" onsubmit="saveSocialKeys(event)" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:4px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <i class="fa-brands fa-x-twitter" style="color:#e7e9ea;"></i>
+            <span style="font-size:11px;font-weight:800;">Twitter / X DMs</span>
+            <span class="badge badge-muted" style="font-size:8px;">OAuth2 Bearer Token</span>
+          </div>
+          <label class="flabel">Bearer Token</label>
+          <input type="password" id="twitter-bearer" placeholder="AAAA…" class="inp" style="margin-bottom:6px;">
+          <label class="flabel">User Access Token (for DM read access)</label>
+          <input type="password" id="twitter-access" placeholder="Paste access token…" class="inp">
+        </div>
+        <div style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:4px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <i class="fa-brands fa-instagram" style="color:#e1306c;"></i>
+            <span style="font-size:11px;font-weight:800;">Instagram / Facebook DMs</span>
+            <span class="badge badge-muted" style="font-size:8px;">Meta Webhooks</span>
+          </div>
+          <label class="flabel">Page Access Token</label>
+          <input type="password" id="meta-page-token" placeholder="EAABs…" class="inp" style="margin-bottom:6px;">
+          <label class="flabel">Webhook URL (add this in Meta Developer Console)</label>
+          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:10px;font-family:monospace;color:var(--accent);word-break:break-all;" id="meta-webhook-url">Loading…</div>
+          <label class="flabel" style="margin-top:8px;">Verify Token</label>
+          <input type="text" id="meta-verify-token" value="my_smm_verify_token_123" class="inp" style="font-family:monospace;font-size:11px;">
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <i class="fa-brands fa-tiktok" style="color:#fe2c55;"></i>
+            <span style="font-size:11px;font-weight:800;">TikTok DMs</span>
+            <span class="badge badge-muted" style="font-size:8px;">Webhooks</span>
+          </div>
+          <label class="flabel">TikTok Webhook URL (add this in TikTok Developer Console)</label>
+          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:10px;font-family:monospace;color:var(--accent);word-break:break-all;" id="tiktok-webhook-url">Loading…</div>
+          <label class="flabel" style="margin-top:8px;">App Access Token (optional)</label>
+          <input type="password" id="tiktok-token" placeholder="Paste token…" class="inp">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full"><i class="fa-solid fa-plug"></i> Connect Platforms</button>
+      </form>
+    </div>
+
     <div class="section-title">Rotating Proxy Nodes</div>
     <div class="card" style="margin-bottom:14px;">
       <label class="flabel">One per line: user:pass@ip:port</label>
@@ -724,15 +770,25 @@
     <button onclick="closeChat()" class="btn btn-ghost btn-icon" style="flex-shrink:0;"><i class="fa-solid fa-chevron-left" style="color:var(--accent);"></i></button>
     <div id="chat-avatar" style="width:34px;height:34px;border-radius:50%;overflow:hidden;background:var(--surface2);flex-shrink:0;"></div>
     <div style="min-width:0;flex:1;">
-      <div id="chat-name" style="font-weight:800;font-size:13px;truncate;"></div>
+      <div id="chat-name" style="font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
       <div id="chat-meta" style="font-size:9px;color:var(--muted);"></div>
     </div>
-    <span class="badge badge-blue" style="font-size:9px;">iMessage</span>
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+      <span id="chat-platform-badge" class="badge badge-blue" style="font-size:9px;"></span>
+      <a id="chat-view-profile" href="#" target="_blank" rel="noopener noreferrer"
+         style="display:none;padding:6px 10px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:10px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;">
+        <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:9px;margin-right:3px;"></i>View
+      </a>
+      <a id="chat-view-source" href="#" target="_blank" rel="noopener noreferrer"
+         style="display:none;padding:6px 10px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:10px;font-weight:700;color:var(--muted);text-decoration:none;white-space:nowrap;">
+        <i class="fa-solid fa-file-lines" style="font-size:9px;margin-right:3px;"></i>Post
+      </a>
+    </div>
   </header>
   <div id="chat-msgs"></div>
   <div id="chat-input-bar">
     <input type="hidden" id="active-conv">
-    <input type="text" id="chat-text" placeholder="Type a message…" class="inp" style="flex:1;" disabled>
+    <input type="text" id="chat-text" placeholder="Type a message…" class="inp" style="flex:1;" disabled onkeydown="onChatKeydown(event)">
     <button onclick="sendMsg()" class="btn btn-primary btn-icon" id="chat-send-btn" disabled><i class="fa-solid fa-paper-plane"></i></button>
   </div>
 </div>
@@ -899,22 +955,26 @@ async function refresh() {
   // Setup Checklist
   renderSetupChecklist(data);
 
-  // Analytics
+  // Analytics — real data only
   const a = data.analytics || {};
-  document.getElementById('stat-impressions').textContent = (a.impressions||0).toLocaleString();
-  document.getElementById('stat-clicks').textContent = (a.clicks||0).toLocaleString();
-  document.getElementById('stat-leads').textContent = (a.leads||0).toLocaleString();
-  document.getElementById('stat-conv').textContent = (a.conversion_rate||0)+'%';
-  document.getElementById('funnel-pct').textContent = (a.conversion_rate||0)+'%';
+  const totalConvs   = a.total_conversations || (data.conversations||[]).length || 0;
+  const totalIn      = a.incoming || 0;
+  const totalOut     = a.outgoing || 0;
+  const respRate     = a.response_rate || 0;
+  document.getElementById('stat-impressions').textContent = totalConvs.toLocaleString();
+  document.getElementById('stat-clicks').textContent = totalIn.toLocaleString();
+  document.getElementById('stat-leads').textContent = totalOut.toLocaleString();
+  document.getElementById('stat-conv').textContent = respRate + '%';
+  document.getElementById('funnel-pct').textContent = respRate + '%';
 
-  const imp = a.impressions || 1;
-  const clkPct = Math.round(((a.clicks||0)/imp)*100);
-  const ldPct  = Math.round(((a.leads||0)/imp)*100);
-  document.getElementById('f-imp').textContent   = (a.impressions||0).toLocaleString();
-  document.getElementById('f-clk').textContent   = (a.clicks||0).toLocaleString();
-  document.getElementById('f-leads').textContent = (a.leads||0).toLocaleString();
-  document.getElementById('prog-clk').style.width   = clkPct+'%';
-  document.getElementById('prog-leads').style.width  = ldPct+'%';
+  const inBase = totalIn || 1;
+  const outPct = Math.min(100, Math.round((totalOut / inBase) * 100));
+  const convPct = Math.min(100, Math.round((totalConvs / inBase) * 100));
+  document.getElementById('f-imp').textContent   = totalConvs.toLocaleString();
+  document.getElementById('f-clk').textContent   = totalIn.toLocaleString();
+  document.getElementById('f-leads').textContent = totalOut.toLocaleString();
+  document.getElementById('prog-clk').style.width   = Math.min(100, convPct * 2) + '%';
+  document.getElementById('prog-leads').style.width  = outPct + '%';
 
   // Engine toggles
   renderEngineToggles(data.settings||{});
@@ -1132,12 +1192,51 @@ function renderInbox(convs) {
 }
 function filterInbox() { if (DB.conversations) renderInbox(DB.conversations); }
 
+const PLATFORM_LABELS = {
+  twitter:'𝕏 Twitter', x:'𝕏 Twitter', reddit:'Reddit',
+  instagram:'Instagram', tiktok:'TikTok', facebook:'Facebook', telegram:'Telegram'
+};
+const PLATFORM_COLORS = {
+  twitter:'#1d9bf0', x:'#1d9bf0', reddit:'#ff4500',
+  instagram:'#c13584', tiktok:'#010101', facebook:'#1877f2', telegram:'#229ed9'
+};
+
 async function openChat(id, handle, platform) {
   activeChatId = id;
   document.getElementById('chat-name').textContent = handle;
   const conv = (DB.conversations||[]).find(c=>c.id===id);
   const persona = conv ? (DB.profiles||[]).find(p=>p.id===conv.profile_id) : null;
-  document.getElementById('chat-meta').textContent = `${platform.toUpperCase()}${persona?' · '+persona.name:''}`;
+  document.getElementById('chat-meta').textContent = `${PLATFORM_LABELS[platform]||platform.toUpperCase()}${persona?' · '+persona.name:''}`;
+
+  // Platform badge with real color
+  const badge = document.getElementById('chat-platform-badge');
+  badge.textContent = PLATFORM_LABELS[platform] || platform.toUpperCase();
+  badge.style.background = (PLATFORM_COLORS[platform]||'#6c63ff') + '22';
+  badge.style.color = PLATFORM_COLORS[platform] || '#6c63ff';
+  badge.style.border = '1px solid ' + (PLATFORM_COLORS[platform]||'#6c63ff') + '44';
+
+  // View Profile button — opens their real account on the platform
+  const profileBtn = document.getElementById('chat-view-profile');
+  const profileUrl = conv?.profile_url || '';
+  if (profileUrl) {
+    profileBtn.href = profileUrl;
+    profileBtn.style.display = 'flex';
+    profileBtn.title = `Open ${handle}'s profile on ${platform}`;
+  } else {
+    profileBtn.style.display = 'none';
+  }
+
+  // View Source Post button — opens the post that triggered this lead
+  const sourceBtn = document.getElementById('chat-view-source');
+  const sourceUrl = conv?.source_url || '';
+  if (sourceUrl) {
+    sourceBtn.href = sourceUrl;
+    sourceBtn.style.display = 'flex';
+    sourceBtn.title = 'View original post that triggered this lead';
+  } else {
+    sourceBtn.style.display = 'none';
+  }
+
   document.getElementById('chat-avatar').innerHTML = `<img src="https://api.dicebear.com/7.x/bottts/svg?seed=${handle}" style="width:100%;height:100%;object-fit:cover;">`;
   document.getElementById('active-conv').value = id;
   document.getElementById('chat-text').removeAttribute('disabled');
@@ -1547,17 +1646,129 @@ function getPlatformIcon(p, size='13px') {
   return icons[p] || `<i class="fa-solid fa-circle" style="font-size:${size};color:var(--muted);"></i>`;
 }
 
-// ── CHAT POLLING ──
-async function pollChat() {
-  if (activeChatId) await loadMessages(activeChatId);
+// ── REAL-TIME SSE CONNECTION ──
+let _sseRetries = 0;
+function connectSSE() {
+  if (typeof EventSource === 'undefined') {
+    // Fallback: poll every 5s
+    setInterval(refresh, 5000);
+    setInterval(async () => { if (activeChatId) await loadMessages(activeChatId); }, 3000);
+    return;
+  }
+  const es = new EventSource('/api/events');
+  es.onopen = () => {
+    _sseRetries = 0;
+    addLog('🟢 Real-time connection established.', '#00d4aa');
+  };
+  es.onmessage = (e) => {
+    try {
+      const evt = JSON.parse(e.data);
+      if (evt.type === 'new_message') {
+        // 1. Upsert the conversation row in DB and inbox list
+        const conv = evt.conv;
+        if (conv) {
+          if (!DB.conversations) DB.conversations = [];
+          const idx = DB.conversations.findIndex(c => c.id === conv.id);
+          if (idx >= 0) {
+            DB.conversations[idx] = { ...DB.conversations[idx], ...conv };
+          } else {
+            DB.conversations.unshift(conv);
+          }
+          renderInbox(DB.conversations);
+          // Update unread badge
+          const unread = DB.conversations.reduce((s,c) => s + (c.unread||0), 0);
+          const nb = document.getElementById('nav-inbox-badge');
+          if (nb) { nb.textContent = unread; nb.classList.toggle('show', unread > 0); }
+        }
+        // 2. If this chat is open, append the new message instantly
+        if (activeChatId && evt.conv_id === activeChatId && evt.message) {
+          const m = evt.message;
+          const el = document.getElementById('chat-msgs');
+          if (el) {
+            // Remove "no messages" empty state if present
+            const empty = el.querySelector('.empty-state');
+            if (empty) empty.remove();
+            const wrap = document.createElement('div');
+            wrap.style.cssText = `display:flex;justify-content:${m.is_incoming?'flex-start':'flex-end'};`;
+            const ts = m.timestamp ? new Date(m.timestamp*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+            wrap.innerHTML = `<div class="${m.is_incoming?'bubble-in':'bubble-out'}" style="max-width:78%;padding:10px 13px;font-size:13px;line-height:1.45;">
+              ${m.text}
+              <div style="font-size:9px;opacity:.5;margin-top:4px;text-align:${m.is_incoming?'left':'right'}">${ts}</div>
+            </div>`;
+            el.appendChild(wrap);
+            el.scrollTop = el.scrollHeight;
+          }
+        }
+        // 3. Flash log
+        const handle = conv?.sender_handle || '';
+        if (evt.message?.is_incoming) addLog(`📬 New DM from ${handle}`, '#00d4aa');
+        else addLog(`📤 Reply sent to ${handle}`, '#6c63ff');
+      }
+    } catch (err) { /* ignore parse errors */ }
+  };
+  es.onerror = () => {
+    es.close();
+    _sseRetries++;
+    const delay = Math.min(1000 * Math.pow(2, _sseRetries), 30000);
+    setTimeout(connectSSE, delay);
+  };
+}
+
+// ── TYPING INDICATOR ──
+let _typingTimer = null;
+function onChatKeydown(e) {
+  if (e.key === 'Enter') { sendMsg(); return; }
+  // Show typing cursor effect
+  const input = document.getElementById('chat-text');
+  clearTimeout(_typingTimer);
+  _typingTimer = setTimeout(() => {}, 1500);
+}
+
+// ── SAVE SOCIAL KEYS ──
+async function saveSocialKeys(e) {
+  e.preventDefault();
+  const bearer = document.getElementById('twitter-bearer').value.trim();
+  const access = document.getElementById('twitter-access').value.trim();
+  const metaToken = document.getElementById('meta-page-token').value.trim();
+  const tiktokToken = document.getElementById('tiktok-token').value.trim();
+  await api('/api/settings', {
+    twitter_bearer_token: bearer,
+    twitter_access_token: access,
+    meta_page_access_token: metaToken,
+    tiktok_access_token: tiktokToken
+  }, 'POST');
+  showToast('✅ Platform keys saved! Real DMs will now flow into your inbox.');
+}
+
+function showToast(msg, color='#00d4aa') {
+  let t = document.getElementById('toast-msg');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast-msg';
+    t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:10px 20px;font-size:12px;font-weight:700;z-index:999;transition:opacity .3s;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.5);';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.color = color;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
 }
 
 // ── STARTUP ──
 document.addEventListener('DOMContentLoaded', () => {
   refresh();
-  setInterval(refresh, 6000);
-  setInterval(pollChat, 3000);
+  connectSSE();
+  // Slower fallback poll (SSE handles real-time; this catches edge cases)
+  setInterval(refresh, 30000);
   addLog('Verizon Suite online. All engines active.', '#6c63ff');
+
+  // Show webhook URLs in settings
+  const host = window.location.origin;
+  const mwu = document.getElementById('meta-webhook-url');
+  const twu = document.getElementById('tiktok-webhook-url');
+  if (mwu) mwu.textContent = host + '/api/webhooks/incoming';
+  if (twu) twu.textContent = host + '/api/webhooks/tiktok';
 });
 </script>
 </body>
