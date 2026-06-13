@@ -25,7 +25,11 @@ def start_all_smm_services(bot_instance=None):
     from agents.director import start_company
     start_company(bot_instance=bot_instance)
 
-    # Legacy loop stubs (kept for compatibility — real work is in agents/)
+    # Real organic lead discovery loop (Reddit)
     asyncio.create_task(growth_engine.start_organic_growth_loop(check_interval=90))
+
+    # Twitter / X DM poller (polls every 60s if Bearer Token is configured)
+    from agents.twitter_agent import start_twitter_dm_loop
+    asyncio.create_task(start_twitter_dm_loop(check_interval=60))
 
     logger.info("🏢 All agents online. Verizon Suite Operations is fully live.")
