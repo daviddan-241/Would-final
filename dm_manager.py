@@ -101,23 +101,52 @@ async def generate_ai_or_rule_reply(incoming_text: str, profile: Dict[str, Any])
         )
 
 
-async def handle_incoming_real_dm(platform: str, sender_handle: str, message_text: str, profile_id: str):
+async def handle_incoming_real_dm(
+    platform: str,
+    sender_handle: str,
+    message_text: str,
+    profile_id: str = None,
+    profile_url: str = "",
+    source_url: str = ""
+):
     """
-    Processes real incoming DMs (from Telegram bot, Meta webhook, or test injection).
+    Processes real incoming DMs (from Telegram bot, Meta webhook, growth engine lead injection, etc).
+    If profile_id is None or not found, auto-selects the best matching persona based on message content.
+    profile_url: direct link to the sender's profile on their platform (e.g. reddit.com/user/...)
+    source_url: link to the specific post/comment that triggered this lead
     Stores in inbox → generates AI reply → humanizes → sends back with realistic typing delay.
     """
     profiles = marketing_db.get_profiles()
-    profile = next((p for p in profiles if p["id"] == profile_id), None)
+    profile = None
+
+    # Try explicit profile_id first
+    if profile_id:
+        profile = next((p for p in profiles if p["id"] == profile_id), None)
+
+    # Auto-detect best persona if not found
     if not profile:
-        logger.warning(f"handle_incoming_real_dm: profile {profile_id} not found")
+        from growth_engine import select_best_persona
+        profile = select_best_persona(message_text, platform)
+
+    # Last resort: first active profile
+    if not profile:
+        active = [p for p in profiles if p.get("active", True)]
+        profile = active[0] if active else None
+
+    if not profile:
+        logger.warning(f"handle_incoming_real_dm: no active profile found for {sender_handle}")
         return
+
+    profile_id = profile["id"]
 
     conv, _ = marketing_db.add_incoming_message(
         platform=platform,
         sender_handle=sender_handle,
         text=message_text,
         avatar=f"https://api.dicebear.com/7.x/bottts/svg?seed={sender_handle}",
-        profile_id=profile_id
+        profile_id=profile_id,
+        profile_url=profile_url,
+        source_url=source_url
     )
 
     raw_body, raw_followup = await generate_ai_or_rule_reply(message_text, profile)
