@@ -70,6 +70,29 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self._send_text(500, f"Error: {e}")
             return
 
+        # ── Static PWA files ───────────────────────────────────────────────────
+        _BASE = os.path.dirname(os.path.abspath(__file__))
+        _STATIC = {
+            "/sw.js":        ("application/javascript", "sw.js"),
+            "/manifest.json":("application/manifest+json", "manifest.json"),
+            "/icon.svg":     ("image/svg+xml", "icon.svg"),
+        }
+        if path in _STATIC:
+            mime, fname = _STATIC[path]
+            fp = os.path.join(_BASE, fname)
+            try:
+                with open(fp, "rb") as f:
+                    data = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", mime)
+                cache = "no-store" if fname == "sw.js" else "public, max-age=86400"
+                self.send_header("Cache-Control", cache)
+                self.end_headers()
+                self.wfile.write(data)
+            except Exception:
+                self._send_text(404, "Not found")
+            return
+
         # ── REST: full DB snapshot ─────────────────────────────────────────────
         if path == "/api/data":
             data = marketing_db.load_db()
