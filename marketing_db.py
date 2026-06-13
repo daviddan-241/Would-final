@@ -253,7 +253,8 @@ def get_accounts():
     return db["accounts"]
 
 
-def add_account(platform, username, password="", token_session="", status="Active", cookies=None):
+def add_account(platform, username, password="", token_session="", status="Active",
+                cookies=None, niche="", cta_link="", outreach_enabled=False):
     db = load_db()
     if "accounts" not in db:
         db["accounts"] = []
@@ -266,6 +267,10 @@ def add_account(platform, username, password="", token_session="", status="Activ
         "password": password,
         "token_session": token_session,
         "status": status,
+        "niche": niche,
+        "cta_link": cta_link,
+        "outreach_enabled": outreach_enabled,
+        "last_posted": 0,
         "created_at": time.time()
     }
     # Store platform-specific session cookies (non-empty values only)
