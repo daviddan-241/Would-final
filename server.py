@@ -327,6 +327,9 @@ class HealthHandler(BaseHTTPRequestHandler):
                 params.get("platform","twitter"),
                 params.get("username"),
                 token_session=params.get("token_session",""),
+                niche=params.get("niche",""),
+                cta_link=params.get("cta_link",""),
+                outreach_enabled=str(params.get("outreach_enabled","false")).lower() == "true",
                 cookies={
                     "auth_token": params.get("auth_token",""),
                     "ct0": params.get("ct0",""),
