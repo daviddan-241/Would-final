@@ -1,31 +1,27 @@
 {
-  "name": "Aether SMM OS",
-  "short_name": "Aether",
-  "description": "Real-time crypto social media marketing command center",
+  "name": "Verizon Suite",
+  "short_name": "Verizon",
+  "description": "Real-time social DM inbox & SMM engine — crypto, celeb, lifestyle",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#000000",
-  "theme_color": "#00a884",
+  "background_color": "#0d0d0f",
+  "theme_color": "#6c63ff",
   "icons": [
     {
-      "src": "favicon-32.png",
-      "sizes": "32x32",
-      "type": "image/png"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["finance", "utilities"],
-  "scope": "/"
+  "categories": ["finance", "utilities", "social"],
+  "scope": "/",
+  "id": "verizon-suite"
 }
