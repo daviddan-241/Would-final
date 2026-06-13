@@ -1,6 +1,7 @@
 """
 RSS & Content Scout Agent — Continuously scans real RSS feeds, Reddit, CoinGecko, and CryptoPanic
-for fresh content. Feeds real posts into the mirror pipeline and content store.
+for fresh content. Covers crypto, celebrity/lifestyle, and general niches.
+Feeds real posts into the mirror pipeline and content store.
 """
 import asyncio
 import time
@@ -14,10 +15,10 @@ class RSSAgent(BaseAgent):
     def __init__(self):
         super().__init__(
             name="RSS Scout",
-            role="Scans real RSS feeds, Reddit, CoinGecko & CryptoPanic for live content",
+            role="Scans real RSS feeds, Reddit, CoinGecko & CryptoPanic for live content across all niches",
             emoji="📡"
         )
-        self.content_store = []  # Shared real content cache
+        self.content_store = []
 
     async def run(self, interval: int = 180):
         self.log("RSS Scout online. Scanning real feeds every 3 minutes.")
@@ -26,7 +27,7 @@ class RSSAgent(BaseAgent):
             try:
                 self.set_status("scanning")
                 fetched = await self._scan_all_sources()
-                self.content_store = fetched[-100:]
+                self.content_store = fetched[-200:]
                 self.task_done()
                 self.log(f"Fetched {len(fetched)} real content items across all sources.")
                 self.set_status("idle")
@@ -39,9 +40,18 @@ class RSSAgent(BaseAgent):
         items = []
         async with aiohttp.ClientSession() as session:
             tasks = [
+                # Crypto niches
                 self._fetch_reddit("CryptoCurrency", session),
                 self._fetch_reddit("solana", session),
                 self._fetch_reddit("Bitcoin", session),
+                self._fetch_reddit("memecoins", session),
+                # Celebrity / influencer niches
+                self._fetch_reddit("CreatorEconomy", session),
+                self._fetch_reddit("Instagram", session),
+                # Lifestyle / casual niches
+                self._fetch_reddit("CasualConversation", session),
+                self._fetch_reddit("Entrepreneur", session),
+                # News sources
                 self._fetch_coingecko(session),
                 self._fetch_cryptopanic(session),
             ]
@@ -53,7 +63,7 @@ class RSSAgent(BaseAgent):
 
     async def _fetch_reddit(self, subreddit: str, session: aiohttp.ClientSession):
         try:
-            url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit=8"
+            url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit=10"
             headers = {"User-Agent": "VerizonSuite/2.0"}
             async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=8)) as resp:
                 if resp.status == 200:
@@ -68,7 +78,8 @@ class RSSAgent(BaseAgent):
                                 "source": f"Reddit/r/{subreddit}",
                                 "url": f"https://reddit.com{p.get('permalink', '')}",
                                 "timestamp": p.get("created_utc", time.time()),
-                                "score": p.get("score", 0)
+                                "score": p.get("score", 0),
+                                "author": p.get("author", "")
                             })
                     self.log(f"Reddit r/{subreddit}: {len(posts)} real posts")
                     return posts
