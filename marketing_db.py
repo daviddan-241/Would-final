@@ -31,14 +31,18 @@ _data = {
     "settings": {
         "openai_key": "",
         "gemini_key": "",
-        "global_cta_link": "", # Quick global redirect funnel override
+        "global_cta_link": "",
         "auto_mirror_enabled": True,
         "auto_raid_enabled": True,
         "auto_post_enabled": True,
         "auto_dm_reply_enabled": True,
         "growth_hacks_enabled": True,
         "rewrite_style": "bullish_crypto_enthusiast",
-        "proxy_list": []
+        "proxy_list": [],
+        "twitter_bearer_token": "",
+        "twitter_access_token": "",
+        "meta_page_access_token": "",
+        "tiktok_access_token": ""
     }
 }
 _loaded = False
@@ -335,7 +339,7 @@ def get_conversation_messages(conv_id):
     return db["messages"].get(conv_id, [])
 
 
-def add_incoming_message(platform, sender_handle, text, avatar="", profile_id=None):
+def add_incoming_message(platform, sender_handle, text, avatar="", profile_id=None, profile_url="", source_url=""):
     db = load_db()
     if "conversations" not in db:
         db["conversations"] = []
@@ -346,6 +350,20 @@ def add_incoming_message(platform, sender_handle, text, avatar="", profile_id=No
     if not profile_id:
         profiles = get_profiles()
         profile_id = profiles[0]["id"] if profiles else "prof_default_crypto"
+
+    # Build profile_url from handle + platform if not provided
+    if not profile_url:
+        clean = sender_handle.lstrip("@").lstrip("u/")
+        if platform == "reddit":
+            profile_url = f"https://www.reddit.com/user/{clean}"
+        elif platform in ("twitter", "x"):
+            profile_url = f"https://twitter.com/{clean}"
+        elif platform == "instagram":
+            profile_url = f"https://www.instagram.com/{clean}"
+        elif platform == "tiktok":
+            profile_url = f"https://www.tiktok.com/@{clean}"
+        elif platform == "telegram":
+            profile_url = f"https://t.me/{clean}"
 
     conv = None
     for c in db["conversations"]:
@@ -362,6 +380,8 @@ def add_incoming_message(platform, sender_handle, text, avatar="", profile_id=No
             "platform": platform,
             "sender_handle": sender_handle,
             "avatar": avatar or f"https://api.dicebear.com/7.x/bottts/svg?seed={sender_handle}",
+            "profile_url": profile_url,
+            "source_url": source_url,
             "unread": 0,
             "last_message_time": now,
             "last_message_text": text
@@ -370,6 +390,11 @@ def add_incoming_message(platform, sender_handle, text, avatar="", profile_id=No
     else:
         conv["last_message_time"] = now
         conv["last_message_text"] = text
+        # Update urls if we now have them
+        if profile_url:
+            conv["profile_url"] = profile_url
+        if source_url:
+            conv["source_url"] = source_url
         db["conversations"].remove(conv)
         db["conversations"].insert(0, conv)
 
@@ -387,6 +412,29 @@ def add_incoming_message(platform, sender_handle, text, avatar="", profile_id=No
     }
     db["messages"][conv_id].append(new_msg)
     save_db()
+
+    # Push real-time SSE event to all connected browser tabs
+    try:
+        import sse_manager
+        sse_manager.push_event("new_message", {
+            "conv_id": conv_id,
+            "message": new_msg,
+            "conv": {
+                "id": conv["id"],
+                "platform": conv["platform"],
+                "sender_handle": conv["sender_handle"],
+                "avatar": conv.get("avatar",""),
+                "unread": conv["unread"],
+                "last_message_text": text,
+                "last_message_time": now,
+                "profile_url": conv.get("profile_url",""),
+                "source_url": conv.get("source_url",""),
+                "profile_id": conv.get("profile_id","")
+            }
+        })
+    except Exception:
+        pass
+
     return conv, new_msg
 
 
@@ -422,6 +470,29 @@ def add_outgoing_reply(conv_id, text):
     }
     db["messages"][conv_id].append(new_msg)
     save_db()
+
+    # Push real-time SSE event so the open chat refreshes instantly
+    try:
+        import sse_manager
+        sse_manager.push_event("new_message", {
+            "conv_id": conv_id,
+            "message": new_msg,
+            "conv": {
+                "id": conv_id,
+                "platform": conv.get("platform",""),
+                "sender_handle": conv.get("sender_handle",""),
+                "avatar": conv.get("avatar",""),
+                "unread": 0,
+                "last_message_text": text,
+                "last_message_time": now,
+                "profile_url": conv.get("profile_url",""),
+                "source_url": conv.get("source_url",""),
+                "profile_id": conv.get("profile_id","")
+            }
+        })
+    except Exception:
+        pass
+
     return new_msg
 
 
@@ -517,14 +588,38 @@ def delete_growth_campaign(camp_id):
 def get_analytics():
     db = load_db()
     if "analytics" not in db:
-        db["analytics"] = {"impressions": 24500, "clicks": 1820, "leads": 412, "conversion_rate": 22.6}
+        db["analytics"] = {"impressions": 0, "clicks": 0, "leads": 0, "conversion_rate": 0}
+    # Compute real stats from actual conversations & messages
+    convs = db.get("conversations", [])
+    msgs = db.get("messages", {})
+    total_incoming = sum(
+        sum(1 for m in msgs.get(c["id"], []) if m.get("is_incoming"))
+        for c in convs
+    )
+    total_outgoing = sum(
+        sum(1 for m in msgs.get(c["id"], []) if not m.get("is_incoming"))
+        for c in convs
+    )
+    db["analytics"]["total_conversations"] = len(convs)
+    db["analytics"]["total_messages"] = total_incoming + total_outgoing
+    db["analytics"]["incoming"] = total_incoming
+    db["analytics"]["outgoing"] = total_outgoing
+    db["analytics"]["response_rate"] = (
+        round((total_outgoing / total_incoming) * 100, 1) if total_incoming > 0 else 0
+    )
+    db["analytics"]["unread"] = sum(c.get("unread", 0) for c in convs)
+    platforms = {}
+    for c in convs:
+        p = c.get("platform", "unknown")
+        platforms[p] = platforms.get(p, 0) + 1
+    db["analytics"]["platforms"] = platforms
     return db["analytics"]
 
 
 def increment_analytics(impressions=0, clicks=0, leads=0):
     db = load_db()
     if "analytics" not in db:
-        db["analytics"] = {"impressions": 24500, "clicks": 1820, "leads": 412, "conversion_rate": 22.6}
+        db["analytics"] = {"impressions": 0, "clicks": 0, "leads": 0, "conversion_rate": 0}
         
     db["analytics"]["impressions"] += impressions
     db["analytics"]["clicks"] += clicks
