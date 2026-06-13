@@ -323,7 +323,19 @@ class HealthHandler(BaseHTTPRequestHandler):
             if not params.get("username"):
                 self._send_json(400, {"success": False, "error": "Missing username"})
                 return
-            a = marketing_db.add_account(params.get("platform","twitter"), params.get("username"), token_session=params.get("token_session",""))
+            a = marketing_db.add_account(
+                params.get("platform","twitter"),
+                params.get("username"),
+                token_session=params.get("token_session",""),
+                cookies={
+                    "auth_token": params.get("auth_token",""),
+                    "ct0": params.get("ct0",""),
+                    "sessionid": params.get("sessionid",""),
+                    "ttwid": params.get("ttwid",""),
+                    "c_user": params.get("c_user",""),
+                    "xs": params.get("xs",""),
+                }
+            )
             self._send_json(200, {"success": True, "account": a})
             return
 
