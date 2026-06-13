@@ -28,8 +28,12 @@ def start_all_smm_services(bot_instance=None):
     # Real organic lead discovery loop (Reddit)
     asyncio.create_task(growth_engine.start_organic_growth_loop(check_interval=90))
 
-    # Twitter / X DM poller (polls every 60s if Bearer Token is configured)
+    # Twitter / X DM poller via official API (Bearer Token path)
     from agents.twitter_agent import start_twitter_dm_loop
     asyncio.create_task(start_twitter_dm_loop(check_interval=60))
+
+    # Session-cookie DM agent — reads real DMs from every account in the fleet (free, no API needed)
+    from agents.session_dm_agent import start_session_dm_loop
+    asyncio.create_task(start_session_dm_loop(check_interval=60))
 
     logger.info("🏢 All agents online. Verizon Suite Operations is fully live.")
