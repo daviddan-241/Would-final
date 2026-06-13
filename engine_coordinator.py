@@ -36,8 +36,12 @@ def start_all_smm_services(bot_instance=None):
     from agents.session_dm_agent import start_session_dm_loop
     asyncio.create_task(start_session_dm_loop(check_interval=60))
 
-    # Outreach agent — posts niche content FROM connected accounts to attract real DMs
+    # Outreach agent — posts niche content + comments + proactive DMs (full auto-pilot)
     from agents.outreach_agent import start_outreach_loop
-    asyncio.create_task(start_outreach_loop(check_interval=3600))
+    asyncio.create_task(start_outreach_loop(check_interval=1800))
+
+    # AI auto-responder — replies to every incoming DM instantly using AI or smart templates
+    from agents.ai_responder import start_ai_responder_loop
+    asyncio.create_task(start_ai_responder_loop(check_interval=20))
 
     logger.info("🏢 All agents online. Verizon Suite Operations is fully live.")
