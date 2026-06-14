@@ -328,7 +328,7 @@ async def start_session_dm_loop(check_interval: int = 60):
     Loops through every account in the fleet and pulls real DMs.
     """
     logger.info("[Session DM Agent] Online — polling real DMs from all connected accounts every 60s.")
-    connector = aiohttp.TCPConnector(ssl=False)
+    connector = aiohttp.TCPConnector()
     async with aiohttp.ClientSession(connector=connector) as http:
         while True:
             try:
