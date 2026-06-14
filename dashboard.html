@@ -1720,7 +1720,7 @@ async function submitAccount(e) {
   if (c2) cookies[k2] = c2;
 
   const data = { platform, username, token_session: '', niche, cta_link: cta, outreach_enabled: outreach, ...cookies };
-  const res = await api('/api/accounts', data, 'POST');
+  const res = await api('/api/accounts', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
   if (res?.success) {
     showToast(`✅ @${username} connected! Posts + comments + DMs start in 60 sec.`);
     addLog(`📲 @${username} (${platform}/${niche}) live — auto-pilot ${outreach?'ON':'OFF'}.`, '#00d4aa');
@@ -1734,7 +1734,7 @@ async function submitAccount(e) {
 async function broadcastBlast() {
   const btn = document.getElementById('blast-btn');
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Blasting…'; }
-  const res = await api('/api/broadcast', {}, 'POST');
+  const res = await api('/api/broadcast', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
   if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Blast All Accounts Now'; }
   if (res?.success) {
     showToast(`🚀 Broadcast sent to ${res.accounts} accounts across all platforms!`);
