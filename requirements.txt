@@ -17,3 +17,13 @@ python-socketio[asyncio]==5.11.2
 python-telegram-bot==20.7
 pywebpush==2.0.0
 telegram
+aiohttp
+beautifulsoup4
+cryptography
+feedparser
+lxml
+python-dotenv
+python-socketio[asyncio]
+python-telegram-bot
+pywebpush
+telegram

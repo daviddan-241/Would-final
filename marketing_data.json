@@ -56,7 +56,14 @@
     "impressions": 35189,
     "clicks": 2791,
     "leads": 562,
-    "conversion_rate": 20.1
+    "conversion_rate": 20.1,
+    "total_conversations": 0,
+    "total_messages": 0,
+    "incoming": 0,
+    "outgoing": 0,
+    "response_rate": 0.0,
+    "unread": 0,
+    "platforms": {}
   },
   "settings": {
     "openai_key": "",
@@ -68,6 +75,10 @@
     "auto_dm_reply_enabled": true,
     "growth_hacks_enabled": true,
     "rewrite_style": "bullish_crypto_enthusiast",
-    "proxy_list": []
+    "proxy_list": [],
+    "twitter_bearer_token": "",
+    "twitter_access_token": "",
+    "meta_page_access_token": "",
+    "tiktok_access_token": ""
   }
 }
