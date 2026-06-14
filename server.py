@@ -93,11 +93,21 @@ class HealthHandler(BaseHTTPRequestHandler):
                 self._send_text(404, "Not found")
             return
 
-        # ── REST: full DB snapshot ─────────────────────────────────────────────
+        # ── REST: full DB snapshot (optionally filtered by persona) ───────────
         if path == "/api/data":
-            data = marketing_db.load_db()
+            profile_id = params.get("profile_id", [None])[0]
+            db = marketing_db.load_db()
+            data = dict(db)
             data["profiles"] = marketing_db.get_profiles()
-            data["analytics"] = marketing_db.get_analytics()
+            data["analytics"] = marketing_db.get_analytics(profile_id)
+            if profile_id:
+                data["targets"]          = [t for t in db.get("targets", [])          if t.get("profile_id") == profile_id]
+                data["ads"]              = [a for a in db.get("ads", [])              if a.get("profile_id") == profile_id]
+                data["raids"]            = [r for r in db.get("raids", [])            if r.get("profile_id") == profile_id]
+                data["accounts"]         = [a for a in db.get("accounts", [])         if a.get("profile_id") == profile_id]
+                data["auto_replies"]     = [r for r in db.get("auto_replies", [])     if r.get("profile_id") == profile_id]
+                data["growth_campaigns"] = [c for c in db.get("growth_campaigns", []) if c.get("profile_id") == profile_id]
+                data["conversations"]    = [c for c in db.get("conversations", [])    if c.get("profile_id") == profile_id]
             self._send_json(200, data)
             return
 
@@ -294,7 +304,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             if not params.get("handle"):
                 self._send_json(400, {"success": False, "error": "Missing handle"})
                 return
-            t = marketing_db.add_target(params.get("platform","twitter"), params.get("handle"), params.get("destination","TG_GROUP"))
+            t = marketing_db.add_target(params.get("platform","twitter"), params.get("handle"), params.get("destination","TG_GROUP"), profile_id=params.get("profile_id",""))
             self._send_json(200, {"success": True, "target": t})
             return
 
@@ -313,7 +323,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             if not params.get("content"):
                 self._send_json(400, {"success": False, "error": "Missing content"})
                 return
-            a = marketing_db.add_ad(params.get("platform","telegram"), params.get("content"), int(params.get("interval_min",30)), params.get("image_url",""))
+            a = marketing_db.add_ad(params.get("platform","telegram"), params.get("content"), int(params.get("interval_min",30)), params.get("image_url",""), profile_id=params.get("profile_id",""))
             self._send_json(200, {"success": True, "ad": a})
             return
 
@@ -332,7 +342,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             if not params.get("url"):
                 self._send_json(400, {"success": False, "error": "Missing URL"})
                 return
-            r = marketing_db.add_raid(params.get("platform","twitter"), params.get("url"), params.get("caption",""))
+            r = marketing_db.add_raid(params.get("platform","twitter"), params.get("url"), params.get("caption",""), profile_id=params.get("profile_id",""))
             self._send_json(200, {"success": True, "raid": r})
             return
 
@@ -353,6 +363,7 @@ class HealthHandler(BaseHTTPRequestHandler):
                 niche=params.get("niche",""),
                 cta_link=params.get("cta_link",""),
                 outreach_enabled=str(params.get("outreach_enabled","false")).lower() == "true",
+                profile_id=params.get("profile_id",""),
                 cookies={
                     "auth_token": params.get("auth_token",""),
                     "ct0": params.get("ct0",""),
@@ -405,7 +416,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             if not params.get("keyword") or not params.get("reply_text"):
                 self._send_json(400, {"success": False, "error": "Missing params"})
                 return
-            r = marketing_db.add_auto_reply(params.get("keyword"), params.get("reply_text"))
+            r = marketing_db.add_auto_reply(params.get("keyword"), params.get("reply_text"), profile_id=params.get("profile_id",""))
             self._send_json(200, {"success": True, "rule": r})
             return
 
@@ -419,7 +430,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             if not params.get("keywords") or not params.get("cta_link"):
                 self._send_json(400, {"success": False, "error": "Missing params"})
                 return
-            c = marketing_db.add_growth_campaign(params.get("niche","solana"), params.get("keywords"), params.get("cta_link"), params.get("platform","all"))
+            c = marketing_db.add_growth_campaign(params.get("niche","solana"), params.get("keywords"), params.get("cta_link"), params.get("platform","all"), profile_id=params.get("profile_id",""))
             self._send_json(200, {"success": True, "campaign": c})
             return
 

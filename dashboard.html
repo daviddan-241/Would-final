@@ -1064,6 +1064,7 @@ if ('serviceWorker' in navigator) {
 let DB = {};
 let activeChatId = null;
 let isDark = true;
+let currentPersonaId = null;
 
 // ── THEME ──
 function toggleTheme() {
@@ -1129,7 +1130,8 @@ function clearLog() {
 
 // ── MAIN DATA REFRESH ──
 async function refresh() {
-  const data = await api('/api/data');
+  const url = currentPersonaId ? `/api/data?profile_id=${currentPersonaId}` : '/api/data';
+  const data = await api(url);
   if (!data) return;
   DB = data;
 
@@ -1313,7 +1315,6 @@ async function saveToggle(key, val) {
 // ── PERSONA SWITCHER ──
 function populatePersonaSwitcher(profiles) {
   const sel = document.getElementById('persona-switcher');
-  const cur = sel.value;
   sel.innerHTML = '';
   if (!profiles.length) { sel.innerHTML = '<option value="">No personas</option>'; return; }
   profiles.forEach(p => {
@@ -1323,13 +1324,20 @@ function populatePersonaSwitcher(profiles) {
     opt.textContent = emoji+' '+p.name;
     sel.appendChild(opt);
   });
-  if (cur) sel.value = cur;
+  // On first load, set currentPersonaId to the first persona
+  if (!currentPersonaId && profiles.length) {
+    currentPersonaId = profiles[0].id;
+  }
+  sel.value = currentPersonaId || profiles[0].id;
   updateHeaderAvatar(profiles.find(p=>p.id===sel.value));
 }
-function onPersonaSwitch() {
+async function onPersonaSwitch() {
   const sel = document.getElementById('persona-switcher');
-  const p = (DB.profiles||[]).find(x=>x.id===sel.value);
+  currentPersonaId = sel.value;
+  const p = (DB.profiles||[]).find(x=>x.id===currentPersonaId);
   updateHeaderAvatar(p);
+  addLog(`🔄 Switched to persona: ${p?.name || currentPersonaId}`, '#6c63ff');
+  await refresh();
 }
 function updateHeaderAvatar(p) {
   const el = document.getElementById('header-avatar');
@@ -1476,6 +1484,7 @@ document.getElementById('chat-text').addEventListener('keydown', e => { if(e.key
 async function submitRaid(e) {
   e.preventDefault();
   const data = {
+    profile_id: currentPersonaId,
     platform: document.getElementById('raid-platform').value,
     url: document.getElementById('raid-url').value,
     caption: document.getElementById('raid-caption').value,
@@ -1531,6 +1540,7 @@ async function deleteRaid(id) {
 async function submitMirror(e) {
   e.preventDefault();
   const data = {
+    profile_id: currentPersonaId,
     platform: document.getElementById('mirror-platform').value,
     handle: document.getElementById('mirror-handle').value,
     destination: 'AUTO_ACCOUNTS',
@@ -1570,6 +1580,7 @@ async function deleteTarget(id) {
 async function submitAd(e) {
   e.preventDefault();
   const data = {
+    profile_id: currentPersonaId,
     platform: document.getElementById('ad-platform').value,
     interval_min: parseInt(document.getElementById('ad-interval').value),
     content: document.getElementById('ad-content').value,
@@ -1611,6 +1622,7 @@ async function deleteAd(id) {
 async function submitGrowth(e) {
   e.preventDefault();
   const data = {
+    profile_id: currentPersonaId,
     niche: document.getElementById('growth-niche').value,
     keywords: document.getElementById('growth-kw').value,
     cta_link: document.getElementById('growth-cta').value,
@@ -1651,6 +1663,7 @@ async function deleteGrowth(id) {
 async function submitAutoReply(e) {
   e.preventDefault();
   const data = {
+    profile_id: currentPersonaId,
     keyword: document.getElementById('reply-kw').value,
     reply_text: document.getElementById('reply-text').value,
   };
@@ -1719,7 +1732,7 @@ async function submitAccount(e) {
   const cookies = { [k1]: c1 };
   if (c2) cookies[k2] = c2;
 
-  const data = { platform, username, token_session: '', niche, cta_link: cta, outreach_enabled: outreach, ...cookies };
+  const data = { profile_id: currentPersonaId, platform, username, token_session: '', niche, cta_link: cta, outreach_enabled: outreach, ...cookies };
   const res = await api('/api/accounts', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
   if (res?.success) {
     showToast(`✅ @${username} connected! Posts + comments + DMs start in 60 sec.`);
@@ -1810,10 +1823,12 @@ async function submitPersona(e) {
   };
   const res = await api('/api/profiles', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
   if (res?.success) {
-    addLog(`Persona "${data.name}" deployed!`, '#6c63ff');
+    // Automatically switch to the newly created persona so it gets a clean slate
+    currentPersonaId = res.profile.id;
+    addLog(`✨ Persona "${data.name}" created — switched to fresh workspace!`, '#6c63ff');
     document.getElementById('form-persona').reset();
     closeModal('persona-modal');
-    refresh();
+    await refresh();
   }
 }
 

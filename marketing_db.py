@@ -173,11 +173,12 @@ def get_targets():
     return db["targets"]
 
 
-def add_target(platform, handle, destination, active=True):
+def add_target(platform, handle, destination, active=True, profile_id=None):
     db = load_db()
     target_id = f"target_{int(time.time() * 1000)}"
     new_target = {
         "id": target_id,
+        "profile_id": profile_id or "",
         "platform": platform,
         "handle": handle,
         "destination": destination,
@@ -212,11 +213,12 @@ def get_ads():
     return db["ads"]
 
 
-def add_ad(platform, content, interval_min, image_url="", active=True):
+def add_ad(platform, content, interval_min, image_url="", active=True, profile_id=None):
     db = load_db()
     ad_id = f"ad_id_{int(time.time() * 1000)}"
     new_ad = {
         "id": ad_id,
+        "profile_id": profile_id or "",
         "platform": platform,
         "content": content,
         "interval_min": int(interval_min),
@@ -254,7 +256,7 @@ def get_accounts():
 
 
 def add_account(platform, username, password="", token_session="", status="Active",
-                cookies=None, niche="", cta_link="", outreach_enabled=False):
+                cookies=None, niche="", cta_link="", outreach_enabled=False, profile_id=None):
     db = load_db()
     if "accounts" not in db:
         db["accounts"] = []
@@ -262,6 +264,7 @@ def add_account(platform, username, password="", token_session="", status="Activ
     acc_id = f"acc_{int(time.time() * 1000)}"
     new_acc = {
         "id": acc_id,
+        "profile_id": profile_id or "",
         "platform": platform,
         "username": username.lstrip("@"),
         "password": password,
@@ -296,11 +299,12 @@ def get_raids():
     return db["raids"]
 
 
-def add_raid(platform, url, caption=""):
+def add_raid(platform, url, caption="", profile_id=None):
     db = load_db()
     raid_id = f"raid_{int(time.time() * 1000)}"
     new_raid = {
         "id": raid_id,
+        "profile_id": profile_id or "",
         "platform": platform,
         "url": url,
         "caption": caption,
@@ -525,13 +529,14 @@ def get_auto_replies():
     return db["auto_replies"]
 
 
-def add_auto_reply(keyword, reply_text):
+def add_auto_reply(keyword, reply_text, profile_id=None):
     db = load_db()
     if "auto_replies" not in db:
         db["auto_replies"] = []
     rule_id = f"rule_{int(time.time() * 1000)}"
     new_rule = {
         "id": rule_id,
+        "profile_id": profile_id or "",
         "keyword": keyword.lower().strip(),
         "reply_text": reply_text,
         "active": True,
@@ -565,7 +570,7 @@ def get_growth_campaigns():
     return db["growth_campaigns"]
 
 
-def add_growth_campaign(niche, keywords, cta_link, platform):
+def add_growth_campaign(niche, keywords, cta_link, platform, profile_id=None):
     db = load_db()
     if "growth_campaigns" not in db:
         db["growth_campaigns"] = []
@@ -573,6 +578,7 @@ def add_growth_campaign(niche, keywords, cta_link, platform):
     camp_id = f"camp_{int(time.time() * 1000)}"
     new_camp = {
         "id": camp_id,
+        "profile_id": profile_id or "",
         "niche": niche,
         "keywords": [k.strip().lower() for k in keywords.split(",") if k.strip()],
         "cta_link": cta_link,
@@ -595,12 +601,14 @@ def delete_growth_campaign(camp_id):
         save_db()
 
 
-def get_analytics():
+def get_analytics(profile_id=None):
     db = load_db()
     if "analytics" not in db:
         db["analytics"] = {"impressions": 0, "clicks": 0, "leads": 0, "conversion_rate": 0}
-    # Compute real stats from actual conversations & messages
+    # Compute real stats from actual conversations & messages (filtered by persona if given)
     convs = db.get("conversations", [])
+    if profile_id:
+        convs = [c for c in convs if c.get("profile_id") == profile_id]
     msgs = db.get("messages", {})
     total_incoming = sum(
         sum(1 for m in msgs.get(c["id"], []) if m.get("is_incoming"))
