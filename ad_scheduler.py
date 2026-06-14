@@ -82,26 +82,114 @@ async def _post_tweet(content: str, bearer_token: str, username: str) -> bool:
     return False
 
 
+async def _post_instagram(content: str, acc: dict, image_url: Optional[str] = None) -> bool:
+    """
+    Real Instagram posting via internal session API.
+    If image_url is provided: uploads the photo and creates a grid post.
+    If text-only: posts as an Instagram Note (up to 60 chars, shown in DM inbox).
+    Requires: sessionid cookie pasted into the Account Fleet.
+    """
+    import json as _json
+    import time as _time
+    sessionid = acc.get("sessionid", "")
+    if not sessionid:
+        logger.debug(f"[AdScheduler:Instagram] @{acc.get('username')} — no sessionid cookie. Paste it in Account Fleet.")
+        return False
+
+    base_headers = {
+        "Cookie": f"sessionid={sessionid}",
+        "x-ig-app-id": "936619743392459",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    }
+
+    if image_url:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(image_url, timeout=aiohttp.ClientTimeout(total=15)) as img_resp:
+                    if img_resp.status != 200:
+                        logger.warning(f"[AdScheduler:Instagram] Could not download image {image_url}")
+                        return False
+                    image_bytes = await img_resp.read()
+
+                upload_id = str(int(_time.time() * 1000))
+                upload_headers = {
+                    **base_headers,
+                    "Content-Type": "image/jpeg",
+                    "X-Instagram-Rupload-Params": _json.dumps({
+                        "media_type": 1,
+                        "upload_id": upload_id,
+                        "upload_media_height": 1080,
+                        "upload_media_width": 1080,
+                    }),
+                    "X-Entity-Length": str(len(image_bytes)),
+                    "X-Entity-Name": f"fb_uploader_{upload_id}",
+                    "Offset": "0",
+                }
+                async with session.post(
+                    f"https://www.instagram.com/rupload_igphoto/fb_uploader_{upload_id}",
+                    data=image_bytes, headers=upload_headers,
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as up_resp:
+                    if up_resp.status not in (200, 201):
+                        logger.warning(f"[AdScheduler:Instagram] Photo upload failed {up_resp.status}")
+                        return False
+
+                async with session.post(
+                    "https://www.instagram.com/api/v1/media/configure/",
+                    data={"upload_id": upload_id, "caption": content[:2200]},
+                    headers={**base_headers, "Content-Type": "application/x-www-form-urlencoded"},
+                    timeout=aiohttp.ClientTimeout(total=15)
+                ) as conf_resp:
+                    if conf_resp.status == 200:
+                        logger.info(f"✅ [AdScheduler:Instagram] Photo post by @{acc.get('username')}")
+                        return True
+                    logger.warning(f"[AdScheduler:Instagram] Configure failed {conf_resp.status}")
+                    return False
+        except Exception as e:
+            logger.warning(f"[AdScheduler:Instagram] Photo post error: {e}")
+            return False
+    else:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://www.instagram.com/api/v1/notes/create_note/",
+                    data={"text": content[:60], "audience": "2"},
+                    headers={**base_headers, "Content-Type": "application/x-www-form-urlencoded"},
+                    timeout=aiohttp.ClientTimeout(total=12)
+                ) as resp:
+                    if resp.status == 200:
+                        logger.info(f"✅ [AdScheduler:Instagram] Note posted by @{acc.get('username')}")
+                        return True
+                    logger.debug(f"[AdScheduler:Instagram] Note failed {resp.status}")
+                    return False
+        except Exception as e:
+            logger.debug(f"[AdScheduler:Instagram] Note error: {e}")
+            return False
+
+
 async def post_ad_to_socials(ad: dict) -> bool:
     """
-    Posts a real ad to connected social platform accounts that have API tokens.
-    Twitter/X: posts a real tweet via API v2 if a bearer token is stored.
-    Other platforms: logs that OAuth credentials are needed — never fakes success.
+    Posts a real ad to connected social platform accounts.
+    Twitter/X: real tweet via API v2 bearer token.
+    Instagram: real photo post (if image_url) or Note via sessionid cookie.
+    Other platforms: clear log — no fake success.
     Returns True if at least one real post succeeded.
     """
     platform = ad.get("platform", "")
     content = ad.get("content", "")
+    image_url = ad.get("image_url", "")
 
     accounts = marketing_db.get_accounts()
     platform_accounts = [
         a for a in accounts
-        if a.get("platform") == platform and a.get("token_session", "").strip()
+        if a.get("platform") == platform
+        and a.get("status", "Active") not in ("Expired — re-paste cookies", "Disabled")
     ]
 
     if not platform_accounts:
         logger.info(
-            f"📢 No {platform} accounts with API tokens configured. "
-            f"Add {platform} accounts and their API tokens in Fleet Accounts to enable real posting."
+            f"📢 No active {platform} accounts in fleet. "
+            f"Add a {platform} account with session cookies in Tools → SMM Fleet."
         )
         return False
 
@@ -109,16 +197,25 @@ async def post_ad_to_socials(ad: dict) -> bool:
 
     if platform in ("twitter", "x"):
         for acc in platform_accounts:
-            token = acc["token_session"].strip()
-            username = acc.get("username", "unknown")
-            ok = await _post_tweet(content, token, username)
+            token = acc.get("token_session", "").strip()
+            if not token:
+                logger.debug(f"[AdScheduler] @{acc.get('username')} has no bearer token — skipping Twitter post.")
+                continue
+            ok = await _post_tweet(content, token, acc.get("username", "unknown"))
             if ok:
                 succeeded = True
+
+    elif platform == "instagram":
+        for acc in platform_accounts:
+            ok = await _post_instagram(content, acc, image_url or None)
+            if ok:
+                succeeded = True
+
     else:
         logger.info(
-            f"ℹ️ Automated posting for {platform} requires platform-specific OAuth integration. "
-            f"Currently supported: Telegram (via bot token), Twitter/X (via bearer token). "
-            f"Add {platform} OAuth support or use Telegram as the delivery channel."
+            f"ℹ️ Real posting for {platform} via session cookies is not yet implemented. "
+            f"Supported: Telegram (bot token), Twitter/X (bearer token), Instagram (sessionid). "
+            f"Use Telegram as the delivery channel or add {platform} support."
         )
 
     return succeeded

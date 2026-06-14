@@ -277,6 +277,39 @@ async def _send_twitter_dm(acc: dict, target_user_id: str, text: str, http: aioh
         return False
 
 
+# ─── INSTAGRAM: POST NOTE ────────────────────────────────────────────────────
+
+async def _post_instagram(acc: dict, text: str, http: aiohttp.ClientSession) -> bool:
+    """
+    Posts an Instagram Note (shown in DM inbox, up to 60 chars) using sessionid cookie.
+    For photo posts with an image_url, use ad_scheduler._post_instagram instead.
+    """
+    sessionid = acc.get("sessionid", "")
+    if not sessionid:
+        return False
+    headers = {
+        "Cookie": f"sessionid={sessionid}",
+        "x-ig-app-id": "936619743392459",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    try:
+        async with http.post(
+            "https://www.instagram.com/api/v1/notes/create_note/",
+            data={"text": text[:60], "audience": "2"},
+            headers=headers,
+            timeout=aiohttp.ClientTimeout(total=12)
+        ) as resp:
+            if resp.status == 200:
+                logger.info(f"[Outreach:Instagram:{acc['username']}] ✅ Note posted")
+                return True
+            logger.debug(f"[Outreach:Instagram:{acc['username']}] Note failed {resp.status}")
+            return False
+    except Exception as e:
+        logger.debug(f"[Outreach:Instagram:{acc['username']}] Post error: {e}")
+        return False
+
+
 # ─── INSTAGRAM: COMMENT ──────────────────────────────────────────────────────
 
 async def _comment_instagram(acc: dict, media_id: str, comment: str, http: aiohttp.ClientSession) -> bool:
@@ -327,6 +360,11 @@ async def _run_outreach_for_account(acc: dict, http: aiohttp.ClientSession, forc
 
         if platform == "twitter":
             ok = await _post_tweet(acc, text, http)
+            if ok:
+                _last_post[acc_id] = now
+
+        elif platform == "instagram":
+            ok = await _post_instagram(acc, text[:60], http)
             if ok:
                 _last_post[acc_id] = now
 
