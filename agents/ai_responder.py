@@ -172,7 +172,7 @@ async def start_ai_responder_loop(check_interval: int = 20):
     Fires an AI-generated or template reply instantly.
     """
     logger.info("[AI Responder] Online — auto-replying to all incoming DMs.")
-    connector = aiohttp.TCPConnector(ssl=False)
+    connector = aiohttp.TCPConnector()
     async with aiohttp.ClientSession(connector=connector) as http:
         while True:
             try:
