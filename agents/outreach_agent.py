@@ -366,8 +366,7 @@ async def _run_outreach_for_account(acc: dict, http: aiohttp.ClientSession, forc
 
 async def run_outreach_once(force: bool = False):
     """Run one outreach cycle immediately — called when a new account is added."""
-    connector = aiohttp.TCPConnector(ssl=False)
-    async with aiohttp.ClientSession(connector=connector) as http:
+    async with aiohttp.ClientSession() as http:
         accounts = marketing_db.get_accounts()
         active = [a for a in accounts if a.get("outreach_enabled", False) and a.get("status", "Active") not in ("Expired — re-paste cookies", "Disabled")]
         if active:
@@ -386,8 +385,7 @@ async def start_outreach_loop(check_interval: int = 1800):
     logger.info("[Outreach Agent] Online — full auto-pilot: posting, commenting, DMing every 30 min.")
     # Run immediately on start
     await run_outreach_once(force=True)
-    connector = aiohttp.TCPConnector(ssl=False)
-    async with aiohttp.ClientSession(connector=connector) as http:
+    async with aiohttp.ClientSession() as http:
         while True:
             await asyncio.sleep(check_interval)
             try:
