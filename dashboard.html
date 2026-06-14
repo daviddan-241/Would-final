@@ -526,6 +526,24 @@ if ('serviceWorker' in navigator) {
   <!-- ── TAB: TOOLS ── -->
   <div id="tab-tools" class="tab-pane fade-in">
 
+    <!-- Broadcast Blast -->
+    <div class="section-title" style="margin-top:4px;">Broadcast Blast</div>
+    <div class="card" style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#6c63ff,#a855f7);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fa-solid fa-satellite-dish" style="color:#fff;font-size:18px;"></i>
+        </div>
+        <div>
+          <div style="font-weight:900;font-size:13px;color:var(--text);">One-tap blast to all accounts</div>
+          <div style="font-size:11px;color:var(--muted);">Posts your niche content on every connected account simultaneously — Twitter, Instagram, TikTok, Facebook — all at once.</div>
+        </div>
+      </div>
+      <button id="blast-btn" onclick="broadcastBlast()" class="btn btn-primary btn-full" style="font-size:13px;font-weight:800;background:linear-gradient(135deg,#6c63ff,#a855f7);border:none;padding:14px;">
+        <i class="fa-solid fa-satellite-dish"></i> Blast All Accounts Now
+      </button>
+      <div style="text-align:center;font-size:10px;color:var(--muted);margin-top:8px;">Auto-pilot already posts every 30 min — use this for a manual boost anytime</div>
+    </div>
+
     <!-- Mirror Targets -->
     <div class="section-title" style="margin-top:4px;">Content Mirror Targets</div>
     <div class="card" style="margin-bottom:14px;">
@@ -638,7 +656,14 @@ if ('serviceWorker' in navigator) {
         Add your real social accounts here — DMs from every account flow into your inbox automatically. No API keys or paid plans needed.
         <br><strong style="color:var(--accent);">How to get cookies:</strong> Log into the account in Chrome → press F12 → Application → Cookies → copy the values below.
       </p>
+      <!-- Quick-start tip -->
+      <div style="background:#6c63ff15;border:1px solid #6c63ff40;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--muted);line-height:1.6;">
+        <strong style="color:var(--accent);">That's all you need — just 2 cookies.</strong><br>
+        Pick the platform → paste 2 cookie values → done. Everything else runs automatically. Tap <i class="fa-solid fa-circle-question" style="color:var(--accent);"></i> top-right for step-by-step instructions.
+      </div>
+
       <form id="form-account" onsubmit="submitAccount(event)" style="display:flex;flex-direction:column;gap:10px;">
+        <!-- Platform + Username row -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div>
             <label class="flabel">Platform</label>
@@ -650,85 +675,52 @@ if ('serviceWorker' in navigator) {
             </select>
           </div>
           <div>
-            <label class="flabel">Your Username</label>
+            <label class="flabel">Your @username</label>
             <input type="text" id="acc-username" placeholder="@yourhandle" class="inp" required>
           </div>
         </div>
 
-        <!-- Twitter fields -->
-        <div id="cookie-fields-twitter">
-          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6;">
-            Chrome → twitter.com → F12 → Application → Cookies → twitter.com<br>
-            Copy <code style="color:var(--accent);">auth_token</code> and <code style="color:var(--accent);">ct0</code>
+        <!-- Cookie 1 + Cookie 2 (labels change by platform) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label class="flabel" id="lbl-cookie1">Cookie 1 — auth_token</label>
+            <input type="password" id="acc-cookie1" placeholder="Paste value…" class="inp" required>
           </div>
-          <label class="flabel">auth_token cookie</label>
-          <input type="password" id="acc-tw-auth" placeholder="Paste auth_token value…" class="inp" style="margin-bottom:6px;">
-          <label class="flabel">ct0 cookie</label>
-          <input type="password" id="acc-tw-ct0" placeholder="Paste ct0 value…" class="inp">
+          <div>
+            <label class="flabel" id="lbl-cookie2">Cookie 2 — ct0</label>
+            <input type="password" id="acc-cookie2" placeholder="Paste value…" class="inp" required>
+          </div>
         </div>
 
-        <!-- Instagram fields -->
-        <div id="cookie-fields-instagram" style="display:none;">
-          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6;">
-            Chrome → instagram.com → F12 → Application → Cookies → instagram.com<br>
-            Copy <code style="color:var(--accent);">sessionid</code>
+        <!-- Niche + Funnel + Auto-pilot -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label class="flabel">Niche</label>
+            <select id="acc-niche" class="inp">
+              <option value="crypto">🚀 Crypto</option>
+              <option value="solana">🟣 Solana</option>
+              <option value="ethereum">💎 Ethereum</option>
+              <option value="memecoins">🐸 Memecoins</option>
+              <option value="celeb">⭐ Celeb</option>
+              <option value="lifestyle">🌴 Lifestyle</option>
+              <option value="viral">🔥 Viral</option>
+            </select>
           </div>
-          <label class="flabel">sessionid cookie</label>
-          <input type="password" id="acc-ig-session" placeholder="Paste sessionid value…" class="inp">
+          <div style="display:flex;flex-direction:column;justify-content:flex-end;">
+            <label class="flabel">Full Auto-Pilot</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
+              <input type="checkbox" id="acc-outreach" checked style="width:16px;height:16px;accent-color:var(--accent);">
+              <span style="font-size:11px;font-weight:600;">Post + Comment + DM</span>
+            </label>
+          </div>
         </div>
 
-        <!-- TikTok fields -->
-        <div id="cookie-fields-tiktok" style="display:none;">
-          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6;">
-            Chrome → tiktok.com → F12 → Application → Cookies → tiktok.com<br>
-            Copy <code style="color:var(--accent);">sessionid</code> and <code style="color:var(--accent);">ttwid</code>
-          </div>
-          <label class="flabel">sessionid cookie</label>
-          <input type="password" id="acc-tt-session" placeholder="Paste sessionid value…" class="inp" style="margin-bottom:6px;">
-          <label class="flabel">ttwid cookie (optional but recommended)</label>
-          <input type="password" id="acc-tt-ttwid" placeholder="Paste ttwid value…" class="inp">
-        </div>
-
-        <!-- Facebook fields -->
-        <div id="cookie-fields-facebook" style="display:none;">
-          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--muted);margin-bottom:8px;line-height:1.6;">
-            Chrome → facebook.com → F12 → Application → Cookies → facebook.com<br>
-            Copy <code style="color:var(--accent);">c_user</code> and <code style="color:var(--accent);">xs</code>
-          </div>
-          <label class="flabel">c_user cookie</label>
-          <input type="password" id="acc-fb-cuser" placeholder="Paste c_user value…" class="inp" style="margin-bottom:6px;">
-          <label class="flabel">xs cookie</label>
-          <input type="password" id="acc-fb-xs" placeholder="Paste xs value…" class="inp">
-        </div>
-
-        <!-- Niche + CTA + Outreach -->
-        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:2px;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-            <div>
-              <label class="flabel">Account Niche</label>
-              <select id="acc-niche" class="inp">
-                <option value="crypto">🚀 Crypto / Coins</option>
-                <option value="solana">🟣 Solana Memecoins</option>
-                <option value="ethereum">💎 Ethereum / Base</option>
-                <option value="memecoins">🐸 General Memecoins</option>
-                <option value="celeb">⭐ Celeb / Influencer</option>
-                <option value="lifestyle">🌴 Lifestyle / Travel</option>
-                <option value="viral">🔥 Viral / Trend</option>
-              </select>
-            </div>
-            <div style="display:flex;flex-direction:column;justify-content:flex-end;">
-              <label class="flabel">Auto-Post to Attract DMs</label>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
-                <input type="checkbox" id="acc-outreach" style="width:16px;height:16px;accent-color:var(--accent);">
-                <span style="font-size:12px;font-weight:600;">Enable outreach posts</span>
-              </label>
-            </div>
-          </div>
-          <label class="flabel">Your Funnel Link (people get this when they DM)</label>
+        <div>
+          <label class="flabel">Your Funnel Link</label>
           <input type="url" id="acc-cta" placeholder="https://t.me/your_channel" class="inp">
         </div>
 
-        <button type="submit" class="btn btn-primary btn-full"><i class="fa-solid fa-plug"></i> Connect Account — Start Receiving DMs</button>
+        <button type="submit" class="btn btn-primary btn-full" style="font-size:13px;font-weight:800;"><i class="fa-solid fa-plug"></i> Connect & Go — DMs start in 60 sec</button>
       </form>
       <div id="accounts-table-wrap" style="margin-top:12px;"></div>
     </div>
@@ -946,31 +938,123 @@ if ('serviceWorker' in navigator) {
 <!-- ═══════════════ MODAL: HELP GUIDE ═══════════════ -->
 <div id="help-modal" class="modal-sheet">
   <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:16px;">
-    <h2 style="font-size:16px;font-weight:900;"><i class="fa-solid fa-book-open" style="color:var(--accent);margin-right:6px;"></i>A-Z Setup Guide</h2>
-    <button onclick="closeModal('help-modal')" class="btn btn-primary btn-sm">Done</button>
+    <h2 style="font-size:16px;font-weight:900;"><i class="fa-solid fa-cookie-bite" style="color:var(--accent);margin-right:6px;"></i>How to Get Your 2 Cookies</h2>
+    <button onclick="closeModal('help-modal')" class="btn btn-primary btn-sm">Got it</button>
   </div>
-  <div style="display:flex;flex-direction:column;gap:20px;font-size:12px;color:var(--muted);line-height:1.7;">
-    <div>
-      <div style="color:var(--accent);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">① Deploy to Render (Free)</div>
-      <p>Visit <a href="https://render.com" target="_blank" style="color:var(--green);">render.com</a>, connect your <strong style="color:var(--text);">daviddan-241/Would-final</strong> GitHub repo, set Runtime to <strong style="color:var(--text);">Docker</strong>, and deploy on the free tier.</p>
+  <div style="display:flex;flex-direction:column;gap:18px;font-size:12px;line-height:1.7;">
+
+    <!-- Intro -->
+    <div style="background:var(--surface2);border-radius:10px;padding:12px;border:1px solid var(--border);">
+      <p style="color:var(--text);font-weight:700;margin-bottom:4px;">That's all you need — 2 cookies per account.</p>
+      <p style="color:var(--muted);">Log in to the platform in Chrome → press F12 → find 2 cookie values → paste them in the Account Fleet. Done. The system does everything else automatically.</p>
     </div>
+
+    <!-- Twitter -->
     <div>
-      <div style="color:var(--green);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">② Telegram Bot Setup</div>
-      <p>Message <a href="https://t.me/BotFather" target="_blank" style="color:var(--green);">@BotFather</a>, run <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;">/newbot</code>, add it as Admin to your group. Get the group ID via <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;">@raw_data_bot</code>.</p>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <i class="fa-brands fa-x-twitter" style="color:#e7e9ea;font-size:14px;"></i>
+        <span style="color:var(--text);font-weight:900;font-size:13px;">Twitter / X</span>
+        <span style="background:#1da1f220;color:#1da1f2;border:1px solid #1da1f240;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">auth_token + ct0</span>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:12px;border:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">1</span>
+          <span style="color:var(--muted);">Open Chrome → go to <strong style="color:var(--text);">twitter.com</strong> and log in to your account</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">2</span>
+          <span style="color:var(--muted);">Press <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;">F12</kbd> → click <strong style="color:var(--text);">Application</strong> tab → <strong style="color:var(--text);">Cookies</strong> → <strong style="color:var(--text);">https://twitter.com</strong></span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">3</span>
+          <span style="color:var(--muted);">Find <code style="background:var(--surface);padding:1px 6px;border-radius:4px;color:var(--accent);">auth_token</code> → copy the Value column → paste in Cookie 1<br>Find <code style="background:var(--surface);padding:1px 6px;border-radius:4px;color:var(--accent);">ct0</code> → copy the Value column → paste in Cookie 2</span>
+        </div>
+      </div>
     </div>
+
+    <!-- Instagram -->
     <div>
-      <div style="color:var(--pink);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">③ Free Gemini AI Key</div>
-      <p>Go to <a href="https://aistudio.google.com" target="_blank" style="color:var(--green);">Google AI Studio</a> → <strong style="color:var(--text);">Get API Key</strong>. Free tier gives 15 requests/min. Paste in Settings → AI Credentials.</p>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <i class="fa-brands fa-instagram" style="color:#e1306c;font-size:14px;"></i>
+        <span style="color:var(--text);font-weight:900;font-size:13px;">Instagram</span>
+        <span style="background:#e1306c20;color:#e1306c;border:1px solid #e1306c40;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">sessionid + ds_user_id</span>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:12px;border:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:#e1306c;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">1</span>
+          <span style="color:var(--muted);">Open Chrome → <strong style="color:var(--text);">instagram.com</strong> → log in</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:#e1306c;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">2</span>
+          <span style="color:var(--muted);"><kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;">F12</kbd> → Application → Cookies → <strong style="color:var(--text);">instagram.com</strong></span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:#e1306c;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">3</span>
+          <span style="color:var(--muted);">Copy <code style="background:var(--surface);padding:1px 6px;border-radius:4px;color:var(--accent);">sessionid</code> → Cookie 1 &nbsp;|&nbsp; Copy <code style="background:var(--surface);padding:1px 6px;border-radius:4px;color:var(--accent);">ds_user_id</code> → Cookie 2</span>
+        </div>
+      </div>
     </div>
+
+    <!-- TikTok -->
     <div>
-      <div style="color:var(--orange);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">④ Session Cookies (iOS Safari)</div>
-      <p>Create a Safari bookmark with this URL:</p>
-      <pre style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:9px;color:var(--orange);overflow-x:auto;margin-top:6px;white-space:pre-wrap;word-break:break-all;">javascript:(function(){var c=document.cookie;if(!c){alert('No cookies. Log in!');}else{prompt('Copy cookies:',c);}})();</pre>
-      <p style="margin-top:6px;">Log in to Twitter/TikTok/Instagram in Safari, tap the bookmark, copy the <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;">auth_token</code> value.</p>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <i class="fa-brands fa-tiktok" style="color:#fe2c55;font-size:14px;"></i>
+        <span style="color:var(--text);font-weight:900;font-size:13px;">TikTok</span>
+        <span style="background:#fe2c5520;color:#fe2c55;border:1px solid #fe2c5540;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">sessionid + ttwid</span>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:12px;border:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:#fe2c55;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">1</span>
+          <span style="color:var(--muted);">Open Chrome → <strong style="color:var(--text);">tiktok.com</strong> → log in</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:#fe2c55;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">2</span>
+          <span style="color:var(--muted);"><kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;">F12</kbd> → Application → Cookies → <strong style="color:var(--text);">tiktok.com</strong></span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:#fe2c55;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">3</span>
+          <span style="color:var(--muted);">Copy <code style="background:var(--surface);padding:1px 6px;border-radius:4px;color:var(--accent);">sessionid</code> → Cookie 1 &nbsp;|&nbsp; Copy <code style="background:var(--surface);padding:1px 6px;border-radius:4px;color:var(--accent);">ttwid</code> → Cookie 2</span>
+        </div>
+      </div>
     </div>
+
+    <!-- Facebook -->
     <div>
-      <div style="color:var(--red);font-weight:900;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">⑤ Free Rotating Proxies</div>
-      <p>Sign up at <a href="https://webshare.io" target="_blank" style="color:var(--green);">Webshare.io</a> — free plan gives 10 rotating proxies. Paste them as <code style="background:var(--surface2);padding:1px 5px;border-radius:4px;">user:pass@ip:port</code> in Settings → Proxy Nodes.</p>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <i class="fa-brands fa-facebook" style="color:#1877f2;font-size:14px;"></i>
+        <span style="color:var(--text);font-weight:900;font-size:13px;">Facebook</span>
+        <span style="background:#1877f220;color:#1877f2;border:1px solid #1877f240;border-radius:6px;font-size:9px;padding:2px 6px;font-weight:700;">c_user + xs</span>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:12px;border:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:#1877f2;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">1</span>
+          <span style="color:var(--muted);">Open Chrome → <strong style="color:var(--text);">facebook.com</strong> → log in</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:#1877f2;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">2</span>
+          <span style="color:var(--muted);"><kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;">F12</kbd> → Application → Cookies → <strong style="color:var(--text);">facebook.com</strong></span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="background:#1877f2;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">3</span>
+          <span style="color:var(--muted);">Copy <code style="background:var(--surface);padding:1px 6px;border-radius:4px;color:var(--accent);">c_user</code> → Cookie 1 &nbsp;|&nbsp; Copy <code style="background:var(--surface);padding:1px 6px;border-radius:4px;color:var(--accent);">xs</code> → Cookie 2</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- On iPhone -->
+    <div style="background:#ffa34d15;border:1px solid #ffa34d40;border-radius:10px;padding:12px;">
+      <div style="color:var(--orange);font-weight:900;margin-bottom:6px;font-size:11px;">📱 On iPhone — use this bookmarklet</div>
+      <p style="color:var(--muted);margin-bottom:8px;">Create a bookmark in Safari with this as the URL. Open the site, tap the bookmark, and it shows your cookies.</p>
+      <div onclick="navigator.clipboard&&navigator.clipboard.writeText(this.dataset.val).then(()=>showToast('Bookmarklet copied!'))" data-val="javascript:(function(){var r={};document.cookie.split(';').forEach(function(c){var p=c.indexOf('=');if(p>0){var k=c.substr(0,p).trim(),v=c.substr(p+1).trim();r[k]=v;}});var keys=['auth_token','ct0','sessionid','ttwid','ds_user_id','c_user','xs'];var found=keys.filter(function(k){return r[k];}).map(function(k){return k+': '+r[k];}).join('\n');prompt('Your cookies:',found||JSON.stringify(r).substr(0,500));})();" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:9px;font-family:monospace;color:var(--orange);word-break:break-all;cursor:pointer;line-height:1.4;">
+        javascript:(tap to copy &amp; bookmark in Safari)
+        <div style="margin-top:4px;font-size:9px;color:var(--accent);">Tap this box to copy the bookmarklet</div>
+      </div>
+    </div>
+
+    <!-- AI key -->
+    <div style="background:var(--surface2);border-radius:10px;padding:12px;border:1px solid var(--border);">
+      <div style="color:var(--accent2);font-weight:900;margin-bottom:6px;font-size:11px;">🤖 Free AI Key (for smarter auto-replies)</div>
+      <p style="color:var(--muted);">Go to <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent);">aistudio.google.com/apikey</a> → Get API Key (free). Paste it in <strong style="color:var(--text);">Settings → AI Credentials → Gemini Key</strong>. Auto-replies become personalised instantly.</p>
     </div>
   </div>
 </div>
@@ -1600,51 +1684,63 @@ async function deleteReply(id) {
 }
 
 // ── ACCOUNTS ──
+// Cookie field labels per platform
+const COOKIE_LABELS = {
+  twitter:   ['auth_token', 'ct0'],
+  instagram: ['sessionid', 'ds_user_id'],
+  tiktok:    ['sessionid', 'ttwid'],
+  facebook:  ['c_user', 'xs'],
+};
 function updateCookieFields() {
   const p = document.getElementById('acc-platform').value;
-  ['twitter','instagram','tiktok','facebook'].forEach(pl => {
-    const el = document.getElementById('cookie-fields-' + pl);
-    if (el) el.style.display = (pl === p) ? '' : 'none';
-  });
+  const [k1, k2] = COOKIE_LABELS[p] || ['cookie_1', 'cookie_2'];
+  const l1 = document.getElementById('lbl-cookie1');
+  const l2 = document.getElementById('lbl-cookie2');
+  if (l1) l1.textContent = `Cookie 1 — ${k1}`;
+  if (l2) l2.textContent = `Cookie 2 — ${k2}`;
+  document.getElementById('acc-cookie1').placeholder = `Paste ${k1} value…`;
+  document.getElementById('acc-cookie2').placeholder = `Paste ${k2} value…`;
 }
 
 async function submitAccount(e) {
   e.preventDefault();
   const platform = document.getElementById('acc-platform').value;
   const username = document.getElementById('acc-username').value;
-
-  // Collect the right cookies for each platform
-  const cookies = {};
-  if (platform === 'twitter') {
-    cookies.auth_token = document.getElementById('acc-tw-auth').value.trim();
-    cookies.ct0 = document.getElementById('acc-tw-ct0').value.trim();
-    if (!cookies.auth_token || !cookies.ct0) { showToast('⚠️ Paste both auth_token and ct0 for Twitter.','#ff6b6b'); return; }
-  } else if (platform === 'instagram') {
-    cookies.sessionid = document.getElementById('acc-ig-session').value.trim();
-    if (!cookies.sessionid) { showToast('⚠️ Paste your Instagram sessionid cookie.','#ff6b6b'); return; }
-  } else if (platform === 'tiktok') {
-    cookies.sessionid = document.getElementById('acc-tt-session').value.trim();
-    cookies.ttwid = document.getElementById('acc-tt-ttwid').value.trim();
-    if (!cookies.sessionid) { showToast('⚠️ Paste your TikTok sessionid cookie.','#ff6b6b'); return; }
-  } else if (platform === 'facebook') {
-    cookies.c_user = document.getElementById('acc-fb-cuser').value.trim();
-    cookies.xs = document.getElementById('acc-fb-xs').value.trim();
-    if (!cookies.c_user || !cookies.xs) { showToast('⚠️ Paste both c_user and xs for Facebook.','#ff6b6b'); return; }
-  }
-
+  const c1 = document.getElementById('acc-cookie1').value.trim();
+  const c2 = document.getElementById('acc-cookie2').value.trim();
   const niche = document.getElementById('acc-niche').value;
   const cta = document.getElementById('acc-cta').value.trim();
   const outreach = document.getElementById('acc-outreach').checked;
 
+  if (!c1) { showToast('⚠️ Paste Cookie 1 value.','#ff6b6b'); return; }
+
+  // Map to named cookie keys
+  const [k1, k2] = COOKIE_LABELS[platform] || ['cookie_1', 'cookie_2'];
+  const cookies = { [k1]: c1 };
+  if (c2) cookies[k2] = c2;
+
   const data = { platform, username, token_session: '', niche, cta_link: cta, outreach_enabled: outreach, ...cookies };
   const res = await api('/api/accounts', data, 'POST');
   if (res?.success) {
-    const outMsg = outreach ? ' Auto-posting enabled — content will go out hourly to attract DMs.' : '';
-    showToast(`✅ @${username} connected! DMs will flow in within 60 seconds.${outMsg}`);
-    addLog(`📲 Real account @${username} (${platform}/${niche}) added to fleet.`, '#00d4aa');
+    showToast(`✅ @${username} connected! Posts + comments + DMs start in 60 sec.`);
+    addLog(`📲 @${username} (${platform}/${niche}) live — auto-pilot ${outreach?'ON':'OFF'}.`, '#00d4aa');
     document.getElementById('form-account').reset();
     updateCookieFields();
     refresh();
+  }
+}
+
+// ── BROADCAST BLAST ──
+async function broadcastBlast() {
+  const btn = document.getElementById('blast-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Blasting…'; }
+  const res = await api('/api/broadcast', {}, 'POST');
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Blast All Accounts Now'; }
+  if (res?.success) {
+    showToast(`🚀 Broadcast sent to ${res.accounts} accounts across all platforms!`);
+    addLog(`📡 Manual blast fired to ${res.accounts} accounts.`, '#6c63ff');
+  } else {
+    showToast('⚠️ No active accounts with outreach enabled yet.', '#ff6b6b');
   }
 }
 
