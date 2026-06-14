@@ -357,6 +357,7 @@ class HealthHandler(BaseHTTPRequestHandler):
                     "auth_token": params.get("auth_token",""),
                     "ct0": params.get("ct0",""),
                     "sessionid": params.get("sessionid",""),
+                    "ds_user_id": params.get("ds_user_id",""),
                     "ttwid": params.get("ttwid",""),
                     "c_user": params.get("c_user",""),
                     "xs": params.get("xs",""),
@@ -368,6 +369,24 @@ class HealthHandler(BaseHTTPRequestHandler):
         if path == "/api/accounts/delete":
             marketing_db.delete_account(params.get("id"))
             self._send_json(200, {"success": True})
+            return
+
+        # ── Broadcast Blast ────────────────────────────────────────────────────
+        if path == "/api/broadcast":
+            import asyncio, threading
+            from agents.outreach_agent import run_outreach_once
+            accounts = marketing_db.get_accounts()
+            active = [a for a in accounts if a.get("outreach_enabled", False)]
+            if not active:
+                self._send_json(200, {"success": False, "accounts": 0})
+                return
+            def _run():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(run_outreach_once(force=True))
+                loop.close()
+            threading.Thread(target=_run, daemon=True).start()
+            self._send_json(200, {"success": True, "accounts": len(active)})
             return
 
         # ── Send DM ────────────────────────────────────────────────────────────
