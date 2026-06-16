@@ -2,6 +2,7 @@
 Real-time HTTP Server — serves the dashboard and handles all social platform webhooks.
 Supports: Meta (Instagram/Facebook), Twitter CRC, TikTok, and generic DM webhooks.
 Uses SSE (Server-Sent Events) to push real-time inbox updates to the browser instantly.
+Also runs a self-ping keep-alive to prevent free hosting from sleeping.
 """
 import os
 import json
@@ -469,3 +470,21 @@ def start_health_server():
     t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()
     logger.info(f"Admin Dashboard & API Server successfully started on port {PORT}")
+
+    # ─── KEEP-ALIVE SELF-PING ─────────────────────────────────────────────────
+    # Prevents free hosting (Render, Koyeb, etc.) from sleeping after inactivity.
+    # Pings itself every 10 minutes to keep background loops running 24/7.
+    import os
+    import time as _time
+    def _keep_alive():
+        import urllib.request
+        _time.sleep(30)  # Wait for server to fully start
+        app_url = os.getenv("RENDER_EXTERNAL_URL", os.getenv("APP_URL", f"http://localhost:{PORT}"))
+        while True:
+            try:
+                urllib.request.urlopen(f"{app_url}/", timeout=10)
+                logger.debug(f"[KeepAlive] Pinged {app_url} — staying awake")
+            except Exception:
+                pass
+            _time.sleep(600)  # Every 10 minutes
+    threading.Thread(target=_keep_alive, daemon=True).start()
