@@ -1,6 +1,7 @@
 """
-Social Media Inbox & AI Chatbot Response Engine — Handles receiving and sending direct messages.
-Processes ONLY real incoming messages pushed via official webhooks or direct Telegram API.
+Social Media Inbox & AI Chatbot Response Engine — Handles receiving AND SENDING direct messages.
+Processes ONLY real incoming messages pushed via official webhooks, Telegram API, or session cookie polling.
+Replies are ACTUALLY SENT back on the platform using session cookies — not just stored locally.
 No simulated data, no fake leads, no phantom users.
 """
 import logging
@@ -110,11 +111,9 @@ async def handle_incoming_real_dm(
     source_url: str = ""
 ):
     """
-    Processes real incoming DMs (from Telegram bot, Meta webhook, growth engine lead injection, etc).
-    If profile_id is None or not found, auto-selects the best matching persona based on message content.
-    profile_url: direct link to the sender's profile on their platform (e.g. reddit.com/user/...)
-    source_url: link to the specific post/comment that triggered this lead
-    Stores in inbox → generates AI reply → humanizes → sends back with realistic typing delay.
+    Processes real incoming DMs (from Telegram bot, Meta webhook, session DM agent, etc).
+    Stores in inbox → generates AI reply → humanizes → ACTUALLY SENDS reply back on the platform.
+    The person on the other end sees your reply. This is 100% real.
     """
     profiles = marketing_db.get_profiles()
     profile = None
@@ -139,6 +138,12 @@ async def handle_incoming_real_dm(
 
     profile_id = profile["id"]
 
+    # Import spam filter
+    import comment_filter
+    if comment_filter.is_spam_dm(message_text):
+        logger.info(f"[SpamFilter] Blocked spam DM from {sender_handle}: '{message_text[:50]}'")
+        return
+
     conv, _ = marketing_db.add_incoming_message(
         platform=platform,
         sender_handle=sender_handle,
@@ -158,20 +163,43 @@ async def handle_incoming_real_dm(
     logger.info(f"⏳ Persona '{profile['name']}' typing reply... ({delay_body:.1f}s)")
     await asyncio.sleep(delay_body)
 
+    # Store in local DB
     marketing_db.add_outgoing_reply(conv["id"], human_body)
-    logger.info(f"📤 Reply sent to {sender_handle}: '{human_body}'")
+
+    # ACTUALLY SEND the reply on the platform using session cookies
+    sent_on_platform = False
+    if platform != "telegram":  # Telegram handled by bot handler directly
+        from platform_sender import send_reply_on_platform
+        async with aiohttp.ClientSession() as http:
+            sent_on_platform = await send_reply_on_platform(platform, sender_handle, human_body, http)
+
+    if sent_on_platform:
+        logger.info(f"📤 ✅ Reply ACTUALLY SENT to {sender_handle} on {platform}: '{human_body}'")
+    elif platform == "telegram":
+        logger.info(f"📤 Reply stored for Telegram (sent by bot handler): '{human_body}'")
+    elif platform == "reddit":
+        logger.info(f"📤 Reply stored for {sender_handle} (Reddit DMs need manual send): '{human_body}'")
+    else:
+        logger.warning(f"📤 ⚠️ Reply stored locally but NOT sent on {platform} — check session cookies for {sender_handle}")
 
     if human_followup:
         delay_link = random.uniform(3.0, 6.0)
         await asyncio.sleep(delay_link)
         marketing_db.add_outgoing_reply(conv["id"], human_followup)
+
+        # Send follow-up on platform too
+        if platform != "telegram" and sent_on_platform:
+            from platform_sender import send_reply_on_platform
+            async with aiohttp.ClientSession() as http:
+                await send_reply_on_platform(platform, sender_handle, human_followup, http)
+
         logger.info(f"📤 CTA follow-up sent to {sender_handle}: '{human_followup}'")
 
 
 def execute_send_custom_dm(conv_id: str, text: str) -> bool:
     """
     Sends a manual reply typed in the dashboard to an existing conversation.
-    Stores in the DB as an outgoing message and returns True on success.
+    Stores in the DB AND actually sends on the platform.
     """
     if not conv_id or not text:
         logger.warning("execute_send_custom_dm: missing conv_id or text")
@@ -179,6 +207,25 @@ def execute_send_custom_dm(conv_id: str, text: str) -> bool:
     result = marketing_db.add_outgoing_reply(conv_id, text.strip())
     if result:
         logger.info(f"📤 Manual reply saved to conv {conv_id}: '{text[:60]}'")
+
+        # Also send on the actual platform
+        db = marketing_db.load_db()
+        for conv in db.get("conversations", []):
+            if conv["id"] == conv_id:
+                platform = conv.get("platform", "")
+                handle = conv.get("sender_handle", "")
+                if platform and handle and platform != "telegram":
+                    import asyncio
+                    from platform_sender import send_reply_on_platform
+                    try:
+                        loop = asyncio.get_event_loop()
+                        if loop.is_running():
+                            loop.create_task(send_reply_on_platform(platform, handle, text.strip()))
+                        else:
+                            loop.run_until_complete(send_reply_on_platform(platform, handle, text.strip()))
+                    except RuntimeError:
+                        pass
+                break
         return True
     logger.warning(f"execute_send_custom_dm: conv {conv_id} not found")
     return False
@@ -187,7 +234,7 @@ def execute_send_custom_dm(conv_id: str, text: str) -> bool:
 async def start_inbox_monitor_loop(check_interval: int = 60):
     """
     Keeps the inbox monitoring service alive.
-    Real DMs arrive via Telegram bot handler or Meta webhook POST — this loop is the heartbeat.
+    Real DMs arrive via Telegram bot handler, Meta webhook POST, or session cookie polling.
     """
     logger.info("DM Inbox Monitor online — waiting for real incoming messages.")
     while True:

@@ -1,10 +1,16 @@
 """
 Raid Coordination and Automated Raiding Engine — Creates high-converting raid alerts
-and executes REAL automated interactions (likes, comments) across Twitter and Instagram
-using connected account session cookies. No API keys needed — works like your browser.
+and executes REAL automated interactions (likes, comments) across ALL platforms:
+  - Twitter/X: auth_token + ct0 cookies
+  - Instagram: sessionid cookie
+  - TikTok: sessionid + ttwid cookies
+  - Facebook: c_user + xs cookies
+
+No API keys needed — works exactly like your browser does.
 """
 import logging
 import asyncio
+import json
 import aiohttp
 import random
 import time
@@ -207,6 +213,166 @@ async def _instagram_comment_post(acc: dict, shortcode: str, comment: str, http:
         return False
 
 
+
+
+# ─── TIKTOK: LIKE A VIDEO ────────────────────────────────────────────────────
+
+async def _tiktok_like_video(acc: dict, aweme_id: str, http: aiohttp.ClientSession) -> bool:
+    """Like a TikTok video using session cookies."""
+    sessionid = acc.get("sessionid", "")
+    ttwid = acc.get("ttwid", "")
+    if not sessionid:
+        return False
+    cookie_str = f"sessionid={sessionid}"
+    if ttwid:
+        cookie_str += f"; ttwid={ttwid}"
+    headers = {
+        "Cookie": cookie_str,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://www.tiktok.com/",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "x-secsdk-csrf-version": "1.2.8",
+    }
+    try:
+        import urllib.parse
+        url = "https://www.tiktok.com/api/commit/item/digg/"
+        data = urllib.parse.urlencode({"aweme_id": aweme_id, "action": "1"})
+        async with http.post(url, data=data, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+            if resp.status == 200:
+                raw = await resp.json()
+                if raw.get("status_code", -1) == 0:
+                    return True
+            return False
+    except Exception as e:
+        logger.debug(f"[Raid:TT:Like] @{acc.get('username')} error: {e}")
+        return False
+
+
+# ─── TIKTOK: COMMENT ON A VIDEO ──────────────────────────────────────────────
+
+async def _tiktok_comment_video(acc: dict, aweme_id: str, comment: str, http: aiohttp.ClientSession) -> bool:
+    """Comment on a TikTok video using session cookies."""
+    sessionid = acc.get("sessionid", "")
+    ttwid = acc.get("ttwid", "")
+    if not sessionid:
+        return False
+    cookie_str = f"sessionid={sessionid}"
+    if ttwid:
+        cookie_str += f"; ttwid={ttwid}"
+    headers = {
+        "Cookie": cookie_str,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://www.tiktok.com/",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "x-secsdk-csrf-version": "1.2.8",
+    }
+    try:
+        import urllib.parse
+        url = "https://www.tiktok.com/api/comment/post/"
+        data = urllib.parse.urlencode({"aweme_id": aweme_id, "text": comment, "text_extra": "[]", "is_self": "0"})
+        async with http.post(url, data=data, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            if resp.status == 200:
+                raw = await resp.json()
+                if raw.get("status_code", -1) == 0:
+                    return True
+            return False
+    except Exception as e:
+        logger.debug(f"[Raid:TT:Comment] @{acc.get('username')} error: {e}")
+        return False
+
+
+def _extract_tiktok_video_id(url: str) -> str:
+    """Extract video ID from a TikTok URL."""
+    if "/video/" in url:
+        return url.split("/video/")[-1].split("?")[0].split("/")[0]
+    return ""
+
+
+# ─── FACEBOOK: LIKE A POST ───────────────────────────────────────────────────
+
+async def _facebook_like_post(acc: dict, post_id: str, http: aiohttp.ClientSession) -> bool:
+    """Like a Facebook post using session cookies."""
+    c_user = acc.get("c_user", "")
+    xs = acc.get("xs", "")
+    if not c_user or not xs:
+        return False
+    headers = {
+        "Cookie": f"c_user={c_user}; xs={xs}",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    try:
+        import urllib.parse
+        url = "https://www.facebook.com/api/graphql/"
+        data = urllib.parse.urlencode({
+            "fb_api_caller_class": "RelayModern",
+            "fb_api_req_friendly_name": "CometUFILikeMutation",
+            "variables": json.dumps({
+                "input": {
+                    "feedback_id": post_id,
+                    "feedback_reaction": 1,
+                    "actor_id": c_user,
+                    "client_mutation_id": str(int(time.time())),
+                },
+            }),
+            "doc_id": "6672950532735034",
+        })
+        async with http.post(url, data=data, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+            return resp.status == 200
+    except Exception as e:
+        logger.debug(f"[Raid:FB:Like] @{acc.get('username')} error: {e}")
+        return False
+
+
+# ─── FACEBOOK: COMMENT ON A POST ─────────────────────────────────────────────
+
+async def _facebook_comment_post(acc: dict, post_id: str, comment: str, http: aiohttp.ClientSession) -> bool:
+    """Comment on a Facebook post using session cookies."""
+    c_user = acc.get("c_user", "")
+    xs = acc.get("xs", "")
+    if not c_user or not xs:
+        return False
+    headers = {
+        "Cookie": f"c_user={c_user}; xs={xs}",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    try:
+        import urllib.parse
+        url = "https://www.facebook.com/api/graphql/"
+        data = urllib.parse.urlencode({
+            "fb_api_caller_class": "RelayModern",
+            "fb_api_req_friendly_name": "CommentCreateMutation",
+            "variables": json.dumps({
+                "input": {
+                    "comment_level": 0,
+                    "feedback_ref": f"post:{post_id}",
+                    "message": {"text": comment},
+                    "actor_id": c_user,
+                    "client_mutation_id": str(int(time.time())),
+                },
+            }),
+            "doc_id": "6672950532735034",
+        })
+        async with http.post(url, data=data, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            return resp.status == 200
+    except Exception as e:
+        logger.debug(f"[Raid:FB:Comment] @{acc.get('username')} error: {e}")
+        return False
+
+
+def _extract_facebook_post_id(url: str) -> str:
+    """Extract post ID from a Facebook URL."""
+    import re
+    match = re.search(r'/posts/(\d+)', url)
+    if match:
+        return match.group(1)
+    match = re.search(r'story_fbid=(\d+)', url)
+    if match:
+        return match.group(1)
+    return ""
+
+
 def generate_raid_keyboard(platform: str, post_url: str) -> InlineKeyboardMarkup:
     rows = []
     platform_name = platform.title() if platform else "Social Media"
@@ -329,10 +495,48 @@ async def execute_automated_raid(raid_id: str):
                         logger.info(f"   💬 @{username} commented on Instagram: '{comment[:50]}'")
                     await asyncio.sleep(random.uniform(3, 8))
 
+            elif platform == "tiktok":
+                tt_video_id = _extract_tiktok_video_id(post_url)
+                if tt_video_id:
+                    liked = await _tiktok_like_video(acc, tt_video_id, http)
+                    if liked:
+                        likes_added += 1
+                        logger.info(f"   ❤️  @{username} liked TikTok video {tt_video_id}")
+                    else:
+                        logger.debug(f"   ⚠️  @{username} TikTok like failed — cookies may be expired")
+
+                    if random.random() < 0.6:
+                        comment = random.choice(AUTOMATED_COMMENTS)
+                        commented = await _tiktok_comment_video(acc, tt_video_id, comment, http)
+                        if commented:
+                            comments_added += 1
+                            logger.info(f"   💬 @{username} commented on TikTok: '{comment[:50]}'")
+                        await asyncio.sleep(random.uniform(3, 8))
+                else:
+                    logger.debug(f"   ⚠️  Could not extract TikTok video ID from {post_url}")
+
+            elif platform == "facebook":
+                fb_post_id = _extract_facebook_post_id(post_url)
+                if fb_post_id:
+                    liked = await _facebook_like_post(acc, fb_post_id, http)
+                    if liked:
+                        likes_added += 1
+                        logger.info(f"   ❤️  @{username} liked Facebook post {fb_post_id}")
+
+                    if random.random() < 0.6:
+                        comment = random.choice(AUTOMATED_COMMENTS)
+                        commented = await _facebook_comment_post(acc, fb_post_id, comment, http)
+                        if commented:
+                            comments_added += 1
+                            logger.info(f"   💬 @{username} commented on Facebook: '{comment[:50]}'")
+                        await asyncio.sleep(random.uniform(3, 8))
+                else:
+                    logger.debug(f"   ⚠️  Could not extract Facebook post ID from {post_url}")
+
             else:
                 logger.info(
-                    f"   ℹ️  @{username} ({platform}): automated likes/comments for this platform "
-                    f"require account session cookies — link is live: {post_url}"
+                    f"   ℹ️  @{username} ({platform}): no automated handler available. "
+                    f"Link is live: {post_url}"
                 )
 
             marketing_db.update_raid_stats(

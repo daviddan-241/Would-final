@@ -2,6 +2,9 @@
 AI Auto-Responder Agent — reads every new incoming DM and fires back an instant,
 personalised reply that matches the niche, builds rapport, and drops the funnel CTA.
 
+CRITICAL: Replies are ACTUALLY SENT back on the platform using session cookies.
+The person on Instagram/TikTok/Facebook/Twitter sees your reply. This is real.
+
 Priority order for generating replies:
   1. OpenAI GPT-4o (if openai_key in settings)
   2. Google Gemini (if gemini_key in settings)
@@ -11,6 +14,7 @@ The reply always:
   - Matches the tone/niche of the account that received the DM
   - Ends with the funnel link CTA for that account
   - Sounds human — no "As an AI..." language ever
+  - Is ACTUALLY SENT on the platform (not just stored locally)
 """
 import asyncio
 import aiohttp
@@ -170,8 +174,9 @@ async def start_ai_responder_loop(check_interval: int = 20):
     """
     Checks for new unanswered DMs every 20 seconds.
     Fires an AI-generated or template reply instantly.
+    ACTUALLY SENDS the reply back on the platform using session cookies.
     """
-    logger.info("[AI Responder] Online — auto-replying to all incoming DMs.")
+    logger.info("[AI Responder] Online — auto-replying to all incoming DMs and SENDING on platform.")
     connector = aiohttp.TCPConnector()
     async with aiohttp.ClientSession(connector=connector) as http:
         while True:
@@ -230,7 +235,26 @@ async def _check_and_reply(http: aiohttp.ClientSession):
             reply_text = _template_reply(niche, cta)
 
         if reply_text:
+            # Store in local DB
             marketing_db.add_outgoing_reply(conv_id, reply_text)
             _last_replied[conv_id] = now
-            logger.info(f"[AI Responder] 🤖→📬 Auto-replied to {conv.get('sender_handle','?')} ({niche}): '{reply_text[:60]}'")
+
+            # ACTUALLY SEND on the platform using session cookies
+            platform = conv.get("platform", "")
+            sender_handle = conv.get("sender_handle", "")
+
+            sent_on_platform = False
+            if platform and sender_handle and platform not in ("telegram", "reddit"):
+                from platform_sender import send_reply_on_platform
+                sent_on_platform = await send_reply_on_platform(platform, sender_handle, reply_text, http)
+
+            if sent_on_platform:
+                logger.info(f"[AI Responder] 🤖→📬✅ AUTO-REPLY SENT to {sender_handle} on {platform} ({niche}): '{reply_text[:60]}'")
+            elif platform == "telegram":
+                logger.info(f"[AI Responder] 🤖→📬 Reply stored for Telegram bot handler: '{reply_text[:60]}'")
+            elif platform == "reddit":
+                logger.info(f"[AI Responder] 🤖→📬 Reply stored for {sender_handle} (Reddit needs manual): '{reply_text[:60]}'")
+            else:
+                logger.warning(f"[AI Responder] 🤖→⚠️ Reply stored locally but NOT sent on {platform} — check session cookies for {sender_handle}")
+
             await asyncio.sleep(2)  # Brief delay between replies to look human
