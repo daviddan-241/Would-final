@@ -1,95 +1,174 @@
 # 🚀 Telegram Coin Scanner & Cross-Platform SMM Raid Engine (Verizon Suite)
 
-An advanced, enterprise-grade Telegram Coin Scanner Bot tightly integrated with a **Cross-Platform Social Media Marketing (SMM) Auto-Posting, Mirroring, Ad Scheduling, and Community/Automated Raid Engine**. 
+An advanced, enterprise-grade Telegram Coin Scanner Bot tightly integrated with a **Cross-Platform Social Media Marketing (SMM) Auto-Posting, Comment Scraping, Mirroring, Ad Scheduling, and Community/Automated Raid Engine**. 
 
-It scans DexScreener, GeckoTerminal, Pump.fun, and trending pools every 15 seconds for brand-new tokens with valid Telegram links, while simultaneously running automated campaigns across **Twitter (X), TikTok, Instagram, and Facebook**.
+It scans DexScreener, GeckoTerminal, Pump.fun, and trending pools every 15 seconds for brand-new tokens with valid Telegram links, while simultaneously running automated campaigns across **Twitter (X), TikTok, Instagram, and Facebook** — including **searching posts in your niche and dropping comments to attract DMs**.
 
 ---
 
-## 🌟 Key Upgraded Features
+## 🌟 Key Features
 
 ### 1. 🔍 Token Scanner
-- Scans `Pump.fun`, `DexScreener`, `GeckoTerminal`, and extra sources.
-- Uses **strict validation** on Telegram links to filters out scam redirect links.
+- Scans `Pump.fun`, `DexScreener`, `GeckoTerminal`, and extra sources every 15 seconds.
+- Uses **strict validation** on Telegram links to filter out scam redirect links.
 - Uses SQLite/Local DB cache to guarantee zero double-posting.
 
-### 2. 🔄 Target Account Mirroring & Cloning
-- **Cross-Platform Mirroring**: Monitors successful targets/influencers on X/Twitter, Instagram, TikTok, and Facebook.
-- **AI Rewriting Engine**: Uses **OpenAI GPT** or **Google Gemini** APIs to dynamically rewrite cloned posts in customizable tones (Bullish, Hype, Professional, Casual) to look 100% natural and "all real".
-- **Local Fallback**: Features a rich rule-based synonym & slang rewriter if no API keys are provided.
-- **Auto Broadcast**: Immediately broadcasts rewritten posts to your Telegram group or your linked automated accounts.
+### 2. 🔄 Cross-Platform Comment Scraping & Outreach (NEW!)
+The outreach agent now runs **full auto-pilot comment scraping** across ALL platforms:
 
-### 3. ⚡ Multi-Platform Raid Coordinator
-- **Raid Alerts**: Instantly triggers community raids via Telegram with beautiful layout alerts.
-- **Community Deep Links**: Generates direct one-click quick action buttons (**Like**, **Repost**, **Comment**) so your group members can raid with maximum efficiency.
-- **Automated Raiders Fleet**: Configures a fleet of automated accounts (Self-Bots) with rotating proxies to automatically like, comment, and repost behind the scenes to pump engagement safely and naturally.
+- **Twitter / X**: Searches niche keywords → finds recent tweets → drops engaging comments → people DM you
+- **Instagram**: Searches hashtags & user profiles → finds posts → drops niche-relevant comments → attracts DMs
+- **TikTok**: Searches trending videos in your niche → drops natural-looking comments → drives DMs to your inbox
+- **Facebook**: Searches public posts matching your niche → comments with engaging text → attracts leads
 
-### 4. 📣 Automated Ad Scheduler
-- Schedule recurring promotional banners and text advertisements.
-- Set customizable intervals (e.g., every 30 minutes) to automatically broadcast to Telegram groups, Twitter channels, and other platforms.
+**How it works:**
+1. You add your account session cookies in the dashboard (F12 → Application → Cookies)
+2. The agent auto-searches posts in your niche every 30 minutes
+3. It drops natural, human-sounding comments on relevant posts
+4. People see your comment → visit your profile → DM you
+5. The AI Responder auto-replies to every DM with your CTA link
+6. You get real DMs in your inbox — fully automated
 
-### 5. 💻 Gorgeous Web Admin Control Panel
-- Features a responsive modern **Dark-Mode Web Dashboard** hosted directly on your service port (e.g. `10000`).
-- **Interactive Graphs & Live Log Stream**: Track active raids, scheduled ads, cloned targets, and connected accounts with real-time updates.
-- **Full Form Controllers**: Manage targets, schedule new ads, register fleet accounts, view progress bars, and adjust AI parameters instantly from any browser.
+### 3. 🛡️ Spam & Bot Filtering
+- **Bot username detection** — filters out generated/bot accounts before engaging
+- **Spam DM detection** — blocks scam messages, "airdrop claim", "send crypto" etc.
+- **Quality target filtering** — only engages with real, active accounts
+- **Niche-specific comments** — comments match the platform and topic naturally
+
+### 4. 📱 Session Cookie DM Agent
+Reads **real DMs** from your connected accounts using browser session cookies — **no paid API needed**:
+- **Twitter/X**: auth_token + ct0 cookies
+- **Instagram**: sessionid cookie
+- **TikTok**: sessionid + ttwid cookies
+- **Facebook**: c_user + xs cookies
+
+### 5. 🤖 AI Auto-Responder
+Automatically replies to every incoming DM using:
+1. **OpenAI GPT** (if API key provided)
+2. **Google Gemini** (if API key provided)
+3. **Smart niche templates** (always available, no key needed)
+
+Replies sound 100% human, match the niche tone, and always include your CTA link.
+
+### 6. 🔄 Target Account Mirroring
+- Monitors target influencers on X, Instagram, TikTok, and Facebook.
+- AI rewrites cloned posts in customizable tones (Bullish, Hype, Professional, Casual).
+- Auto-broadcasts rewritten content to your Telegram group.
+
+### 7. ⚡ Multi-Platform Raid Coordinator
+- Instantly triggers community raids via Telegram with action buttons.
+- Generates deep links (Like, Repost, Comment) for one-click raiding.
+- Connected accounts auto-like and comment using session cookies.
+
+### 8. 📣 Ad Scheduler
+- Schedule recurring ads to Telegram, Twitter, Instagram, or all platforms.
+- Connected accounts auto-post at your configured interval.
+
+### 9. 💻 Web Admin Dashboard
+- Responsive dark-mode dashboard on your service port (default: `10000`).
+- **Unified Inbox**: see all DMs from all platforms in one place, reply directly
+- **Account Fleet Manager**: add session cookies for Twitter, IG, TikTok, Facebook
+- **Growth Campaign Manager**: set up niche targeting, view real analytics
+- **Live SSE updates**: new messages appear in real-time
 
 ---
 
-## 🛠️ Web Dashboard Preview
+## 🛠️ Setup & Deployment
 
-When running, open your web browser and navigate to:
+### Free Hosting Options
+
+**Option 1: Render.com (Recommended — Free Tier)**
+1. Fork this repo to your GitHub
+2. Go to [render.com](https://render.com) → New → Web Service
+3. Connect your GitHub repo
+4. Set Runtime to **Docker**
+5. Add environment variables (see below)
+6. Deploy — free tier gives you 750 hours/month
+
+**Option 2: Railway.app (Free Trial)**
+1. Go to [railway.app](https://railway.app)
+2. New Project → Deploy from GitHub
+3. Add env vars → Deploy
+
+**Option 3: Koyeb.com (Free Tier)**
+1. Go to [koyeb.com](https://koyeb.com)
+2. Create App → Docker → connect repo
+3. Add env vars → Deploy
+
+**Option 4: Your own VPS (cheapest long-term)**
+```bash
+git clone https://github.com/YOUR_USERNAME/Would-final.git
+cd Would-final
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env with your tokens
+python bot.py
 ```
-http://localhost:10000
-```
-*(Or your deployed domain name e.g. `https://your-service.onrender.com`)*
 
-You will gain access to the **SMM Command Center**:
-- **Account Mirroring Panel**: Set up profiles to clone.
-- **Raid Campaign Launchpad**: Enter any post link to trigger automated & community raids.
-- **Ad Scheduler Grid**: Manage active promotional campaigns.
-- **Self-Bot Fleet Manager**: Add account cookies, session tokens, and configure **Rotating Proxies** to prevent shadow-bans.
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TELEGRAM_BOT_TOKEN` | Yes | From @BotFather on Telegram |
+| `TELEGRAM_CHAT_ID` | Yes | Your Telegram group ID (e.g. `-100...`) |
+| `PORT` | No | Web dashboard port (default: `5000`) |
+| `OPENAI_API_KEY` | No | For AI-powered auto-replies |
+| `GEMINI_API_KEY` | No | Alternative AI for auto-replies |
+| `SCAN_INTERVAL` | No | Token scan interval in seconds (default: `15`) |
+
+### How to Get Session Cookies (30 seconds per platform)
+
+1. Open your browser, log into your account
+2. Press **F12** → **Application** tab → **Cookies**
+3. Copy these values:
+
+| Platform | Cookies Needed |
+|----------|---------------|
+| **Twitter/X** | `auth_token` + `ct0` |
+| **Instagram** | `sessionid` |
+| **TikTok** | `sessionid` + `ttwid` |
+| **Facebook** | `c_user` + `xs` |
+
+4. Paste them into the Account Fleet in the web dashboard
+5. Check "Enable outreach posts" — the agent starts immediately
 
 ---
 
-## 🤖 Enhanced Telegram Bot Commands
+## 🤖 Telegram Bot Commands
 
-Send `/start` to the bot inside your group to see available controls:
-
-### 📡 Core Scans
-- `/start` — View main scanner options and information.
-- `/status` — Get high-fidelity stats on scanner performance and active SMM metrics.
-- `/scan` — Triggers an immediate manual coin scan.
-- `/clear` — Empties the seen-token database cache.
-
-### 🔥 SMM & Raids
-- `/raid [url] [optional_caption]` — Instantly detonates a community raid for the pasted X, Instagram, Facebook, or TikTok URL. Generates action deep-links.
-- `/mirror [platform] [handle]` — Sets up automatic crawling, AI-rewriting, and cloning of a target influencer.
-- `/schedule_ad [interval_minutes] [text]` — Schedules a recurring ad that automatically broadcasts to the group at your chosen interval.
-- `/accounts` — Displays health and registration status of your connected automated account fleet.
+| Command | Description |
+|---------|-------------|
+| `/start` | View available commands |
+| `/status` | System health & SMM stats |
+| `/scan` | Manual token scan |
+| `/raid [url] [caption]` | Launch a community raid |
+| `/mirror [platform] [handle]` | Clone & rewrite content |
+| `/schedule_ad [min] [text]` | Schedule recurring ads |
+| `/accounts` | Show connected account fleet |
 
 ---
 
-## 🚀 Deployment Instructions
+## 📊 What Happens When You Add Session Cookies
 
-### Option A: Deploy on Render (Background Worker / Web Service)
-1. Create a **Web Service** (not Background Worker, so the web dashboard is accessible!) on Render.
-2. Connect your cloned GitHub repository.
-3. Set the runtime environment to **Docker** (using the pre-configured `Dockerfile` included).
-4. Add your Environment Variables:
-   - `TELEGRAM_BOT_TOKEN` — Gotten from `@BotFather`
-   - `TELEGRAM_CHAT_ID` — Your group ID (e.g. `-100...`)
-   - `OPENAI_API_KEY` or `GEMINI_API_KEY` *(Optional)* — For AI-powered post rewriting.
-   - `PORT` — Set to `10000`
+1. **Every 60s**: DM Agent polls your account for new incoming DMs → AI auto-replies
+2. **Every 30 min**: Outreach Agent:
+   - Posts niche content (Twitter, Instagram)
+   - Searches for posts in your niche (Twitter + IG + TikTok + FB)
+   - Drops 2-3 natural comments per platform per cycle
+   - Sends 1 proactive DM per cycle
+   - Filters spam/bots before engaging
+3. **Every 20s**: AI Responder checks for unreplied DMs → instant personalized reply
+4. **Every 90s**: Growth Engine scrapes Reddit for real humans in your niche → injects as leads
+5. **Real-time**: Web dashboard shows all activity via SSE (no page refresh needed)
 
-### Option B: Local Running
-1. Clone the repository and navigate into the folder:
-   ```bash
-   pip install -r requirements.txt
-   cp .env.example .env
-   ```
-2. Edit `.env` with your bot token and chat ID.
-3. Run the application:
-   ```bash
-   python bot.py
-   ```
-4. Open `http://localhost:10000` to access your admin dashboard!
+---
+
+## 🔒 All Real — No Fake Data
+
+Every component uses real APIs, real session cookies, and real network requests:
+- Token scanners hit live DexScreener/GeckoTerminal/Pump.fun APIs
+- DM agent reads real inbox messages via session cookies
+- Outreach agent posts real comments on real posts
+- AI responder generates contextual replies (not canned responses)
+- Analytics are computed from actual conversation data (starts at zero)
+- Growth engine finds real humans on Reddit (not bots)
