@@ -94,26 +94,17 @@ if ('serviceWorker' in navigator) {
   /* TOGGLE */
   .toggle-wrap { position: relative; display: inline-block; width: 44px; height: 24px; }
   .toggle-wrap input { opacity: 0; width: 0; height: 0; }
-  .slider {
-    position: absolute; inset: 0;
-    background: var(--surface2);
-    border-radius: 24px;
-    cursor: pointer;
-    transition: .3s;
+  .toggle-wrap .slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--surface2); transition: .3s; border-radius: 24px;
     border: 1px solid var(--border);
   }
-  .slider::before {
-    content: '';
-    position: absolute;
-    left: 3px; top: 50%;
-    transform: translateY(-50%);
-    width: 18px; height: 18px;
-    background: var(--muted);
-    border-radius: 50%;
-    transition: .3s;
+  .toggle-wrap .slider:before {
+    position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+    background-color: var(--text); transition: .3s; border-radius: 50%;
   }
-  input:checked + .slider { background: var(--accent); border-color: var(--accent); }
-  input:checked + .slider::before { transform: translateX(20px) translateY(-50%); background: #fff; }
+  .toggle-wrap input:checked + .slider { background-color: var(--accent); }
+  .toggle-wrap input:checked + .slider:before { transform: translateX(20px); }
 
   /* INPUT */
   .inp {
@@ -949,6 +940,39 @@ if ('serviceWorker' in navigator) {
       <p style="color:var(--muted);">Log in to the platform in Chrome → press F12 → find 2 cookie values → paste them in the Account Fleet. Done. The system does everything else automatically.</p>
     </div>
 
+    <!-- Mobile iOS Key Recovery -->
+    <div style="background:#6c63ff15;border:1px solid #6c63ff40;border-radius:10px;padding:12px;">
+      <div style="color:var(--accent);font-weight:900;margin-bottom:6px;font-size:12px;display:flex;align-items:center;gap:6px;"><i class="fa-brands fa-apple" style="font-size:14px;"></i> 📱 On iPhone & iOS Safari Mobile</div>
+      <p style="color:var(--text);font-weight:700;margin-bottom:4px;">No computer needed! Get cookies directly on iOS Safari:</p>
+      <div style="display:flex;flex-direction:column;gap:8px;color:var(--muted);margin-bottom:10px;">
+        <div style="display:flex;gap:6px;align-items:flex-start;">
+          <span style="background:var(--accent);color:#fff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;flex-shrink:0;margin-top:2px;">1</span>
+          <span>Tap the <strong style="color:var(--accent)">Orange Box below</strong> to copy the iOS Cookie Recovery script.</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-start;">
+          <span style="background:var(--accent);color:#fff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;flex-shrink:0;margin-top:2px;">2</span>
+          <span>Open Safari, bookmark <strong>any random webpage</strong>, and name it "Get Cookies".</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-start;">
+          <span style="background:var(--accent);color:#fff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;flex-shrink:0;margin-top:2px;">3</span>
+          <span>Edit that bookmark, <strong>delete the URL completely</strong>, and paste the code you copied.</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-start;">
+          <span style="background:var(--accent);color:#fff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;flex-shrink:0;margin-top:2px;">4</span>
+          <span>Now go to <strong style="color:var(--text)">instagram.com, tiktok.com, x.com, or facebook.com</strong> and log in.</span>
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-start;">
+          <span style="background:var(--accent);color:#fff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;flex-shrink:0;margin-top:2px;">5</span>
+          <span>Open your bookmarks and tap <strong>"Get Cookies"</strong>. A prompt with your precise login keys will appear on your phone screen! Copy them instantly.</span>
+        </div>
+      </div>
+      <div onclick="navigator.clipboard&&navigator.clipboard.writeText(this.dataset.val).then(()=>showToast('Bookmarklet copied!'))" data-val="javascript:(function(){var r={};document.cookie.split(';').forEach(function(c){var p=c.indexOf('=');if(p>0){var k=c.substr(0,p).trim(),v=c.substr(p+1).trim();r[k]=v;}});var keys=['auth_token','ct0','sessionid','ttwid','ds_user_id','c_user','xs'];var found=keys.filter(function(k){return r[k];}).map(function(k){return k+'='+r[k];}).join('\n\n');if(found){alert('📲 COPY YOUR LOGINS:\n\n'+found);}else{alert('❌ No active session found. Make sure you are logged in on this webpage first!');}})();" style="background:var(--surface);border:1.5px dashed var(--accent);border-radius:10px;padding:12px;font-size:11px;font-family:monospace;color:var(--accent);word-break:break-all;cursor:pointer;line-height:1.4;text-align:center;">
+        <i class="fa-solid fa-copy" style="font-size:14px;margin-bottom:4px;display:block;"></i>
+        <strong>TAP HERE TO COPY SAFARI BOOKMARKLET</strong>
+        <div style="margin-top:4px;font-size:9px;color:var(--muted);">Add as Safari URL to read cookies on mobile instantly</div>
+      </div>
+    </div>
+
     <!-- Twitter -->
     <div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
@@ -1038,16 +1062,6 @@ if ('serviceWorker' in navigator) {
           <span style="background:#1877f2;color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;">3</span>
           <span style="color:var(--muted);">Copy <code style="background:var(--surface);padding:1px 6px;border-radius:4px;color:var(--accent);">c_user</code> → Cookie 1 &nbsp;|&nbsp; Copy <code style="background:var(--surface);padding:1px 6px;border-radius:4px;color:var(--accent);">xs</code> → Cookie 2</span>
         </div>
-      </div>
-    </div>
-
-    <!-- On iPhone -->
-    <div style="background:#ffa34d15;border:1px solid #ffa34d40;border-radius:10px;padding:12px;">
-      <div style="color:var(--orange);font-weight:900;margin-bottom:6px;font-size:11px;">📱 On iPhone — use this bookmarklet</div>
-      <p style="color:var(--muted);margin-bottom:8px;">Create a bookmark in Safari with this as the URL. Open the site, tap the bookmark, and it shows your cookies.</p>
-      <div onclick="navigator.clipboard&&navigator.clipboard.writeText(this.dataset.val).then(()=>showToast('Bookmarklet copied!'))" data-val="javascript:(function(){var r={};document.cookie.split(';').forEach(function(c){var p=c.indexOf('=');if(p>0){var k=c.substr(0,p).trim(),v=c.substr(p+1).trim();r[k]=v;}});var keys=['auth_token','ct0','sessionid','ttwid','ds_user_id','c_user','xs'];var found=keys.filter(function(k){return r[k];}).map(function(k){return k+': '+r[k];}).join('\n');prompt('Your cookies:',found||JSON.stringify(r).substr(0,500));})();" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:9px;font-family:monospace;color:var(--orange);word-break:break-all;cursor:pointer;line-height:1.4;">
-        javascript:(tap to copy &amp; bookmark in Safari)
-        <div style="margin-top:4px;font-size:9px;color:var(--accent);">Tap this box to copy the bookmarklet</div>
       </div>
     </div>
 
@@ -1190,6 +1204,13 @@ async function refresh() {
   if (document.getElementById('ai-style')) {
     document.getElementById('ai-style').value = data.settings?.rewrite_style || 'bullish_crypto_enthusiast';
   }
+
+  // Set webhooks
+  const hostUrl = window.location.origin;
+  const mwu = document.getElementById('meta-webhook-url');
+  const twu = document.getElementById('tiktok-webhook-url');
+  if (mwu) mwu.textContent = hostUrl + '/api/webhooks/incoming';
+  if (twu) twu.textContent = hostUrl + '/api/webhooks/tiktok';
 
   // Proxies
   document.getElementById('proxy-list').value = (data.settings?.proxy_list||[]).join('\n');
@@ -2031,13 +2052,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Slower fallback poll (SSE handles real-time; this catches edge cases)
   setInterval(refresh, 30000);
   addLog('Verizon Suite online. All engines active.', '#6c63ff');
-
-  // Show webhook URLs in settings
-  const host = window.location.origin;
-  const mwu = document.getElementById('meta-webhook-url');
-  const twu = document.getElementById('tiktok-webhook-url');
-  if (mwu) mwu.textContent = host + '/api/webhooks/incoming';
-  if (twu) twu.textContent = host + '/api/webhooks/tiktok';
 });
 </script>
 </body>
