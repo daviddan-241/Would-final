@@ -171,7 +171,7 @@ async def handle_incoming_real_dm(
     if platform != "telegram":  # Telegram handled by bot handler directly
         from platform_sender import send_reply_on_platform
         async with aiohttp.ClientSession() as http:
-            sent_on_platform = await send_reply_on_platform(platform, sender_handle, human_body, http)
+            sent_on_platform = await send_reply_on_platform(platform, sender_handle, human_body, http, profile_id=profile_id)
 
     if sent_on_platform:
         logger.info(f"📤 ✅ Reply ACTUALLY SENT to {sender_handle} on {platform}: '{human_body}'")
@@ -191,7 +191,7 @@ async def handle_incoming_real_dm(
         if platform != "telegram" and sent_on_platform:
             from platform_sender import send_reply_on_platform
             async with aiohttp.ClientSession() as http:
-                await send_reply_on_platform(platform, sender_handle, human_followup, http)
+                await send_reply_on_platform(platform, sender_handle, human_followup, http, profile_id=profile_id)
 
         logger.info(f"📤 CTA follow-up sent to {sender_handle}: '{human_followup}'")
 
@@ -214,15 +214,16 @@ def execute_send_custom_dm(conv_id: str, text: str) -> bool:
             if conv["id"] == conv_id:
                 platform = conv.get("platform", "")
                 handle = conv.get("sender_handle", "")
+                conv_profile_id = conv.get("profile_id", "")
                 if platform and handle and platform != "telegram":
                     import asyncio
                     from platform_sender import send_reply_on_platform
                     try:
                         loop = asyncio.get_event_loop()
                         if loop.is_running():
-                            loop.create_task(send_reply_on_platform(platform, handle, text.strip()))
+                            loop.create_task(send_reply_on_platform(platform, handle, text.strip(), profile_id=conv_profile_id))
                         else:
-                            loop.run_until_complete(send_reply_on_platform(platform, handle, text.strip()))
+                            loop.run_until_complete(send_reply_on_platform(platform, handle, text.strip(), profile_id=conv_profile_id))
                     except RuntimeError:
                         pass
                 break

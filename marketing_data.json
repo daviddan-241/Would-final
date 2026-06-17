@@ -1,62 +1,18 @@
 {
-  "profiles": [
-    {
-      "id": "prof_1780863863452",
-      "name": "Sophie rain",
-      "niche": "celeb",
-      "bio": "Love",
-      "cta_link": "https://t.me/Sophie_Raiin09",
-      "ai_tone": "hype",
-      "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Sophie%20rain",
-      "active": true,
-      "tg_bot_token": "",
-      "tg_chat_id": ""
-    }
-  ],
+  "profiles": [],
   "targets": [],
   "ads": [],
   "accounts": [],
-  "raids": [
-    {
-      "id": "raid_1780863899855",
-      "platform": "facebook",
-      "url": "https://t.me/Sophie_Raiin09",
-      "caption": "",
-      "target_likes": 100,
-      "current_likes": 20,
-      "target_comments": 20,
-      "current_comments": 12,
-      "status": "Completed",
-      "created_at": 1780863899.8557758
-    }
-  ],
+  "raids": [],
   "conversations": [],
   "messages": {},
   "auto_replies": [],
-  "growth_campaigns": [
-    {
-      "id": "camp_1780820329798",
-      "niche": "solana",
-      "keywords": [
-        "solana",
-        "meme",
-        "$sol",
-        "moonshot"
-      ],
-      "cta_link": "https://t.me/your_project_portal",
-      "platform": "all",
-      "status": "Active",
-      "impressions_generated": 10689,
-      "clicks_generated": 971,
-      "leads_captured": 150,
-      "created_at": 1780820329.7983615
-    }
-  ],
+  "growth_campaigns": [],
   "analytics": {
-    "impressions": 35189,
-    "clicks": 2791,
-    "leads": 562,
-    "conversion_rate": 20.1,
+    "impressions": 0,
+    "clicks": 0,
+    "leads": 0,
+    "conversion_rate": 0.0,
     "total_conversations": 0,
     "total_messages": 0,
     "incoming": 0,

@@ -1,7 +1,6 @@
 # 🆓 Free Hosting Guide — Run Everything 24/7 for $0
 
 This bot needs **always-on** hosting because it runs background loops 24/7:
-- Token scanner every 15s
 - DM polling every 60s  
 - AI auto-reply every 20s
 - Outreach (comments/DMs) every 30min
@@ -169,7 +168,6 @@ If the service sleeps, ALL loops stop. Here are the **best free options ranked**
 | **Every 30min** | Searches niche posts → drops 2-3 comments per platform |
 | **Every 30min** | Sends 1 proactive DM per account |
 | **Every 90s** | Scrapes Reddit for real leads in your niche |
-| **Every 15s** | Scans new tokens (Pump.fun, DexScreener, etc.) |
 | **Every 60s** | Posts scheduled ads if any are configured |
 | **Real-time** | Dashboard shows everything via live updates |
 

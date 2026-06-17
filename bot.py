@@ -1,6 +1,6 @@
 """
-Telegram Coin Scanner & SMM Raid Engine Bot
-Fresh coins only + Multi-Platform Auto-Post, Mirroring, Ad Scheduling & Auto-Raid Engine.
+SMM Raid Engine & SMM Marketing Bot (Verizon Suite)
+Multi-Platform Auto-Post, Mirroring, Ad Scheduling & Auto-Raid Engine.
 """
 import logging
 import asyncio
@@ -11,18 +11,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 
 import config
 from server import start_health_server
-from formatter import format_caption, build_keyboard
-from scanners.base import TokenInfo
-from scanners.dexscreener import scan_dexscreener
-from scanners.geckoterminal import scan_geckoterminal
-from scanners.pumpfun import scan_pumpfun
-from scanners.birdeye import scan_extra_sources
-import seen_db
 
 logger = logging.getLogger(__name__)
-
-scan_count = 0
-total_posted = 0
 
 
 # --- SMM Telegram Handlers ---
@@ -195,18 +185,15 @@ async def accounts_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
 
-# --- Core Scanner Handlers ---
+# --- Core Command Handlers ---
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cid = update.effective_chat.id
     await update.message.reply_text(
-        f"🤖 <b>Coin Scanner & SMM Master Bot</b>\n\n"
+        f"🤖 <b>SMM Master Bot (Verizon Suite)</b>\n\n"
         f"Group/Chat ID: <code>{cid}</code>\n\n"
-        "🟢 <b>Scanner Commands:</b>\n"
-        "/status — View system health\n"
-        "/scan — Perform manual coin check\n"
-        "/stats — View scan counters\n"
-        "/clear — Empty coin database cache\n\n"
+        "🟢 <b>Core Commands:</b>\n"
+        "/status — View system health\n\n"
         "🔥 <b>SMM & Marketing Commands:</b>\n"
         "/raid <code>[url] [caption]</code> — Detonate multi-platform raid\n"
         "/mirror <code>[platform] [handle]</code> — Clone & rewrite content\n"
@@ -226,9 +213,6 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"📊 <b>System status report:</b>\n\n"
-        f"⏱ <b>Coin Scan Interval:</b> {config.SCAN_INTERVAL}s\n"
-        f"📁 <b>Cached Tokens:</b> {seen_db.seen_count()}\n"
-        f"📈 <b>Token Scans:</b> {scan_count} | Posted: {total_posted}\n\n"
         f"🎯 <b>SMM Marketing Engine:</b>\n"
         f"• Clone targets: <b>{targets_count}</b>\n"
         f"• Connected automated accounts: <b>{accounts_count}</b>\n"
@@ -238,131 +222,7 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        f"📈 Scans: {scan_count} | Posted: {total_posted} | Cached: {seen_db.seen_count()}")
-
-
-async def clear_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    c = seen_db.seen_count()
-    seen_db.clear_all()
-    await update.message.reply_text(f"🧹 Cleared {c} tokens.")
-
-
-async def manual_scan_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔍 Scanning...")
-    count = await run_scan_cycle(context.bot)
-    await update.message.reply_text(f"✅ Found {count} new tokens.")
-
-
-async def send_token(bot: Bot, token: TokenInfo) -> bool:
-    """Send token as photo + caption + inline buttons."""
-    caption = format_caption(token)
-    keyboard = build_keyboard(token)
-
-    # Try photo
-    if token.image_url:
-        try:
-            await bot.send_photo(
-                chat_id=config.TELEGRAM_CHAT_ID,
-                photo=token.image_url, caption=caption,
-                parse_mode=ParseMode.HTML, reply_markup=keyboard,
-            )
-            return True
-        except:
-            pass
-
-    # Fallback: text
-    try:
-        await bot.send_message(
-            chat_id=config.TELEGRAM_CHAT_ID,
-            text=caption, parse_mode=ParseMode.HTML,
-            reply_markup=keyboard, disable_web_page_preview=True,
-        )
-        return True
-    except Exception as e:
-        logger.error(f"Send failed for {token.name}: {e}")
-        return False
-
-
-async def run_scan_cycle(bot: Bot) -> int:
-    global scan_count, total_posted
-    scan_count += 1
-
-    all_tokens: list[TokenInfo] = []
-
-    async with aiohttp.ClientSession() as session:
-        tasks = []
-        if config.ENABLE_PUMPFUN:
-            tasks.append(scan_pumpfun(session))
-        if config.ENABLE_DEXSCREENER:
-            tasks.append(scan_dexscreener(session))
-        if config.ENABLE_GECKOTERMINAL:
-            tasks.append(scan_geckoterminal(session))
-        tasks.append(scan_extra_sources(session))
-
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        for r in results:
-            if isinstance(r, list):
-                all_tokens.extend(r)
-            elif isinstance(r, Exception):
-                logger.error(f"Scanner error: {r}")
-
-    # Dedup by contract address within this cycle
-    unique: dict[str, TokenInfo] = {}
-    for token in all_tokens:
-        addr = token.contract_address.lower()
-        if addr not in unique:
-            unique[addr] = token
-
-    # Filter already-posted (by address, TG link, AND name+symbol)
-    new_tokens = []
-    for addr, token in unique.items():
-        if not seen_db.is_seen(addr, token.telegram_link, token.name, token.symbol):
-            new_tokens.append(token)
-
-    # Post
-    posted = 0
-    for token in new_tokens:
-        ok = await send_token(bot, token)
-        if ok:
-            seen_db.mark_seen(token.contract_address, token.telegram_link, token.name, token.symbol)
-            posted += 1
-            total_posted += 1
-            logger.info(f"✅ {token.name} (${token.symbol}) [{token.chain}] {token.telegram_link}")
-        await asyncio.sleep(2)
-
-    return posted
-
-
-async def periodic_scan(bot: Bot):
-    logger.info(f"Scanner started — every {config.SCAN_INTERVAL}s")
-    try:
-        await bot.send_message(
-            chat_id=config.TELEGRAM_CHAT_ID,
-            text="🤖 <b>Coin Scanner Started</b>\n\n"
-                 f"⏱ Every {config.SCAN_INTERVAL}s\n"
-                 "📡 Pump.fun + DexScreener + GeckoTerminal\n"
-                 "🔗 Fresh coins with Telegram links only",
-            parse_mode=ParseMode.HTML,
-        )
-    except Exception as e:
-        logger.error(f"Startup msg error: {e}")
-
-    while True:
-        try:
-            count = await run_scan_cycle(bot)
-            if count > 0:
-                logger.info(f"Cycle #{scan_count}: {count} new")
-        except Exception as e:
-            logger.error(f"Cycle error: {e}")
-        await asyncio.sleep(config.SCAN_INTERVAL)
-
-
 async def post_init(app: Application):
-    # Start the core token scanner loop
-    asyncio.create_task(periodic_scan(app.bot))
-    
     # Start the SMM automated marketing & cloning engine
     from engine_coordinator import start_all_smm_services
     start_all_smm_services(app.bot)
@@ -385,19 +245,16 @@ def main():
 
     # Start Health check & fully interactive Admin Dashboard Server
     start_health_server()
-    print("🚀 Starting SMM-Upgraded Coin Scanner Bot...")
+    print("🚀 Starting SMM-Upgraded Bot...")
 
     # Start Telegram bot polling ONLY if tokens are provided
     if config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID:
-        print("🤖 Initializing Telegram Coin Scanner...")
+        print("🤖 Initializing Telegram SMM Bot...")
         app = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
         
         # Core commands
         app.add_handler(CommandHandler("start", start_command))
         app.add_handler(CommandHandler("status", status_command))
-        app.add_handler(CommandHandler("scan", manual_scan_command))
-        app.add_handler(CommandHandler("stats", stats_command))
-        app.add_handler(CommandHandler("clear", clear_command))
         
         # SMM commands
         app.add_handler(CommandHandler("mirror", mirror_command))
@@ -412,14 +269,13 @@ def main():
         app.run_polling(drop_pending_updates=True)
     else:
         print("⚠️ TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing!")
-        print("💡 The Telegram Coin Scanner will remain inactive, but the SMM Marketing Engines, DMs Inbox, and Web Dashboard are fully operational on port 5000.")
+        print("💡 The Telegram SMM Bot will remain inactive, but the SMM Marketing Engines, DMs Inbox, and Web Dashboard are fully operational on port 5000.")
         
         # Start background SMM services directly in a clean active asyncio loop
         try:
             asyncio.run(start_smm_offline())
         except KeyboardInterrupt:
             pass
-
 
 
 if __name__ == "__main__":

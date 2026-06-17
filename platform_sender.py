@@ -21,9 +21,9 @@ import marketing_db
 logger = logging.getLogger("platform_sender")
 
 
-def _get_account_for_platform(platform: str, sender_handle: str = "") -> dict | None:
+def _get_account_for_platform(platform: str, profile_id: str = "") -> dict | None:
     """
-    Finds the best matching account for a platform.
+    Finds the best matching account for a platform, optionally filtered by profile_id (persona).
     Returns the account dict with session cookies, or None if not available.
     """
     accounts = marketing_db.get_accounts()
@@ -32,6 +32,10 @@ def _get_account_for_platform(platform: str, sender_handle: str = "") -> dict | 
         if a.get("platform") == platform
         and a.get("status", "Active") not in ("Expired — re-paste cookies", "Disabled")
     ]
+    if profile_id:
+        # Filter for this specific persona to ensure separation
+        platform_accounts = [a for a in platform_accounts if a.get("profile_id") == profile_id]
+
     if not platform_accounts:
         return None
     # Prefer accounts with outreach enabled (they're the active ones)
@@ -41,14 +45,14 @@ def _get_account_for_platform(platform: str, sender_handle: str = "") -> dict | 
 
 # ─── SEND DM ON TWITTER/X ────────────────────────────────────────────────────
 
-async def send_twitter_dm(recipient_username: str, text: str, http: aiohttp.ClientSession = None) -> bool:
+async def send_twitter_dm(recipient_username: str, text: str, http: aiohttp.ClientSession = None, profile_id: str = "") -> bool:
     """
     Sends a real DM on Twitter/X using session cookies (auth_token + ct0).
     First resolves the recipient's user ID, then sends the DM.
     """
-    acc = _get_account_for_platform("twitter")
+    acc = _get_account_for_platform("twitter", profile_id)
     if not acc:
-        logger.debug("[PlatformSender:Twitter] No Twitter account configured")
+        logger.debug(f"[PlatformSender:Twitter] No Twitter account configured for profile {profile_id}")
         return False
 
     auth_token = acc.get("auth_token", "")
@@ -104,14 +108,14 @@ async def send_twitter_dm(recipient_username: str, text: str, http: aiohttp.Clie
 
 # ─── SEND DM ON INSTAGRAM ────────────────────────────────────────────────────
 
-async def send_instagram_dm(recipient_username: str, text: str, http: aiohttp.ClientSession = None) -> bool:
+async def send_instagram_dm(recipient_username: str, text: str, http: aiohttp.ClientSession = None, profile_id: str = "") -> bool:
     """
     Sends a real DM on Instagram using sessionid cookie.
     First resolves the recipient's user ID via their username, then sends the DM.
     """
-    acc = _get_account_for_platform("instagram")
+    acc = _get_account_for_platform("instagram", profile_id)
     if not acc:
-        logger.debug("[PlatformSender:Instagram] No Instagram account configured")
+        logger.debug(f"[PlatformSender:Instagram] No Instagram account configured for profile {profile_id}")
         return False
 
     sessionid = acc.get("sessionid", "")
@@ -173,13 +177,13 @@ async def send_instagram_dm(recipient_username: str, text: str, http: aiohttp.Cl
 
 # ─── SEND DM ON TIKTOK ───────────────────────────────────────────────────────
 
-async def send_tiktok_dm(recipient_username: str, text: str, http: aiohttp.ClientSession = None) -> bool:
+async def send_tiktok_dm(recipient_username: str, text: str, http: aiohttp.ClientSession = None, profile_id: str = "") -> bool:
     """
     Sends a real DM on TikTok using sessionid + ttwid cookies.
     """
-    acc = _get_account_for_platform("tiktok")
+    acc = _get_account_for_platform("tiktok", profile_id)
     if not acc:
-        logger.debug("[PlatformSender:TikTok] No TikTok account configured")
+        logger.debug(f"[PlatformSender:TikTok] No TikTok account configured for profile {profile_id}")
         return False
 
     sessionid = acc.get("sessionid", "")
@@ -243,13 +247,13 @@ async def send_tiktok_dm(recipient_username: str, text: str, http: aiohttp.Clien
 
 # ─── SEND DM ON FACEBOOK ─────────────────────────────────────────────────────
 
-async def send_facebook_dm(recipient_name: str, text: str, http: aiohttp.ClientSession = None) -> bool:
+async def send_facebook_dm(recipient_name: str, text: str, http: aiohttp.ClientSession = None, profile_id: str = "") -> bool:
     """
     Sends a real DM on Facebook Messenger using c_user + xs cookies.
     """
-    acc = _get_account_for_platform("facebook")
+    acc = _get_account_for_platform("facebook", profile_id)
     if not acc:
-        logger.debug("[PlatformSender:Facebook] No Facebook account configured")
+        logger.debug(f"[PlatformSender:Facebook] No Facebook account configured for profile {profile_id}")
         return False
 
     c_user = acc.get("c_user", "")
@@ -301,7 +305,7 @@ async def send_facebook_dm(recipient_name: str, text: str, http: aiohttp.ClientS
 
 # ─── UNIFIED SEND ─────────────────────────────────────────────────────────────
 
-async def send_reply_on_platform(platform: str, recipient_handle: str, text: str, http: aiohttp.ClientSession = None) -> bool:
+async def send_reply_on_platform(platform: str, recipient_handle: str, text: str, http: aiohttp.ClientSession = None, profile_id: str = "") -> bool:
     """
     Sends a DM reply on the correct platform using session cookies.
     This is the key function that makes auto-replies REAL.
@@ -321,13 +325,13 @@ async def send_reply_on_platform(platform: str, recipient_handle: str, text: str
             return False  # Don't DM ourselves
 
     if platform in ("twitter", "x"):
-        return await send_twitter_dm(recipient_handle, text, http)
+        return await send_twitter_dm(recipient_handle, text, http, profile_id)
     elif platform == "instagram":
-        return await send_instagram_dm(recipient_handle, text, http)
+        return await send_instagram_dm(recipient_handle, text, http, profile_id)
     elif platform == "tiktok":
-        return await send_tiktok_dm(recipient_handle, text, http)
+        return await send_tiktok_dm(recipient_handle, text, http, profile_id)
     elif platform == "facebook":
-        return await send_facebook_dm(recipient_handle, text, http)
+        return await send_facebook_dm(recipient_handle, text, http, profile_id)
     elif platform == "telegram":
         # Telegram DMs are handled by the bot handler — no session cookies needed
         return True

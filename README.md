@@ -1,20 +1,15 @@
-# 🚀 Telegram Coin Scanner & Cross-Platform SMM Raid Engine (Verizon Suite)
+# 🚀 Cross-Platform SMM Raid Engine (Verizon Suite)
 
-An advanced, enterprise-grade Telegram Coin Scanner Bot tightly integrated with a **Cross-Platform Social Media Marketing (SMM) Auto-Posting, Comment Scraping, Mirroring, Ad Scheduling, and Community/Automated Raid Engine**. 
+An advanced, enterprise-grade Cross-Platform Social Media Marketing (SMM) Auto-Posting, Comment Scraping, Mirroring, Ad Scheduling, and Community/Automated Raid Engine.
 
-It scans DexScreener, GeckoTerminal, Pump.fun, and trending pools every 15 seconds for brand-new tokens with valid Telegram links, while simultaneously running automated campaigns across **Twitter (X), TikTok, Instagram, and Facebook** — including **searching posts in your niche and dropping comments to attract DMs**.
+It runs automated SMM campaigns across **Twitter (X), TikTok, Instagram, and Facebook** — including **searching posts in your niche and dropping comments to attract DMs**, with a integrated Telegram Bot for remote commands, notifications, and alerts.
 
 ---
 
 ## 🌟 Key Features
 
-### 1. 🔍 Token Scanner
-- Scans `Pump.fun`, `DexScreener`, `GeckoTerminal`, and extra sources every 15 seconds.
-- Uses **strict validation** on Telegram links to filter out scam redirect links.
-- Uses SQLite/Local DB cache to guarantee zero double-posting.
-
-### 2. 🔄 Cross-Platform Comment Scraping & Outreach (NEW!)
-The outreach agent now runs **full auto-pilot comment scraping** across ALL platforms:
+### 1. 🔄 Cross-Platform Comment Scraping & Outreach (NEW!)
+The outreach agent runs **full auto-pilot comment scraping** across ALL platforms:
 
 - **Twitter / X**: Searches niche keywords → finds recent tweets → drops engaging comments → people DM you
 - **Instagram**: Searches hashtags & user profiles → finds posts → drops niche-relevant comments → attracts DMs
@@ -29,20 +24,20 @@ The outreach agent now runs **full auto-pilot comment scraping** across ALL plat
 5. The AI Responder auto-replies to every DM with your CTA link
 6. You get real DMs in your inbox — fully automated
 
-### 3. 🛡️ Spam & Bot Filtering
+### 2. 🛡️ Spam & Bot Filtering
 - **Bot username detection** — filters out generated/bot accounts before engaging
 - **Spam DM detection** — blocks scam messages, "airdrop claim", "send crypto" etc.
 - **Quality target filtering** — only engages with real, active accounts
 - **Niche-specific comments** — comments match the platform and topic naturally
 
-### 4. 📱 Session Cookie DM Agent
+### 3. 📱 Session Cookie DM Agent
 Reads **real DMs** from your connected accounts using browser session cookies — **no paid API needed**:
 - **Twitter/X**: auth_token + ct0 cookies
 - **Instagram**: sessionid cookie
 - **TikTok**: sessionid + ttwid cookies
 - **Facebook**: c_user + xs cookies
 
-### 5. 🤖 AI Auto-Responder
+### 4. 🤖 AI Auto-Responder
 Automatically replies to every incoming DM using:
 1. **OpenAI GPT** (if API key provided)
 2. **Google Gemini** (if API key provided)
@@ -50,21 +45,21 @@ Automatically replies to every incoming DM using:
 
 Replies sound 100% human, match the niche tone, and always include your CTA link.
 
-### 6. 🔄 Target Account Mirroring
+### 5. 🔄 Target Account Mirroring
 - Monitors target influencers on X, Instagram, TikTok, and Facebook.
 - AI rewrites cloned posts in customizable tones (Bullish, Hype, Professional, Casual).
 - Auto-broadcasts rewritten content to your Telegram group.
 
-### 7. ⚡ Multi-Platform Raid Coordinator
+### 6. ⚡ Multi-Platform Raid Coordinator
 - Instantly triggers community raids via Telegram with action buttons.
 - Generates deep links (Like, Repost, Comment) for one-click raiding.
 - Connected accounts auto-like and comment using session cookies.
 
-### 8. 📣 Ad Scheduler
+### 7. 📣 Ad Scheduler
 - Schedule recurring ads to Telegram, Twitter, Instagram, or all platforms.
 - Connected accounts auto-post at your configured interval.
 
-### 9. 💻 Web Admin Dashboard
+### 8. 💻 Web Admin Dashboard
 - Responsive dark-mode dashboard on your service port (default: `10000`).
 - **Unified Inbox**: see all DMs from all platforms in one place, reply directly
 - **Account Fleet Manager**: add session cookies for Twitter, IG, TikTok, Facebook
@@ -114,7 +109,6 @@ python bot.py
 | `PORT` | No | Web dashboard port (default: `5000`) |
 | `OPENAI_API_KEY` | No | For AI-powered auto-replies |
 | `GEMINI_API_KEY` | No | Alternative AI for auto-replies |
-| `SCAN_INTERVAL` | No | Token scan interval in seconds (default: `15`) |
 
 ### How to Get Session Cookies (30 seconds per platform)
 
@@ -140,7 +134,6 @@ python bot.py
 |---------|-------------|
 | `/start` | View available commands |
 | `/status` | System health & SMM stats |
-| `/scan` | Manual token scan |
 | `/raid [url] [caption]` | Launch a community raid |
 | `/mirror [platform] [handle]` | Clone & rewrite content |
 | `/schedule_ad [min] [text]` | Schedule recurring ads |
@@ -166,7 +159,6 @@ python bot.py
 ## 🔒 All Real — No Fake Data
 
 Every component uses real APIs, real session cookies, and real network requests:
-- Token scanners hit live DexScreener/GeckoTerminal/Pump.fun APIs
 - DM agent reads real inbox messages via session cookies
 - Outreach agent posts real comments on real posts
 - AI responder generates contextual replies (not canned responses)
